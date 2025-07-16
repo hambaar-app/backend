@@ -1,3 +1,4 @@
 export enum CookieNames {
-  SessionId = 'session-id'
+  SessionId = 'session-id',
+  AccessToken = 'access-token'
 }

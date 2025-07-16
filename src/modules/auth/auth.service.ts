@@ -6,6 +6,7 @@ import { Keyv } from '@keyv/redis';
 import { CheckOtpDto } from './dto/check-otp.dto';
 import { ConfigService } from '@nestjs/config';
 import { AuthMessages } from 'src/common/enums/messages.enum';
+import { TokenService } from './token.service';
 
 @Injectable()
 export class AuthService {
@@ -14,8 +15,9 @@ export class AuthService {
   private otpCacheTime: number;
 
   constructor(
+    private tokenService: TokenService,
     @Inject(CACHE_MANAGER) cacheManager: Cache,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.cacheManager = cacheManager.stores[1];
     this.otpExpireTime = config.get<number>('OTP_EXPIRE_TIME', 120_000);
@@ -35,11 +37,7 @@ export class AuthService {
     return result;
   }
 
-  async checkOtp({
-    phoneNumber,
-    code,
-    role
-  }: CheckOtpDto) {
+  async checkOtp({ phoneNumber, code }: CheckOtpDto): Promise<{ accessToken: string }> {
     const userKey = this.getUserKey(phoneNumber);
     const userData = await this.cacheManager.get(userKey);
 
@@ -49,7 +47,10 @@ export class AuthService {
     const now = Date.now();
     if (now > userData.expiresIn) throw new UnauthorizedException(AuthMessages.OtpExpired);
 
-    return true;
+    const payload = { phoneNumber };
+    return {
+      accessToken: this.tokenService['generateAccessToken'](payload)
+    };
   }
 
   private getUserKey(phoneNumber: string): string {
