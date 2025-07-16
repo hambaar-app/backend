@@ -7,9 +7,10 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
 import { APP_PIPE } from '@nestjs/core';
 import { createClient } from 'redis';
-import session from 'express-session';
+import * as session from 'express-session';
+import * as cookieParser from 'cookie-parser';
 import { RedisStore } from 'connect-redis';
-import cookieParser from 'cookie-parser';
+import { CookieNames } from 'src/common/enums/cookies.enum';
 
 @Module({
   imports: [
@@ -21,11 +22,12 @@ import cookieParser from 'cookie-parser';
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => {
-        return {
-          stores: [createKeyv(config.getOrThrow<string>('REDIS_URL'))]
-        };
-      },
+      useFactory: (config: ConfigService) => ({
+        stores: [
+          createKeyv(config.getOrThrow<string>('REDIS_URL')),
+          createKeyv(config.getOrThrow<string>('OTP_REDIS_URL')),
+        ]
+      })
     }),
   ],
   controllers: [AppController],
@@ -46,19 +48,19 @@ export class AppModule {
 
   async configure(consumer: MiddlewareConsumer) {
     const redisClient = await createClient({
-      url: this.config.getOrThrow<string>('REDIS_URL')
+      url: this.config.getOrThrow<string>('SESSION_REDIS_URL')
     }).connect();
 
     consumer
       .apply(
         session({
-          // name: CookieNames.SessionId,
+          name: CookieNames.SessionId,
           secret: this.config.getOrThrow<string>('SESSION_SECRET'),
           resave: false,
           saveUninitialized: false,
           store: new RedisStore({
             client: redisClient,
-            prefix: 'sess'
+            prefix: 'user-session'
           }),
           cookie: {
             httpOnly: true,
