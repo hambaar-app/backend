@@ -11,6 +11,7 @@ import * as session from 'express-session';
 import * as cookieParser from 'cookie-parser';
 import { RedisStore } from 'connect-redis';
 import { CookieNames } from 'src/common/enums/cookies.enum';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { CookieNames } from 'src/common/enums/cookies.enum';
         ]
       })
     }),
+    AuthModule
   ],
   controllers: [AppController],
   providers: [
