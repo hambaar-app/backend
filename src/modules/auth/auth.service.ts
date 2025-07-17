@@ -6,7 +6,7 @@ import { Keyv } from '@keyv/redis';
 import { CheckOtpDto } from './dto/check-otp.dto';
 import { ConfigService } from '@nestjs/config';
 import { AuthMessages } from 'src/common/enums/messages.enum';
-import { TokenService } from './token.service';
+import { TokenService } from '../token/token.service';
 
 @Injectable()
 export class AuthService {
