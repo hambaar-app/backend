@@ -36,9 +36,7 @@ export class AuthService {
     const otp = {
       code: generateOTP(),
       expiresIn: Date.now() + this.otpExpireTime
-    };
-    console.log(otp);
-    
+    };    
     const result = await this.cacheManager.set(userKey, { otp }, this.otpCacheTime);
 
     // call otp service method.
