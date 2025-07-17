@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { AuthMessages } from 'src/common/enums/messages.enum';
 
@@ -10,7 +10,6 @@ export class TokenService {
   private tempSecretKey: string;
   private authSecretKey: string;
 
-  
   constructor(
     config: ConfigService,
   ) {
@@ -19,21 +18,21 @@ export class TokenService {
     this.authSecretKey = config.getOrThrow<string>('JWT_AUTH_SECRET_KEY');
   }
 
-  private generateToken(payload: JwtPayload, token: string , { expiresIn }: jwt.SignOptions) {
+  private generateToken(payload: jwt.JwtPayload, token: string , { expiresIn }: jwt.SignOptions) {
     return jwt.sign(payload, token, { expiresIn });
   }
 
-  private generateAccessToken(payload: JwtPayload) {
+  private generateAccessToken(payload: jwt.JwtPayload) {
     const accessSecretKey = this.accessSecretKey
     return this.generateToken(payload, accessSecretKey, { expiresIn: '20d' });
   }
 
-  private generateTempToken(payload: JwtPayload) {
+  private generateTempToken(payload: jwt.JwtPayload) {
     const tempSecretKey = this.tempSecretKey
     return this.generateToken(payload, tempSecretKey, { expiresIn: '10m' });
   }
 
-  private generateAuthToken(payload: JwtPayload) {
+  private generateAuthToken(payload: jwt.JwtPayload) {
     const authSecretKey = this.authSecretKey
     return this.generateToken(payload, authSecretKey, { expiresIn: '1d' });
   }
@@ -59,7 +58,7 @@ export class TokenService {
           break;
       }
 
-      return jwt.verify(token, secretKey) as JwtPayload;
+      return jwt.verify(token, secretKey) as jwt.JwtPayload;
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new UnauthorizedException(AuthMessages.TokenExpired);

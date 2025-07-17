@@ -9,6 +9,8 @@ import { AuthMessages } from 'src/common/enums/messages.enum';
 import { TokenService } from '../token/token.service';
 import { UserService } from '../user/user.service';
 import { AuthTokens } from 'src/common/enums/auth.enum';
+import { PrismaService } from '../prisma/prisma.service';
+import { SignupSenderDto } from './dto/signup-sender.dto';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +22,7 @@ export class AuthService {
     private tokenService: TokenService,
     private userService: UserService,
     @Inject(CACHE_MANAGER) cacheManager: Cache,
+    private prisma: PrismaService,
     config: ConfigService,
   ) {
     this.cacheManager = cacheManager.stores[1];
@@ -33,6 +36,8 @@ export class AuthService {
       code: Math.floor(Math.random() * 100_000),
       expiresIn: Date.now() + this.otpExpireTime
     };
+    console.log(otp);
+    
     const result = await this.cacheManager.set(userKey, { otp }, this.otpCacheTime);
 
     // call otp service method.
@@ -46,11 +51,11 @@ export class AuthService {
     const userKey = this.getUserKey(phoneNumber);
     const userData = await this.cacheManager.get(userKey);
 
-    if (!userData?.otp) throw new UnauthorizedException(AuthMessages.OtpExpired);
-    if (userData.code !== code) throw new UnauthorizedException(AuthMessages.OtpInvalid);
+    if (!userData?.otp) throw new UnauthorizedException(AuthMessages.OtpExpired);    
+    if (userData?.otp?.code !== code) throw new UnauthorizedException(AuthMessages.OtpInvalid);
 
     const now = Date.now();
-    if (now > userData.expiresIn) throw new UnauthorizedException(AuthMessages.OtpExpired);
+    if (now > userData.otp.expiresIn) throw new UnauthorizedException(AuthMessages.OtpExpired);
 
     const user = await this.userService.findByPhoneNumber(phoneNumber);
 
@@ -73,5 +78,27 @@ export class AuthService {
 
   private getUserKey(phoneNumber: string): string {
     return `otp:user:${phoneNumber}`;
+  }
+
+  async signupSender(senderDto: SignupSenderDto) {
+    const user = await this.prisma.user.create({
+      data: {
+        ...senderDto,
+        phoneVerifiedAt: new Date()
+      }
+    }).catch((error: Error) => {
+      // if (error instanceof)
+      throw error;
+    });
+
+    const payload = {
+      phoneNumber: user.phoneNumber
+    };
+    const accessToken = this.tokenService['generateAccessToken'](payload);
+
+    return {
+      user,
+      accessToken
+    };
   }
 }
