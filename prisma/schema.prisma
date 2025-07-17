@@ -7,3 +7,510 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum RolesEnum {
+  sender
+  admin
+  support
+
+  @@map("roles_enum")
+}
+
+enum GendersEnum {
+  male
+  female
+  others
+
+  @@map("genders_enum")
+}
+
+enum LicenseTypeEnum {
+  grade_one
+  grade_two
+  grade_three
+  motorcycle
+
+  @@map("license_type_enum")
+}
+
+enum VerificationStatusEnum {
+  pending
+  verified
+  rejected
+  suspended
+
+  @@map("verification_status_enum")
+}
+
+enum VehicleTypeEnum {
+  car
+  motorcycle
+  bicycle
+  bus
+  pickup_truck
+  truck
+  van
+
+  @@map("vehicle_type_enum")
+}
+
+enum PackageStatusEnum {
+  created
+  searching_transporter
+  matched
+  picked_up
+  in_transit
+  delivered
+  cancelled
+  returned
+
+  @@map("package_status_enum")
+}
+
+enum TripTypeEnum {
+  intracity
+  intercity
+
+  @@map("trip_type_enum")
+}
+
+enum TripStatusEnum {
+  scheduled
+  active
+  delayed
+  completed
+
+  @@map("trip_status_enum")
+}
+
+enum RequestStatusEnum {
+  pending
+  accepted
+  canceled
+  deleted
+
+  @@map("request_status_enum")
+}
+
+enum MatchStatusEnum {
+  confirmed
+  in_progress
+  completed
+  cancelled_by_sender
+  cancelled_by_transporter
+  cancelled_by_system
+  dispute
+
+  @@map("match_status_enum")
+}
+
+enum PaymentStatusEnum {
+  pending
+  escrowed
+  released
+
+  @@map("payment_status_enum")
+}
+
+enum TransactionTypeEnum {
+  deposit
+  withdrawal
+
+  @@map("transaction_type_enum")
+}
+
+model User {
+  id              String       @id @default(uuid()) @db.Uuid
+  firstName       String?      @map("first_name") @db.VarChar
+  lastName        String?      @map("last_name") @db.VarChar
+  gender          GendersEnum?
+  phoneNumber     String       @unique @map("phone_number") @db.VarChar
+  phoneVerifiedAt DateTime?    @map("phone_verified_at") @db.Timestamp
+  email           String?      @unique @db.VarChar
+  emailVerifiedAt DateTime?    @map("email_verified_at") @db.Timestamp
+  birthDate       DateTime?    @map("birth_date") @db.Date
+  role            RolesEnum    @default(sender)
+  isActive        Boolean      @default(true) @map("is_active")
+
+  // Relations
+  transporter     Transporter?
+  vehicles        Vehicle[]
+  packages        Package[]
+  addresses       Address[]
+  wallet          Wallet?
+  matchedRequests MatchedRequest[] @relation("SenderMatches")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("users")
+}
+
+model Transporter {
+  id                       String           @id @default(uuid()) @db.Uuid
+  userId                   String           @unique @map("user_id") @db.Uuid
+  nationalId               String?          @unique @map("national_id") @db.VarChar
+  nationalIdStatusId       String?          @map("national_id_status_id") @db.Uuid
+  nationalIdDocumentUrl    String?          @map("national_id_document_url") @db.VarChar
+  driverLicenseNumber      String?          @map("driver_license_number") @db.VarChar
+  driverLicenseStatusId    String?          @map("driver_license_status_id") @db.Uuid
+  driverLicenseDocumentUrl String?          @map("driver_license_document_url") @db.VarChar
+  licenseType              LicenseTypeEnum? @map("license_type")
+  licenseExpiryDate        DateTime?        @map("license_expiry_date") @db.Date
+  verificationStatusId     String?          @map("verification_status_id") @db.Uuid
+  profilePictureUrl        String?          @map("profile_picture_url") @db.VarChar
+  bio                      String?          @db.Text
+
+  // Relations
+  user                User                @relation(fields: [userId], references: [id])
+  trips               Trip[]
+  achievements        Achievement[]
+  matchedRequests     MatchedRequest[]    @relation("TransporterMatches")
+  nationalIdStatus    VerificationStatus? @relation("NationalIdStatus", fields: [nationalIdStatusId], references: [id])
+  driverLicenseStatus VerificationStatus? @relation("DriverLicenseStatus", fields: [driverLicenseStatusId], references: [id])
+  verificationStatus  VerificationStatus? @relation("TransporterVerification", fields: [verificationStatusId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("transporters")
+}
+
+model VerificationStatus {
+  id          String                 @id @default(uuid()) @db.Uuid
+  status      VerificationStatusEnum @default(pending)
+  description String?                @db.Text
+  verifiedAt  DateTime?              @map("verified_at") @db.Timestamp
+
+  // Relations
+  transporterNationalId    Transporter[] @relation("NationalIdStatus")
+  transporterDriverLicense Transporter[] @relation("DriverLicenseStatus")
+  transporterVerification  Transporter[] @relation("TransporterVerification")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("verification_status")
+}
+
+model Vehicle {
+  id                            String                 @id @default(uuid()) @db.Uuid
+  ownerId                       String                 @map("owner_id") @db.Uuid
+  vin                           String?                @unique @db.VarChar
+  vehicleLicensePlate           String                 @unique @map("vehicle_license_plate") @db.VarChar
+  vehicleCardNumber             String?                @map("vehicle_card_number") @db.VarChar
+  greenCardNumber               String?                @unique @map("green_card_number") @db.VarChar
+  vehicleType                   VehicleTypeEnum        @map("vehicle_type")
+  brandId                       String?                @map("brand_id") @db.Uuid
+  modelId                       String?                @map("model_id") @db.Uuid
+  manufactureYear               Int?                   @map("manufacture_year")
+  color                         String?                @db.VarChar
+  technicalInspectionDate       DateTime?              @map("technical_inspection_date") @db.Date
+  technicalInspectionExpiryDate DateTime?              @map("technical_inspection_expiry_date") @db.Date
+  insuranceNumber               String?                @map("insurance_number") @db.VarChar
+  insuranceExpiryDate           DateTime?              @map("insurance_expiry_date") @db.Date
+  maxWeightCapacity             Float?                 @map("max_weight_capacity") // in kg
+  isActive                      Boolean                @default(true) @map("is_active")
+  verificationStatus            VerificationStatusEnum @default(pending) @map("verification_status")
+  verificationDocuments         Json?                  @map("verification_documents") @db.JsonB
+
+  // Relations
+  trips Trip[]
+  owner User          @relation(fields: [ownerId], references: [id])
+  brand VehicleBrand? @relation(fields: [brandId], references: [id])
+  model VehicleModel? @relation(fields: [modelId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("vehicles")
+}
+
+model VehicleBrand {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar
+
+  // Relations
+  vehicles Vehicle[]
+  models   VehicleModel[]
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("vehicle_brands")
+}
+
+model VehicleModel {
+  id      String @id @default(uuid()) @db.Uuid
+  brandId String @map("brand_id") @db.Uuid
+  model   String @db.VarChar
+
+  // Relations
+  vehicles Vehicle[]
+  brand    VehicleBrand @relation(fields: [brandId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@unique([brandId, model])
+  @@map("vehicle_models")
+}
+
+model Address {
+  id            String  @id @default(uuid()) @db.Uuid
+  userId        String  @map("user_id") @db.Uuid
+  title         String? @db.VarChar
+  country       String  @default("Iran") @db.VarChar
+  province      String? @db.VarChar
+  city          String? @db.VarChar
+  street        String? @db.VarChar
+  houseNumber   Int?    @map("house_number")
+  postalCode    String? @map("postal_code") @db.VarChar
+  latitude      Float?
+  longitude     Float?
+  details       String? @db.Text
+  isHighlighted Boolean @default(true) @map("is_highlighted")
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id])
+  packagesOrigin      Package[] @relation("OriginAddress")
+  packagesDestination Package[] @relation("DestinationAddress")
+  tripsOrigin         Trip[]    @relation("TripOrigin")
+  tripsDestination    Trip[]    @relation("TripDestination")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("addresses")
+}
+
+model PackageRecipient {
+  id            String  @id @default(uuid()) @db.Uuid
+  fullName      String  @map("full_name") @db.VarChar
+  phoneNumber   String  @map("phone_number") @db.VarChar
+  isHighlighted Boolean @default(true) @map("is_highlighted")
+
+  // Relations
+  packages Package[]
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("package_recipients")
+}
+
+model Package {
+  id                    String            @id @default(uuid()) @db.Uuid
+  senderId              String            @map("sender_id") @db.Uuid
+  itemsDescription      String?           @map("items_description") @db.Text
+  originAddressId       String            @map("origin_address_id") @db.Uuid
+  destinationAddressId  String            @map("destination_address_id") @db.Uuid
+  weight                Float? // in kg
+  dimensions            String?           @db.VarChar // in cm and "LxWxH" format
+  suggestedPrice        Int?              @map("suggested_price") // IRR
+  finalPrice            Int?              @map("final_price") // IRR
+  shippingStatus        PackageStatusEnum @default(created) @map("shipping_status")
+  packageValue          Int?              @map("package_value") // cost
+  isFragile             Boolean?          @map("is_fragile")
+  isPerishable          Boolean?          @map("is_perishable")
+  description           String?           @db.Text
+  recipientId           String            @map("recipient_id") @db.Uuid
+  pickupAtOrigin        Boolean?          @map("pickup_at_origin")
+  deliveryAtOrigin      Boolean?          @map("delivery_at_origin")
+  preferredPickupTime   DateTime?         @map("preferred_pickup_time") @db.Timestamp
+  preferredDeliveryTime DateTime?         @map("preferred_delivery_time") @db.Timestamp
+
+  // Relations
+  deliveryRequests   DeliveryRequest[] @relation("SenderRequests")
+  matchedRequest     MatchedRequest?
+  sender             User              @relation(fields: [senderId], references: [id])
+  originAddress      Address           @relation("OriginAddress", fields: [originAddressId], references: [id])
+  destinationAddress Address           @relation("DestinationAddress", fields: [destinationAddressId], references: [id])
+  recipient          PackageRecipient  @relation(fields: [recipientId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("packages")
+}
+
+model Trip {
+  id                  String         @id @default(uuid()) @db.Uuid
+  transporterId       String         @map("transporter_id") @db.Uuid
+  originId            String         @map("origin_id") @db.Uuid
+  destinationId       String         @map("destination_id") @db.Uuid
+  tripType            TripTypeEnum   @map("trip_type")
+  vehicleId           String         @map("vehicle_id") @db.Uuid
+  maxPackageWeight    Float?         @map("max_package_weight") // in kg
+  availableCapacityKg Float?         @map("available_capacity_kg") // in kg
+  restrictedItems     String?        @map("restricted_items") @db.Text
+  departureTime       DateTime       @map("departure_time") @db.Timestamp
+  tripStatus          TripStatusEnum @default(scheduled) @map("trip_status")
+  description         String?        @db.Text
+  isActive            Boolean?       @map("is_active")
+
+  // Relations
+  waypoints        TripWaypoint[]
+  deliveryRequests DeliveryRequest[] @relation("TransporterRequests")
+  matchedRequests  MatchedRequest[]
+  transporter      Transporter       @relation(fields: [transporterId], references: [id])
+  origin           Address           @relation("TripOrigin", fields: [originId], references: [id])
+  destination      Address           @relation("TripDestination", fields: [destinationId], references: [id])
+  vehicle          Vehicle           @relation(fields: [vehicleId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("trips")
+}
+
+model TripWaypoint {
+  id            String  @id @default(uuid()) @db.Uuid
+  tripId        String  @map("trip_id") @db.Uuid
+  sequenceOrder Int     @map("sequence_order")
+  province      String? @db.VarChar
+  city          String? @db.VarChar
+
+  // Relations
+  trip Trip @relation(fields: [tripId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("trip_waypoints")
+}
+
+model DeliveryRequest {
+  id                String             @id @default(uuid()) @db.Uuid
+  packageId         String             @map("package_id") @db.Uuid
+  tripId            String             @map("trip_id") @db.Uuid
+  offeredPrice      Int?               @map("offered_price") // shipping_cost - commission (%)
+  estimatedOvertime Int                @default(0) @map("estimated_overtime") // minutes
+  senderNotes       String?            @map("sender_notes") @db.Text
+  status            RequestStatusEnum?
+
+  // Relations
+  package        Package         @relation("SenderRequests", fields: [packageId], references: [id])
+  trip           Trip            @relation("TransporterRequests", fields: [tripId], references: [id])
+  matchedRequest MatchedRequest?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("delivery_requests")
+}
+
+model MatchedRequest {
+  id                 String            @id @default(uuid()) @db.Uuid
+  requestId          String            @unique @map("request_id") @db.Uuid
+  packageId          String            @unique @map("package_id") @db.Uuid
+  tripId             String            @map("trip_id") @db.Uuid
+  senderId           String            @map("sender_id") @db.Uuid
+  transporterId      String            @map("transporter_id") @db.Uuid
+  trackingCode       String?           @map("tracking_code") @db.VarChar // 20-digits (Auto generated)
+  receiptCode        String?           @map("receipt_code") @db.VarChar // 6-digits (Auto generated)
+  comment            String?           @map("comment") @db.Text
+  senderRating       Int?              @map("sender_rating") // 1-5
+  isCompleted        Boolean           @default(false) @map("is_completed")
+  pickupTime         DateTime?         @map("pickup_time") @db.Timestamp
+  deliveryTime       DateTime?         @map("delivery_time") @db.Timestamp
+  matchStatus        MatchStatusEnum   @default(confirmed) @map("match_status")
+  paymentStatus      PaymentStatusEnum @default(pending) @map("payment_status")
+  cancellationReason String?           @map("cancellation_reason") @db.Text
+  cancelledBy        RolesEnum?        @map("cancelled_by")
+
+  // Relations
+  request         DeliveryRequest  @relation(fields: [requestId], references: [id])
+  package         Package          @relation(fields: [packageId], references: [id])
+  trip            Trip             @relation(fields: [tripId], references: [id])
+  sender          User             @relation("SenderMatches", fields: [senderId], references: [id])
+  transporter     Transporter      @relation("TransporterMatches", fields: [transporterId], references: [id])
+  trackingUpdates TrackingUpdate[]
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("matched_requests")
+}
+
+model Wallet {
+  id          String  @id @default(uuid()) @db.Uuid
+  userId      String  @unique @map("user_id") @db.Uuid
+  balance     BigInt  @default(0)
+  totalEarned BigInt  @default(0) @map("total_earned")
+  totalSpent  BigInt  @default(0) @map("total_spent")
+  isActive    Boolean @default(true) @map("is_active")
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id              String              @id @default(uuid()) @db.Uuid
+  walletId        String              @map("wallet_id") @db.Uuid
+  transactionType TransactionTypeEnum @map("transaction_type")
+  amount          BigInt
+  balanceBefore   BigInt              @map("balance_before")
+  reason          String?             @db.VarChar
+
+  // Relations
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("transactions")
+}
+
+model Achievement {
+  id        String @id @default(uuid()) @db.Uuid
+  profileId String @map("profile_id") @db.Uuid
+  name      String @db.VarChar // based on comments (Auto generated)
+
+  // Relations
+  profile Transporter @relation(fields: [profileId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("achievements")
+}
+
+model TrackingUpdate {
+  id               String  @id @default(uuid()) @db.Uuid
+  matchedRequestId String  @map("matched_request_id") @db.Uuid
+  currentLatitude  Float?  @map("current_latitude")
+  currentLongitude Float?  @map("current_longitude")
+  lastCity         String? @map("last_city") @db.VarChar
+
+  // Relations
+  matchedRequest MatchedRequest @relation(fields: [matchedRequestId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("tracking_update")
+}
