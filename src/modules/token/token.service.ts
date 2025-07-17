@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { AuthTokens } from 'src/common/enums/auth.enum';
 import { AuthMessages } from 'src/common/enums/messages.enum';
 
 @Injectable()
@@ -37,7 +38,7 @@ export class TokenService {
     return this.generateToken(payload, authSecretKey, { expiresIn: '1d' });
   }
 
-  verifyToken(token: string, type: 'access' | 'temp' | 'auth') {
+  verifyToken(token: string, type: AuthTokens) {
     if (!token || typeof token !== 'string') {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
@@ -45,15 +46,15 @@ export class TokenService {
     try {
       let secretKey: string;
       switch (type) {
-        case 'access':
+        case AuthTokens.Access:
           secretKey = this.accessSecretKey;
           break;
 
-        case 'temp':
+        case AuthTokens.Temporary:
           secretKey = this.tempSecretKey;
           break;
 
-        case 'auth':
+        case AuthTokens.Auth:
           secretKey = this.authSecretKey;
           break;
       }

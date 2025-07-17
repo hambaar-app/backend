@@ -7,6 +7,8 @@ import { CheckOtpDto } from './dto/check-otp.dto';
 import { ConfigService } from '@nestjs/config';
 import { AuthMessages } from 'src/common/enums/messages.enum';
 import { TokenService } from '../token/token.service';
+import { UserService } from '../user/user.service';
+import { AuthTokens } from 'src/common/enums/auth.enum';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +18,7 @@ export class AuthService {
 
   constructor(
     private tokenService: TokenService,
+    private userService: UserService,
     @Inject(CACHE_MANAGER) cacheManager: Cache,
     config: ConfigService,
   ) {
@@ -37,7 +40,9 @@ export class AuthService {
     return result;
   }
 
-  async checkOtp({ phoneNumber, code }: CheckOtpDto): Promise<{ accessToken: string }> {
+  async checkOtp(
+    { phoneNumber, code }: CheckOtpDto
+  ): Promise<{ token: string; type: AuthTokens }> {
     const userKey = this.getUserKey(phoneNumber);
     const userData = await this.cacheManager.get(userKey);
 
@@ -47,9 +52,22 @@ export class AuthService {
     const now = Date.now();
     if (now > userData.expiresIn) throw new UnauthorizedException(AuthMessages.OtpExpired);
 
+    const user = await this.userService.findByPhoneNumber(phoneNumber);
+
     const payload = { phoneNumber };
+    let token: string;
+    let type: AuthTokens;
+    if (!user) {
+      token = this.tokenService['generateTempToken'](payload);
+      type = AuthTokens.Temporary;
+    } else {
+      token =  this.tokenService['generateAccessToken'](payload);
+      type = AuthTokens.Access;
+    }
+
     return {
-      accessToken: this.tokenService['generateAccessToken'](payload)
+      token,
+      type
     };
   }
 

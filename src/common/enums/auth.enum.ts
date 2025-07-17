@@ -8,3 +8,9 @@ export enum Roles {
   Sender = 'sender',
   Transporter = 'transporter'
 }
+
+export enum AuthTokens {
+  Access = 'access',
+  Temporary = 'temp',
+  Auth = 'auth'
+}

@@ -5,6 +5,5 @@ declare module 'jsonwebtoken' {
   interface JwtPayload {
     sub?: string;
     phoneNumber: string;
-    role?: Roles;
   }
 }

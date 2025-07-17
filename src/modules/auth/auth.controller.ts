@@ -7,6 +7,7 @@ import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { AuthTokens } from 'src/common/enums/auth.enum';
 
 @Controller('auth')
 export class AuthController {
@@ -40,15 +41,24 @@ export class AuthController {
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken } = await this.authService.checkOtp(body);
-    session.accessToken = accessToken;
-
-    res.cookie(CookieNames.AccessToken, accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: this.cookieMaxAge,
-    });
+    const { token, type } = await this.authService.checkOtp(body);
+    
+    if (type === AuthTokens.Access) {
+      session.accessToken = token;
+      res.cookie(CookieNames.AccessToken, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: this.cookieMaxAge,
+      });
+    } else if (type === AuthTokens.Temporary) {
+      res.cookie(CookieNames.TemporaryToken, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: this.cookieMaxAge,
+      });
+    }
 
     return true;
   }
