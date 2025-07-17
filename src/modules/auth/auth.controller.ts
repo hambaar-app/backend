@@ -87,6 +87,8 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: this.cookieMaxAge,
     });
+
+    res.clearCookie(CookieNames.TemporaryToken);
     
     return user;
   }

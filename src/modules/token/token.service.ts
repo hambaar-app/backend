@@ -61,12 +61,12 @@ export class TokenService {
       return jwt.verify(token, secretKey) as jwt.JwtPayload;
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedException(AuthMessages.TokenExpired);
+        throw new UnauthorizedException(`${type} token has expired`);
       }
       if (error instanceof jwt.JsonWebTokenError) {
-        throw new UnauthorizedException(AuthMessages.InvalidToken);
+        throw new UnauthorizedException(`${type} invalid token`);
       }
-      throw new UnauthorizedException(AuthMessages.TokenVerificationFailed);
+      throw new UnauthorizedException(`${type} verification failed`);
     }
   }
 }
