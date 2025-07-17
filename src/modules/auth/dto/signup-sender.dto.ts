@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsAlpha,
   IsDateString,
@@ -26,9 +27,10 @@ export class SignupSenderDto {
   @IsEmail()
   email?: string;
 
-  // @IsNotEmpty()
-  // @IsEnum(GendersEnum)
-  // gender: GendersEnum;
+  @ApiProperty({ enum: GendersEnum })
+  @IsNotEmpty()
+  @IsEnum(GendersEnum)
+  gender: GendersEnum;
 
   @IsOptional()
   @IsDateString()
