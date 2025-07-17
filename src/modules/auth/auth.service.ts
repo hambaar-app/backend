@@ -11,6 +11,7 @@ import { UserService } from '../user/user.service';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignupSenderDto } from './dto/signup-sender.dto';
+import { generateOTP } from 'src/common/utilities';
 
 @Injectable()
 export class AuthService {
@@ -33,7 +34,7 @@ export class AuthService {
   async sendOtp({ phoneNumber }: SendOtpDto): Promise<boolean | never> {
     const userKey = this.getUserKey(phoneNumber);
     const otp = {
-      code: Math.floor(Math.random() * 100_000),
+      code: generateOTP(),
       expiresIn: Date.now() + this.otpExpireTime
     };
     console.log(otp);
