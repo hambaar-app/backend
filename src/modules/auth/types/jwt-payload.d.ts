@@ -3,7 +3,7 @@ import { Roles } from 'src/common/enums/auth.enum';
 
 declare module 'jsonwebtoken' {
   interface JwtPayload {
-    sub: string;
+    sub?: string;
     phoneNumber: string;
     role?: Roles;
   }

@@ -10,7 +10,6 @@ datasource db {
 
 enum RolesEnum {
   sender
-  transporter
   admin
   support
 
