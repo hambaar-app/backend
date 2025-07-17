@@ -11,7 +11,7 @@ import { UserService } from '../user/user.service';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignupSenderDto } from './dto/signup-sender.dto';
-import { generateOTP } from 'src/common/utilities';
+import { formatPrismaError, generateOTP } from 'src/common/utilities';
 
 @Injectable()
 export class AuthService {
@@ -88,7 +88,7 @@ export class AuthService {
         phoneVerifiedAt: new Date()
       }
     }).catch((error: Error) => {
-      // if (error instanceof)
+      formatPrismaError(error);
       throw error;
     });
 
