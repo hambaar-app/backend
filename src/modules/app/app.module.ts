@@ -12,6 +12,7 @@ import * as cookieParser from 'cookie-parser';
 import { RedisStore } from 'connect-redis';
 import { CookieNames } from 'src/common/enums/cookies.enum';
 import { AuthModule } from '../auth/auth.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -19,7 +20,6 @@ import { AuthModule } from '../auth/auth.module';
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV}`,
     }),
-    PrismaModule,
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
@@ -30,7 +30,8 @@ import { AuthModule } from '../auth/auth.module';
         ]
       })
     }),
-    AuthModule
+    AuthModule,
+    UserModule
   ],
   controllers: [AppController],
   providers: [
