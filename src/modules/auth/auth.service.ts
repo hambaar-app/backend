@@ -12,12 +12,17 @@ import { AuthTokens } from 'src/common/enums/auth.enum';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignupSenderDto } from './dto/signup-sender.dto';
 import { formatPrismaError, generateOTP } from 'src/common/utilities';
+import { TooManyRequestsException } from 'src/common/custom.exceptions';
+import { CachedUserData, UserAttempts } from './types/auth.types';
 
 @Injectable()
 export class AuthService {
   private cacheManager: Keyv;
-  private otpExpireTime: number;
-  private otpCacheTime: number;
+  private readonly otpExpireTime: number;
+  private readonly maxSendAttempts: number;
+  private readonly maxCheckAttempts: number;
+  private readonly otpWindow: number;
+  private readonly baseBlockTime: number;
 
   constructor(
     private tokenService: TokenService,
@@ -27,40 +32,82 @@ export class AuthService {
     config: ConfigService,
   ) {
     this.cacheManager = cacheManager.stores[1];
-    this.otpExpireTime = config.get<number>('OTP_EXPIRE_TIME', 120_000);
-    this.otpCacheTime = config.get<number>('OTP_CACHE_TIME', this.otpExpireTime * 1.5);
+
+    this.otpExpireTime = config.get<number>('OTP_EXPIRATION_TIME', 2 * 60 * 1000);
+    this.maxSendAttempts = config.get<number>('MAX_SEND_ATTEMPTS ', 5);
+    this.maxCheckAttempts = config.get<number>('MAX_CHECK_ATTEMPTS', 10);
+    this.otpWindow = config.get<number>('OTP_WINDOW', 30 * 60 * 1000);
+    this.baseBlockTime = config.get<number>('BASE_BLOCK_TIME', 20 * 60 * 1000);
   }
 
   async sendOtp({ phoneNumber }: SendOtpDto): Promise<boolean | never> {
     const userKey = this.getUserKey(phoneNumber);
+    const userData = await this.getUserData(userKey);
+
+    this.checkIfBlocked(userData.attempts);
+    this.checkSendAttempts(userData.attempts);
+    
+    const now = Date.now();
+    if (userData.otp && now < userData.otp.expiresIn) {
+      throw new UnauthorizedException(AuthMessages.OtpNotExpired);
+    }
+    
     const otp = {
       code: generateOTP(),
-      expiresIn: Date.now() + this.otpExpireTime
-    };    
-    const result = await this.cacheManager.set(userKey, { otp }, this.otpCacheTime);
+      expiresIn: now + this.otpExpireTime,
+      createdAt: now
+    };
 
-    // call otp service method.
+    userData.attempts.sendAttempts++;
+    userData.attempts.checkAttempts = 0;
+    userData.attempts.lastSendAttempt = now;
+    userData.otp = otp;
 
-    return result;
+    const storeResult = await this.setUserData(userKey, userData);
+    // call otp service method and error handling.
+    return storeResult;
   }
 
   async checkOtp(
     { phoneNumber, code }: CheckOtpDto
   ): Promise<{ token: string; type: AuthTokens }> {
     const userKey = this.getUserKey(phoneNumber);
-    const userData = await this.cacheManager.get(userKey);
+    const userData = await this.getUserData(userKey);
 
-    if (!userData?.otp) throw new UnauthorizedException(AuthMessages.OtpExpired);    
-    if (userData?.otp?.code !== code) throw new UnauthorizedException(AuthMessages.OtpInvalid);
+    this.checkIfBlocked(userData.attempts);
+
+    if (!userData?.otp) {
+      throw new UnauthorizedException(AuthMessages.OtpExpired);
+    }
 
     const now = Date.now();
-    if (now > userData.otp.expiresIn) throw new UnauthorizedException(AuthMessages.OtpExpired);
+    if (now > userData.otp.expiresIn) {
+      throw new UnauthorizedException(AuthMessages.OtpExpired);
+    } 
+
+    userData.attempts.checkAttempts++;
+
+    if (userData.attempts.checkAttempts > this.maxCheckAttempts) {
+      // Block user and extend cache time
+      userData.attempts.blockedUntil = now + this.calculateBlockTime(userData.attempts);
+      await this.setUserData(userKey, userData);
+      throw new TooManyRequestsException(AuthMessages.TooManyAttempts);
+    }
+
+    if (userData.otp.code !== code) {
+      await this.setUserData(userKey, userData);
+      throw new UnauthorizedException(AuthMessages.OtpInvalid);
+    }
+
+    // OTP is valid - clear the OTP data but keep attempts history
+    userData.otp = undefined;
+    await this.setUserData(userKey, userData);
 
     const user = await this.userService.findByPhoneNumber(phoneNumber);
-
     const payload = { phoneNumber };
     let token: string;
     let type: AuthTokens;
+
     if (!user) {
       token = this.tokenService['generateTempToken'](payload);
       type = AuthTokens.Temporary;
@@ -69,14 +116,74 @@ export class AuthService {
       type = AuthTokens.Access;
     }
 
-    return {
-      token,
-      type
-    };
+    return { token, type };
   }
 
-  private getUserKey(phoneNumber: string): string {
-    return `otp:user:${phoneNumber}`;
+  private getUserKey(
+    phoneNumber: string,
+    type: 'mobile' | 'email' = 'mobile'
+  ): string {
+    return `otp:${type}:${phoneNumber}`;
+  }
+
+  private async getUserData(userKey: string): Promise<CachedUserData> {
+    const userData = await this.cacheManager.get<CachedUserData>(userKey);
+    if (!userData) {
+      return {
+        attempts: {
+          sendAttempts: 0,
+          checkAttempts: 0,
+          lastSendAttempt: 0,
+        }
+      };
+    }
+
+    // Reset attempts if pass the window
+    const now = Date.now();
+    if (now - userData.attempts.lastSendAttempt > this.otpWindow) {
+      userData.attempts.sendAttempts = 0;
+    }
+    
+    return userData;
+  }
+
+  private async setUserData(userKey: string, userData: CachedUserData): Promise<boolean> {
+    const cacheTime = this.calculateCacheTime(userData.attempts);
+    return this.cacheManager.set(userKey, userData, cacheTime);
+  }
+
+  private checkIfBlocked(attempts: UserAttempts): void {
+    const now = Date.now();
+    if (attempts.blockedUntil && now < attempts.blockedUntil) {
+      const remainingTime = Math.ceil((attempts.blockedUntil - now) / 1000 / 60); // minutes
+      throw new TooManyRequestsException(
+        `Too many attempts. Please try again in ${remainingTime} minutes.`
+      );
+    }
+  }
+
+  private checkSendAttempts(attempts: UserAttempts): void {
+    if (attempts.sendAttempts >= this.maxSendAttempts) {
+      const blockTime = this.calculateBlockTime(attempts);
+      attempts.blockedUntil = Date.now() + blockTime;
+      throw new TooManyRequestsException(AuthMessages.MaxAttempts);
+    }
+  }
+
+  private calculateBlockTime(attempts: UserAttempts): number {
+    // Progressive blocking: each violation increases block time
+    // Violations => 0-2
+    const violations = Math.floor(attempts.sendAttempts / this.maxSendAttempts) + 
+                      Math.floor(attempts.checkAttempts / this.maxCheckAttempts);
+    if (!violations) return 0;
+    return this.baseBlockTime * Math.pow(2, violations);
+  }
+
+  private calculateCacheTime(attempts: UserAttempts): number {    
+    if (attempts.blockedUntil) {
+      return Math.max(attempts.blockedUntil - Date.now() + 60_000, this.otpWindow);
+    }
+    return this.otpWindow;
   }
 
   async signupSender(senderDto: SignupSenderDto) {
