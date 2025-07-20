@@ -29,7 +29,7 @@ export class TokenService {
 
   private generateTempToken(payload: jwt.JwtPayload) {
     const tempSecretKey = this.tempSecretKey
-    return this.generateToken(payload, tempSecretKey, { expiresIn: '10m' });
+    return this.generateToken(payload, tempSecretKey, { expiresIn: '20m' });
   }
 
   private generateAuthToken(payload: jwt.JwtPayload) {

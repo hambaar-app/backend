@@ -19,3 +19,7 @@ export class CheckOtpDto {
   @IsInt()
   code: number;
 }
+
+export class CheckOtpResponseDto {
+  authenticated: boolean;
+}

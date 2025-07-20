@@ -1,16 +1,34 @@
-import { Body, ConflictException, Controller, Post, Res, Session, UnauthorizedException, UseGuards } from '@nestjs/common';
-import { ApiConflictResponse, ApiOperation, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  Session,
+  UseGuards
+} from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiOperation,
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SendOtpDto } from './dto/send-otp.dto';
-import { CheckOtpDto } from './dto/check-otp.dto';
+import { CheckOtpDto, CheckOtpResponseDto } from './dto/check-otp.dto';
 import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
-import { TemporaryGuard } from './guard/token.guard';
+import { TemporaryTokenGuard } from './guard/token.guard';
 import { AuthMessages } from 'src/common/enums/messages.enum';
+import { AlreadyAuthorizedGuard } from './guard/authorized.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -28,50 +46,65 @@ export class AuthController {
     description: `Sends a OTP code to the user's phone number or email for authentication for login or signup.
       This endpoint is used by both senders and transporters to verify their identity.`
   })
+  @ApiTooManyRequestsResponse({
+    description: AuthMessages.MaxAttempts
+  })
+  @ApiTooManyRequestsResponse({
+    description: AuthMessages.TooManyAttempts
+  })
+  @UseGuards(AlreadyAuthorizedGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('send-otp')
-  async sendOtp(@Body() body: SendOtpDto) {
+  async sendOtp(@Body() body: SendOtpDto): Promise<boolean> {
     return this.authService.sendOtp(body);
   }
 
   @ApiOperation({
     summary: 'Verifies OTP code for login or signup',
-    description: `Verifies the OTP code sent to the user's phone number for authentication during login or signup.
-      And set an 'access-token' in cookies.`
+    description: `Verifies the OTP code sent to the user's phone number for authentication during login or signup.`
+  })
+  @ApiTooManyRequestsResponse({
+    description: AuthMessages.TooManyAttempts
   })
   @ApiUnauthorizedResponse({
-    type: UnauthorizedException,
     description: AuthMessages.OtpExpired
   })
   @ApiUnauthorizedResponse({
-    type: UnauthorizedException,
     description: AuthMessages.OtpInvalid
   })
+  @HttpCode(HttpStatus.OK)
   @Post('check-otp')
   async checkOtp(
     @Body() body: CheckOtpDto,
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<CheckOtpResponseDto> {
     const { token, type } = await this.authService.checkOtp(body);
     
-    if (type === AuthTokens.Access) {
-      session.accessToken = token;
-      res.cookie(CookieNames.AccessToken, token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: this.cookieMaxAge,
-      });
-    } else if (type === AuthTokens.Temporary) {
-      res.cookie(CookieNames.TemporaryToken, token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: this.cookieMaxAge,
-      });
+    switch (type) {
+      case AuthTokens.Access:
+        session.accessToken = token;
+        res.cookie(CookieNames.AccessToken, token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: this.cookieMaxAge,
+        });
+        break;
+    
+      case AuthTokens.Temporary:
+        res.cookie(CookieNames.TemporaryToken, token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 20 * 60 * 1000,
+        });
+        break;
     }
 
-    return true;
+    return {
+      authenticated: type === AuthTokens.Access
+    };
   }
 
   @ApiOperation({
@@ -80,17 +113,25 @@ export class AuthController {
       generates an access token and sets it as an cookie. Returns the created user.
       Protected by 'TemporaryGuard', that means you should authorized the phone number with otp before the request.`
   })
+  @ApiBadRequestResponse({
+    description: AuthMessages.UnauthorizedPhoneNumber
+  })
   @ApiConflictResponse({
-    type: ConflictException,
     description: 'Unique database constraint for => phoneNumber and email'
   })
-  @UseGuards(TemporaryGuard)
+  @UseGuards(TemporaryTokenGuard)
+  @HttpCode(HttpStatus.CREATED)
   @Post('sender/signup')
   async signupSender(
     @Body() body: SignupSenderDto,
     @Session() session: SessionData,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    if (req.user?.phoneNumber !== body.phoneNumber) {
+      throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
+    }
+
     const { user, accessToken } = await this.authService.signupSender(body);
 
     session.accessToken = accessToken;
