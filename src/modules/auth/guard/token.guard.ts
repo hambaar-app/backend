@@ -22,6 +22,10 @@ export class TemporaryTokenGuard implements CanActivate {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 
+    request.user = {
+      phoneNumber: payload.phoneNumber
+    };
+
     return true;
   }
 }

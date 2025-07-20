@@ -1,20 +1,28 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
   Session,
   UseGuards
 } from '@nestjs/common';
-import { ApiConflictResponse, ApiOperation, ApiTooManyRequestsResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiConflictResponse,
+  ApiOperation,
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { CheckOtpDto, CheckOtpResponseDto } from './dto/check-otp.dto';
 import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
@@ -105,6 +113,9 @@ export class AuthController {
       generates an access token and sets it as an cookie. Returns the created user.
       Protected by 'TemporaryGuard', that means you should authorized the phone number with otp before the request.`
   })
+  @ApiBadRequestResponse({
+    description: AuthMessages.UnauthorizedPhoneNumber
+  })
   @ApiConflictResponse({
     description: 'Unique database constraint for => phoneNumber and email'
   })
@@ -114,8 +125,13 @@ export class AuthController {
   async signupSender(
     @Body() body: SignupSenderDto,
     @Session() session: SessionData,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    if (req.user?.phoneNumber !== body.phoneNumber) {
+      throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
+    }
+
     const { user, accessToken } = await this.authService.signupSender(body);
 
     session.accessToken = accessToken;
