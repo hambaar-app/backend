@@ -6,7 +6,7 @@ import { AuthMessages } from 'src/common/enums/messages.enum';
 import { TokenService } from 'src/modules/token/token.service';
 
 @Injectable()
-export class TemporaryGuard implements CanActivate {
+export class TemporaryTokenGuard implements CanActivate {
   constructor(private tokenService: TokenService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

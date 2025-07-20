@@ -6,5 +6,6 @@ export enum AuthMessages {
   InvalidToken = `Invalid token format.`,
   MissingTempToken = 'Temporary token is required but was not provided. Please auth with otp first.',
   SendOtpFailed = 'Failed to send OTP.',
-  TooManyAttempts = 'Too many failed attempts. Please try again later.'
+  TooManyAttempts = 'Too many failed attempts. Please try again later.',
+  AlreadyAuthorized = 'User is already authorized.'
 }
