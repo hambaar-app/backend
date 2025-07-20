@@ -1,5 +1,16 @@
-import { Body, ConflictException, Controller, Post, Res, Session, UnauthorizedException, UseGuards } from '@nestjs/common';
-import { ApiConflictResponse, ApiOperation, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  Body,
+  ConflictException,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Res,
+  Session,
+  UnauthorizedException,
+  UseGuards
+} from '@nestjs/common';
+import { ApiConflictResponse, ApiOperation, ApiTooManyRequestsResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { CheckOtpDto } from './dto/check-otp.dto';
@@ -28,6 +39,13 @@ export class AuthController {
     description: `Sends a OTP code to the user's phone number or email for authentication for login or signup.
       This endpoint is used by both senders and transporters to verify their identity.`
   })
+  @ApiTooManyRequestsResponse({
+    description: AuthMessages.MaxAttempts
+  })
+  @ApiTooManyRequestsResponse({
+    description: AuthMessages.TooManyAttempts
+  })
+  @HttpCode(HttpStatus.OK)
   @Post('send-otp')
   async sendOtp(@Body() body: SendOtpDto) {
     return this.authService.sendOtp(body);
@@ -38,14 +56,16 @@ export class AuthController {
     description: `Verifies the OTP code sent to the user's phone number for authentication during login or signup.
       And set an 'access-token' in cookies.`
   })
+  @ApiTooManyRequestsResponse({
+    description: AuthMessages.TooManyAttempts
+  })
   @ApiUnauthorizedResponse({
-    type: UnauthorizedException,
     description: AuthMessages.OtpExpired
   })
   @ApiUnauthorizedResponse({
-    type: UnauthorizedException,
     description: AuthMessages.OtpInvalid
   })
+  @HttpCode(HttpStatus.OK)
   @Post('check-otp')
   async checkOtp(
     @Body() body: CheckOtpDto,
@@ -81,10 +101,10 @@ export class AuthController {
       Protected by 'TemporaryGuard', that means you should authorized the phone number with otp before the request.`
   })
   @ApiConflictResponse({
-    type: ConflictException,
     description: 'Unique database constraint for => phoneNumber and email'
   })
   @UseGuards(TemporaryGuard)
+  @HttpCode(HttpStatus.CREATED)
   @Post('sender/signup')
   async signupSender(
     @Body() body: SignupSenderDto,

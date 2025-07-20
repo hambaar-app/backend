@@ -21,7 +21,7 @@ export class AuthService {
   private readonly otpExpireTime: number;
   private readonly maxSendAttempts: number;
   private readonly maxCheckAttempts: number;
-  private readonly otpWindow: number;
+  private readonly sendWindow: number;
   private readonly baseBlockTime: number;
 
   constructor(
@@ -36,7 +36,7 @@ export class AuthService {
     this.otpExpireTime = config.get<number>('OTP_EXPIRATION_TIME', 2 * 60 * 1000);
     this.maxSendAttempts = config.get<number>('MAX_SEND_ATTEMPTS ', 5);
     this.maxCheckAttempts = config.get<number>('MAX_CHECK_ATTEMPTS', 10);
-    this.otpWindow = config.get<number>('OTP_WINDOW', 30 * 60 * 1000);
+    this.sendWindow = config.get<number>('SEND_WINDOW', 30 * 60 * 1000);
     this.baseBlockTime = config.get<number>('BASE_BLOCK_TIME', 20 * 60 * 1000);
   }
 
@@ -140,7 +140,7 @@ export class AuthService {
 
     // Reset attempts if pass the window
     const now = Date.now();
-    if (now - userData.attempts.lastSendAttempt > this.otpWindow) {
+    if (now - userData.attempts.lastSendAttempt > this.sendWindow) {
       userData.attempts.sendAttempts = 0;
     }
     
@@ -181,9 +181,9 @@ export class AuthService {
 
   private calculateCacheTime(attempts: UserAttempts): number {    
     if (attempts.blockedUntil) {
-      return Math.max(attempts.blockedUntil - Date.now() + 60_000, this.otpWindow);
+      return Math.max(attempts.blockedUntil - Date.now() + 60_000, this.sendWindow);
     }
-    return this.otpWindow;
+    return this.sendWindow;
   }
 
   async signupSender(senderDto: SignupSenderDto) {
