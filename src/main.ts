@@ -13,6 +13,12 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, documentFactory);
 
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+
   const PORT = process.env.PORT ?? 3000;
-  await app.listen(PORT, () => console.log(`Listening on port ${PORT}.`));}
+  await app.listen(PORT, () => console.log(`Listening on port ${PORT}.`));
+}
 bootstrap();
