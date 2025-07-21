@@ -19,8 +19,15 @@ export class VehicleService {
     });
   }
 
-  async getAllBrands() {
-    return this.prisma.vehicleBrand.findMany();
+  async getAllBrands(search?: string) {
+    return this.prisma.vehicleBrand.findMany({
+      where: {
+        name: {
+          contains: search,
+          mode: 'insensitive'
+        }
+      }
+    });
   }
 
   async createModel(brandDto: CreateModelDto) {
@@ -32,10 +39,14 @@ export class VehicleService {
     });
   }
 
-  async getAllBrandModels(brandId: string) {
+  async getAllBrandModels(brandId: string, search?: string) {
     return this.prisma.vehicleModel.findMany({
       where: {
-        brandId
+        brandId,
+        model: {
+          contains: search,
+          mode: 'insensitive'
+        }
       }
     });
   }

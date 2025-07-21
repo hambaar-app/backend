@@ -1,7 +1,7 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { ApiConflictResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiConflictResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { CreateModelDto } from './dto/create-model.dto';
 
 @Controller('vehicles')
@@ -23,9 +23,15 @@ export class VehicleController {
   @ApiOperation({
     summary: 'Retrieves all vehicle brands'
   })
+  @ApiQuery({
+    name: 'search',
+    type: String,
+    description: 'Search term to filter results',
+    required: false,
+  })
   @Get('brands')
-  async getAllBrands() {
-    return this.vehicleService.getAllBrands();
+  async getAllBrands(@Query('search') search?: string) {
+    return this.vehicleService.getAllBrands(search);
   }
 
   @ApiOperation({
@@ -43,10 +49,17 @@ export class VehicleController {
   @ApiOperation({
     summary: 'Retrieves all vehicle models'
   })
+  @ApiQuery({
+    name: 'search',
+    type: String,
+    description: 'Search term to filter results',
+    required: false,
+  })
   @Get('models/:brandId')
   async getAllBrandModels(
-    @Param('brandId', ParseUUIDPipe) brandId: string
+    @Param('brandId', ParseUUIDPipe) brandId: string,
+    @Query('search') search?: string
   ) {
-    return this.vehicleService.getAllBrandModels(brandId);
+    return this.vehicleService.getAllBrandModels(brandId, search);
   }
 }
