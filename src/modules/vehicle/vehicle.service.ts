@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { formatPrismaError } from 'src/common/utilities';
+import { CreateModelDto } from './dto/create-model.dto';
 
 @Injectable()
 export class VehicleService {
@@ -12,6 +13,15 @@ export class VehicleService {
       data: {
         name
       }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
+  async createModel(brandDto: CreateModelDto) {
+    return this.prisma.vehicleModel.create({
+      data: brandDto
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
