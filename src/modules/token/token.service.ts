@@ -8,14 +8,14 @@ import { AuthMessages } from 'src/common/enums/messages.enum';
 export class TokenService {
   private accessSecretKey: string;
   private tempSecretKey: string;
-  private authSecretKey: string;
+  private progressSecretKey: string;
 
   constructor(
     config: ConfigService,
   ) {
     this.accessSecretKey = config.getOrThrow<string>('JWT_ACCESS_SECRET_KEY');
     this.tempSecretKey = config.getOrThrow<string>('JWT_TEMP_SECRET_KEY');
-    this.authSecretKey = config.getOrThrow<string>('JWT_AUTH_SECRET_KEY');
+    this.progressSecretKey = config.getOrThrow<string>('JWT_PROGRESS_SECRET_KEY');
   }
 
   private generateToken(payload: jwt.JwtPayload, token: string , { expiresIn }: jwt.SignOptions) {
@@ -32,8 +32,8 @@ export class TokenService {
     return this.generateToken(payload, tempSecretKey, { expiresIn: '20m' });
   }
 
-  private generateAuthToken(payload: jwt.JwtPayload) {
-    const authSecretKey = this.authSecretKey
+  private generateProgressToken(payload: jwt.JwtPayload) {
+    const authSecretKey = this.progressSecretKey
     return this.generateToken(payload, authSecretKey, { expiresIn: '1d' });
   }
 
@@ -53,8 +53,8 @@ export class TokenService {
           secretKey = this.tempSecretKey;
           break;
 
-        case AuthTokens.Auth:
-          secretKey = this.authSecretKey;
+        case AuthTokens.Progress:
+          secretKey = this.progressSecretKey;
           break;
       }
 
