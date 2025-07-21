@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { ApiConflictResponse, ApiOperation } from '@nestjs/swagger';
@@ -23,7 +23,7 @@ export class VehicleController {
   @ApiOperation({
     summary: 'Retrieves all vehicle brands'
   })
-  @Get('models')
+  @Get('brands')
   async getAllBrands() {
     return this.vehicleService.getAllBrands();
   }
@@ -38,5 +38,15 @@ export class VehicleController {
   @Post('models')
   async createModel(@Body() body: CreateModelDto) {
     return this.vehicleService.createModel(body);
+  }
+
+  @ApiOperation({
+    summary: 'Retrieves all vehicle models'
+  })
+  @Get('models/:brandId')
+  async getAllBrandModels(
+    @Param('brandId', ParseUUIDPipe) brandId: string
+  ) {
+    return this.vehicleService.getAllBrandModels(brandId);
   }
 }

@@ -31,4 +31,12 @@ export class VehicleService {
       throw error;
     });
   }
+
+  async getAllBrandModels(brandId: string) {
+    return this.prisma.vehicleModel.findMany({
+      where: {
+        brandId
+      }
+    });
+  }
 }
