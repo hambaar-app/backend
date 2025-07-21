@@ -12,5 +12,5 @@ export enum Roles {
 export enum AuthTokens {
   Access = 'access',
   Temporary = 'temp',
-  Auth = 'auth'
+  Progress = 'progress'
 }

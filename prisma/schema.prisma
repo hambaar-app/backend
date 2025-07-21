@@ -153,7 +153,7 @@ model Transporter {
   nationalId               String?          @unique @map("national_id") @db.VarChar
   nationalIdStatusId       String?          @map("national_id_status_id") @db.Uuid
   nationalIdDocumentUrl    String?          @map("national_id_document_url") @db.VarChar
-  driverLicenseNumber      String?          @map("driver_license_number") @db.VarChar
+  driverLicenseNumber      String?          @unique @map("driver_license_number") @db.VarChar
   driverLicenseStatusId    String?          @map("driver_license_status_id") @db.Uuid
   driverLicenseDocumentUrl String?          @map("driver_license_document_url") @db.VarChar
   licenseType              LicenseTypeEnum? @map("license_type")
