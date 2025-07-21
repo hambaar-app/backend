@@ -29,6 +29,7 @@ import { SignupSenderDto } from './dto/signup-sender.dto';
 import { TemporaryTokenGuard } from './guard/token.guard';
 import { AuthMessages } from 'src/common/enums/messages.enum';
 import { AlreadyAuthorizedGuard } from './guard/authorized.guard';
+import { SignupTransporterDto } from './dto/signup-transporter.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -111,7 +112,7 @@ export class AuthController {
     summary: 'Registers a sender user',
     description: `This endpoint registers a new sender user using the provided data,
       generates an access token and sets it as an cookie. Returns the created user.
-      Protected by 'TemporaryGuard', that means you should authorized the phone number with otp before the request.`
+      You should authorized the phone number with otp before the request.`
   })
   @ApiBadRequestResponse({
     description: AuthMessages.UnauthorizedPhoneNumber
@@ -132,7 +133,7 @@ export class AuthController {
       throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
     }
 
-    const { user, accessToken } = await this.authService.signupSender(body);
+    const { sender, accessToken } = await this.authService.signupSender(body);
 
     session.accessToken = accessToken;
     res.cookie(CookieNames.AccessToken, accessToken, {
@@ -144,6 +145,42 @@ export class AuthController {
 
     res.clearCookie(CookieNames.TemporaryToken);
     
-    return user;
+    return sender;
+  }
+
+  @ApiOperation({
+    summary: 'Registers a transporter user',
+    description: ``
+  })
+  @ApiBadRequestResponse({
+    description: AuthMessages.UnauthorizedPhoneNumber
+  })
+  @ApiConflictResponse({
+    description: 'Unique database constraint for => phoneNumber, email, nationalId and driverLicenseNumber'
+  })
+  @UseGuards(TemporaryTokenGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @Post('transporter/signup')
+  async signupTransporter(
+    @Body() body: SignupTransporterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (req.user?.phoneNumber !== body.phoneNumber) {
+      throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
+    }
+
+    const { transporter, progressToken } = await this.authService.signupTransporter(body);
+
+    res.cookie(CookieNames.ProgressToken, progressToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.clearCookie(CookieNames.TemporaryToken);
+    
+    return transporter;
   }
 }

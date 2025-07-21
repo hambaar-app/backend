@@ -14,6 +14,8 @@ import { SignupSenderDto } from './dto/signup-sender.dto';
 import { formatPrismaError, generateOTP } from 'src/common/utilities';
 import { TooManyRequestsException } from 'src/common/custom.exceptions';
 import { CachedUserData, UserAttempts } from './types/auth.types';
+import { SignupTransporterDto } from './dto/signup-transporter.dto';
+import { RolesEnum } from 'generated/prisma';
 
 @Injectable()
 export class AuthService {
@@ -187,9 +189,10 @@ export class AuthService {
   }
 
   async signupSender(senderDto: SignupSenderDto) {
-    const user = await this.prisma.user.create({
+    const sender = await this.prisma.user.create({
       data: {
         ...senderDto,
+        role: RolesEnum.sender,
         phoneVerifiedAt: new Date()
       }
     }).catch((error: Error) => {
@@ -198,13 +201,58 @@ export class AuthService {
     });
 
     const payload = {
-      phoneNumber: user.phoneNumber
+      phoneNumber: sender.phoneNumber
     };
     const accessToken = this.tokenService['generateAccessToken'](payload);
 
     return {
-      user,
+      sender,
       accessToken
+    };
+  }
+
+  async signupTransporter(
+    {
+      nationalId,
+      driverLicenseNumber,
+      licenseType,
+      profilePictureUrl,
+      ...transporterDto
+    }: SignupTransporterDto
+  ) {
+    const transporter = await this.prisma.user.create({
+      data: {
+        ...transporterDto,
+        role: RolesEnum.transporter,
+        transporter: {
+          create: {
+            nationalId,
+            driverLicenseNumber,
+            licenseType,
+            profilePictureUrl,
+          }
+        },
+      },
+      include: {
+        transporter: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    const payload = {
+      phoneNumber: transporter.phoneNumber
+    };
+    const progressToken = this.tokenService['generateProgressToken'](payload);
+
+    return {
+      transporter: {
+        ...transporter,
+        ...transporter.transporter,
+        transporter: undefined
+      },
+      progressToken
     };
   }
 }
