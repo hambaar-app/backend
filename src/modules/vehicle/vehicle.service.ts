@@ -19,6 +19,10 @@ export class VehicleService {
     });
   }
 
+  async getAllBrands() {
+    return this.prisma.vehicleBrand.findMany();
+  }
+
   async createModel(brandDto: CreateModelDto) {
     return this.prisma.vehicleModel.create({
       data: brandDto

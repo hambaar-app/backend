@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { ApiConflictResponse, ApiOperation } from '@nestjs/swagger';
@@ -21,7 +21,15 @@ export class VehicleController {
   }
 
   @ApiOperation({
-    summary: 'Create a vehicle brand'
+    summary: 'Retrieves all vehicle brands'
+  })
+  @Get('models')
+  async getAllBrands() {
+    return this.vehicleService.getAllBrands();
+  }
+
+  @ApiOperation({
+    summary: 'Create a vehicle model'
   })
   @ApiConflictResponse({
     description: 'Unique database constraint for => model (With this brandId)'
