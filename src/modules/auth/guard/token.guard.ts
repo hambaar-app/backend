@@ -43,7 +43,7 @@ export class ProgressTokenGuard implements CanActivate {
     }
 
     const payload = this.tokenService.verifyToken(progressToken, AuthTokens.Progress);
-    if (!payload?.sub) {
+    if (!payload?.sub || !payload?.phoneNumber) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 

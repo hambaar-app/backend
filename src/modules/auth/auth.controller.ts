@@ -33,6 +33,7 @@ import { AlreadyAuthorizedGuard } from './guard/authorized.guard';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
+import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -115,7 +116,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Registers a sender user',
     description: `This endpoint registers a new sender user using the provided data,
-      generates an access token and sets it as an cookie. Returns the created user.
+      generates an access token and sets it as an cookie.
       You should authorized the phone number with otp before the request.`
   })
   @ApiBadRequestResponse({
@@ -153,8 +154,11 @@ export class AuthController {
   }
 
   @ApiOperation({
-    summary: 'Registers a transporter user',
-    description: ``
+    summary: 'Registers a transporter user (Stage 1)',
+    description: `This endpoint handles the first stage of transporter registration.
+    After successful OTP verification, a token with a 1-day validity is generated and stored in a cookie,
+    allowing the user to proceed with subsequent registration stages (vehicle information and submit documents)
+    without re-verifying OTP.`
   })
   @ApiBadRequestResponse({
     description: AuthMessages.UnauthorizedPhoneNumber
@@ -189,7 +193,9 @@ export class AuthController {
   }
 
   @ApiOperation({
-    summary: 'Register a vehicle for a transporter during authentication'
+    summary: 'Register a vehicle for a transporter during authentication (Stage 2)',
+    description: `This endpoint handles the second stage of transporter registration.
+    The user submits vehicle information.`
   })
   @ApiNotFoundResponse({
     description: NotFoundMessages.VehicleModel
@@ -208,5 +214,35 @@ export class AuthController {
   ) {
     const ownerId = req.user?.id;
     return this.vehicleService.create(ownerId!, body);
+  }
+
+
+  @ApiOperation({
+    summary: 'Submit transporter documents during authentication (Stage 3)',
+    description: `This endpoint handles the final stage of transporter registration.
+    After successful submission of vehicle information, the user submits URLs for required uploaded 
+    (with our s3 service) documents. And generates an access token and sets it as an cookie.`
+  })
+  @UseGuards(ProgressTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('transporter/submit-docs')
+  async submitTransporterDocumentUrls(
+    @Body() body: SubmitDocumentsDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { id, phoneNumber } = req.user!;
+    const { accessToken } = await this.authService.submitDocuments(id!, body, phoneNumber);
+
+    res.cookie(CookieNames.AccessToken, accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: this.cookieMaxAge,
+    });
+
+    res.clearCookie(CookieNames.ProgressToken)
+    
+    return true;
   }
 }
