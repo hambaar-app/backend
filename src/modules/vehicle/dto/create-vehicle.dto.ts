@@ -3,6 +3,21 @@ import { Type } from 'class-transformer';
 import { IsAlpha, IsArray, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsNumberString, IsOptional, IsString, IsUrl, IsUUID, Length, Matches, Max, Min } from 'class-validator';
 import { VehicleTypeEnum } from 'generated/prisma';
 
+export class VehicleDocumentsDto {
+  @IsNotEmpty()
+  @IsUrl()
+  greenSheetUrl: string;
+
+  @IsNotEmpty()
+  @IsUrl()
+  cardUrl: string;
+
+  @IsNotEmpty()
+  @IsArray()
+  @IsUrl({}, { each: true })
+  vehiclePicsUrl: string[];
+}
+
 export class CreateVehicleDto {
   @IsNotEmpty()
   @IsString()
@@ -73,19 +88,4 @@ export class CreateVehicleDto {
   @IsOptional()
   @Type(() => VehicleDocumentsDto)
   verificationDocuments: VehicleDocumentsDto;
-}
-
-export class VehicleDocumentsDto {
-  @IsNotEmpty()
-  @IsUrl()
-  greenSheetUrl: string;
-
-  @IsNotEmpty()
-  @IsUrl()
-  cardUrl: string;
-
-  @IsNotEmpty()
-  @IsArray()
-  @IsUrl({}, { each: true })
-  vehiclePicsUrl: string[];
 }
