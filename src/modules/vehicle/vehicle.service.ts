@@ -64,6 +64,9 @@ export class VehicleService {
         verificationDocuments: plainDocs,
         ...vehicleDto
       }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 }

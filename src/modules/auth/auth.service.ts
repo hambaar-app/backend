@@ -29,8 +29,8 @@ export class AuthService {
   constructor(
     private tokenService: TokenService,
     private userService: UserService,
-    @Inject(CACHE_MANAGER) cacheManager: Cache,
     private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) cacheManager: Cache,
     config: ConfigService,
   ) {
     this.cacheManager = cacheManager.stores[1];
@@ -242,6 +242,7 @@ export class AuthService {
     });
 
     const payload = {
+      sub: transporter.id,
       phoneNumber: transporter.phoneNumber
     };
     const progressToken = this.tokenService['generateProgressToken'](payload);

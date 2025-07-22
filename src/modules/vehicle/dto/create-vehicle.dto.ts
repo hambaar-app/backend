@@ -38,10 +38,6 @@ export class CreateVehicleDto {
 
   @IsNotEmpty()
   @IsUUID()
-  brandId: string;
-
-  @IsNotEmpty()
-  @IsUUID()
   modelId: string;
 
   @IsNotEmpty()

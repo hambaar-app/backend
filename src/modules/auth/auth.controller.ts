@@ -13,6 +13,7 @@ import {
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
+  ApiNotFoundResponse,
   ApiOperation,
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse
@@ -26,10 +27,12 @@ import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
-import { TemporaryTokenGuard } from './guard/token.guard';
-import { AuthMessages } from 'src/common/enums/messages.enum';
+import { ProgressTokenGuard, TemporaryTokenGuard } from './guard/token.guard';
+import { AuthMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 import { AlreadyAuthorizedGuard } from './guard/authorized.guard';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
+import { VehicleService } from '../vehicle/vehicle.service';
+import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -37,6 +40,7 @@ export class AuthController {
 
   constructor(
     private authService: AuthService,
+    private vehicleService: VehicleService,
     config: ConfigService
   ) {
     this.cookieMaxAge = config.get<number>('COOKIE_MAX_AGE', 15 * 24 * 3600 * 1000); // 15 days
@@ -182,5 +186,27 @@ export class AuthController {
     res.clearCookie(CookieNames.TemporaryToken);
     
     return transporter;
+  }
+
+  @ApiOperation({
+    summary: 'Register a vehicle for a transporter during authentication'
+  })
+  @ApiNotFoundResponse({
+    description: NotFoundMessages.VehicleModel
+  })
+  @ApiConflictResponse({
+    description: `Unique database constraint for =>
+      vin, licensePlate, barcode, greenSheetNumber and insuranceNumber`
+  })
+  @UseGuards(ProgressTokenGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @Post('transporter/vehicle')
+  async registerTransporterVehicle(
+    @Body() body: CreateVehicleDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const ownerId = req.user?.id;
+    return this.vehicleService.create(ownerId!, body);
   }
 }

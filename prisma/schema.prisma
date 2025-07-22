@@ -202,16 +202,15 @@ model Vehicle {
   ownerId                       String                 @map("owner_id") @db.Uuid
   vin                           String?                @unique @db.VarChar
   licensePlate                  String                 @unique @map("license_plate") @db.VarChar
-  barcode                       String?                @map("barcode") @db.VarChar
+  barcode                       String?                @unique @map("barcode") @db.VarChar
   greenSheetNumber              String?                @unique @map("green_sheet_number") @db.VarChar
   vehicleType                   VehicleTypeEnum        @map("vehicle_type")
-  brandId                       String?                @map("brand_id") @db.Uuid
   modelId                       String?                @map("model_id") @db.Uuid
   manufactureYear               Int?                   @map("manufacture_year")
   color                         String?                @db.VarChar
   technicalInspectionDate       DateTime?              @map("technical_inspection_date") @db.Date
   technicalInspectionExpiryDate DateTime?              @map("technical_inspection_expiry_date") @db.Date
-  insuranceNumber               String?                @map("insurance_number") @db.VarChar
+  insuranceNumber               String?                @unique @map("insurance_number") @db.VarChar
   insuranceExpiryDate           DateTime?              @map("insurance_expiry_date") @db.Date
   maxWeightCapacity             Float?                 @map("max_weight_capacity") // in kg
   isActive                      Boolean                @default(true) @map("is_active")
@@ -221,7 +220,6 @@ model Vehicle {
   // Relations
   trips Trip[]
   owner User          @relation(fields: [ownerId], references: [id])
-  brand VehicleBrand? @relation(fields: [brandId], references: [id])
   model VehicleModel? @relation(fields: [modelId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
@@ -236,7 +234,6 @@ model VehicleBrand {
   name String @db.VarChar
 
   // Relations
-  vehicles Vehicle[]
   models   VehicleModel[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
