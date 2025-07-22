@@ -13,6 +13,7 @@ import { RedisStore } from 'connect-redis';
 import { CookieNames } from 'src/common/enums/cookies.enum';
 import { AuthModule } from '../auth/auth.module';
 import { UserModule } from '../user/user.module';
+import { VehicleModule } from '../vehicle/vehicle.module';
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { UserModule } from '../user/user.module';
       })
     }),
     AuthModule,
-    UserModule
+    UserModule,
+    VehicleModule
   ],
   controllers: [AppController],
   providers: [

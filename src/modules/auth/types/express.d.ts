@@ -6,6 +6,7 @@ declare global {
     interface Request {
       session: SessionData;
       user?: {
+        id?: string;
         phoneNumber: string;
       };
     }

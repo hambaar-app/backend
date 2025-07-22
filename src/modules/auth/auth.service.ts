@@ -16,6 +16,9 @@ import { TooManyRequestsException } from 'src/common/custom.exceptions';
 import { CachedUserData, UserAttempts } from './types/auth.types';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
 import { RolesEnum } from 'generated/prisma';
+import { VehicleService } from '../vehicle/vehicle.service';
+import { SubmitDocumentsDto } from './dto/submit-documents.dto';
+import { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -29,8 +32,9 @@ export class AuthService {
   constructor(
     private tokenService: TokenService,
     private userService: UserService,
-    @Inject(CACHE_MANAGER) cacheManager: Cache,
+    private vehicleService: VehicleService,
     private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) cacheManager: Cache,
     config: ConfigService,
   ) {
     this.cacheManager = cacheManager.stores[1];
@@ -105,7 +109,7 @@ export class AuthService {
     userData.otp = undefined;
     await this.setUserData(userKey, userData);
 
-    const user = await this.userService.findByPhoneNumber(phoneNumber);
+    const user = await this.userService.getByPhoneNumber(phoneNumber);
     const payload = { phoneNumber };
     let token: string;
     let type: AuthTokens;
@@ -114,7 +118,7 @@ export class AuthService {
       token = this.tokenService['generateTempToken'](payload);
       type = AuthTokens.Temporary;
     } else {
-      token =  this.tokenService['generateAccessToken'](payload);
+      token = this.tokenService['generateAccessToken'](payload);
       type = AuthTokens.Access;
     }
 
@@ -201,6 +205,7 @@ export class AuthService {
     });
 
     const payload = {
+      sub: sender.id,
       phoneNumber: sender.phoneNumber
     };
     const accessToken = this.tokenService['generateAccessToken'](payload);
@@ -214,20 +219,20 @@ export class AuthService {
   async signupTransporter(
     {
       nationalId,
-      driverLicenseNumber,
+      licenseNumber,
       licenseType,
       profilePictureUrl,
       ...transporterDto
     }: SignupTransporterDto
   ) {
-    const transporter = await this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         ...transporterDto,
         role: RolesEnum.transporter,
         transporter: {
           create: {
             nationalId,
-            driverLicenseNumber,
+            licenseNumber,
             licenseType,
             profilePictureUrl,
           }
@@ -242,17 +247,49 @@ export class AuthService {
     });
 
     const payload = {
-      phoneNumber: transporter.phoneNumber
+      sub: user.id,
+      phoneNumber: user.phoneNumber
     };
     const progressToken = this.tokenService['generateProgressToken'](payload);
 
     return {
       transporter: {
-        ...transporter,
-        ...transporter.transporter,
+        ...user,
+        ...user.transporter,
         transporter: undefined
       },
       progressToken
+    };
+  }
+
+  async submitDocuments(
+    userId: string,
+    {
+      nationalIdDocumentUrl,
+      licenseDocumentUrl,
+      ...vehicleDocs
+    }: SubmitDocumentsDto,
+    phoneNumber: string
+  ) {
+    await this.prisma.$transaction(async tx => {
+      await this.userService.updateTransporter(userId, {
+        nationalIdDocumentUrl, licenseDocumentUrl
+      }, tx);
+
+      const transporter = await this.userService.getTransporter({ userId }, undefined, tx);
+      const vehicleId = transporter.vehicles[0].id;
+      await this.vehicleService.update(vehicleId, {
+        verificationDocuments: vehicleDocs
+      }, tx);
+    });
+
+    const payload = {
+      sub: userId,
+      phoneNumber
+    };
+    const accessToken = this.tokenService['generateAccessToken'](payload);
+    return {
+      accessToken
     };
   }
 }

@@ -12,11 +12,11 @@ import { GendersEnum } from 'generated/prisma/client';
 
 export class SignupSenderDto {
   @IsNotEmpty()
-  @IsAlpha()
+  @IsAlpha('fa-IR')
   firstName: string;
 
   @IsNotEmpty()
-  @IsAlpha()
+  @IsAlpha('fa-IR')
   lastName: string;
 
   @IsNotEmpty()

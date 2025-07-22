@@ -29,3 +29,29 @@ export class TemporaryTokenGuard implements CanActivate {
     return true;
   }
 }
+
+@Injectable()
+export class ProgressTokenGuard implements CanActivate {
+  constructor(private tokenService: TokenService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
+    const progressToken = request.cookies?.[CookieNames.ProgressToken];
+
+    if (!progressToken) {
+      throw new UnauthorizedException(AuthMessages.MissingProgressToken);
+    }
+
+    const payload = this.tokenService.verifyToken(progressToken, AuthTokens.Progress);
+    if (!payload?.sub || !payload?.phoneNumber) {
+      throw new UnauthorizedException(AuthMessages.InvalidToken);
+    }
+
+    request.user = {
+      id: payload.sub,
+      phoneNumber: payload.phoneNumber
+    };
+
+    return true;
+  }
+}

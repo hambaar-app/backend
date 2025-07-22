@@ -4,12 +4,14 @@ import { AuthService } from './auth.service';
 import { TokenModule } from '../token/token.module';
 import { UserModule } from '../user/user.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { VehicleModule } from '../vehicle/vehicle.module';
 
 @Module({
   imports: [
     PrismaModule,
     TokenModule,
     UserModule,
+    VehicleModule,
   ],
   controllers: [AuthController],
   providers: [AuthService]
