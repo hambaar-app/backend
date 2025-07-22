@@ -5,6 +5,7 @@ import { formatPrismaError } from 'src/common/utilities';
 import { CreateModelDto } from './dto/create-model.dto';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { instanceToPlain } from 'class-transformer';
+import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 
 @Injectable()
 export class VehicleService {
@@ -67,6 +68,20 @@ export class VehicleService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
+    });
+  }
+
+  async update(
+    id: string,
+    { verificationDocuments ,...vehicleDto }: UpdateVehicleDto
+  ) {
+    const plainDocs = instanceToPlain(verificationDocuments);
+    return this.prisma.vehicle.update({
+      where: { id },
+      data: {
+        verificationDocuments: plainDocs,
+        ...vehicleDto
+      }
     });
   }
 }
