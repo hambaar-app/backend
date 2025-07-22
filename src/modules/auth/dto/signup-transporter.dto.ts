@@ -15,11 +15,11 @@ import { GendersEnum, LicenseTypeEnum } from 'generated/prisma';
 
 export class SignupTransporterDto {
   @IsNotEmpty()
-  @IsAlpha()
+  @IsAlpha('fa-IR')
   firstName: string;
 
   @IsNotEmpty()
-  @IsAlpha()
+  @IsAlpha('fa-IR')
   lastName: string;
 
   @IsNotEmpty()
