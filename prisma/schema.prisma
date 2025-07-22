@@ -149,28 +149,28 @@ model User {
 }
 
 model Transporter {
-  id                       String           @id @default(uuid()) @db.Uuid
-  userId                   String           @unique @map("user_id") @db.Uuid
-  nationalId               String?          @unique @map("national_id") @db.VarChar
-  nationalIdStatusId       String?          @map("national_id_status_id") @db.Uuid
-  nationalIdDocumentUrl    String?          @map("national_id_document_url") @db.VarChar
-  driverLicenseNumber      String?          @unique @map("driver_license_number") @db.VarChar
-  driverLicenseStatusId    String?          @map("driver_license_status_id") @db.Uuid
-  driverLicenseDocumentUrl String?          @map("driver_license_document_url") @db.VarChar
-  licenseType              LicenseTypeEnum? @map("license_type")
-  licenseExpiryDate        DateTime?        @map("license_expiry_date") @db.Date
-  verificationStatusId     String?          @map("verification_status_id") @db.Uuid
-  profilePictureUrl        String?          @map("profile_picture_url") @db.VarChar
-  bio                      String?          @db.Text
+  id                    String           @id @default(uuid()) @db.Uuid
+  userId                String           @unique @map("user_id") @db.Uuid
+  nationalId            String?          @unique @map("national_id") @db.VarChar
+  nationalIdStatusId    String?          @map("national_id_status_id") @db.Uuid
+  nationalIdDocumentUrl String?          @map("national_id_document_url") @db.VarChar
+  licenseNumber         String?          @unique @map("license_number") @db.VarChar
+  licenseStatusId       String?          @map("license_status_id") @db.Uuid
+  licenseDocumentUrl    String?          @map("license_document_url") @db.VarChar
+  licenseType           LicenseTypeEnum? @map("license_type")
+  licenseExpiryDate     DateTime?        @map("license_expiry_date") @db.Date
+  verificationStatusId  String?          @map("verification_status_id") @db.Uuid
+  profilePictureUrl     String?          @map("profile_picture_url") @db.VarChar
+  bio                   String?          @db.Text
 
   // Relations
-  user                User                @relation(fields: [userId], references: [id])
-  trips               Trip[]
-  achievements        Achievement[]
-  matchedRequests     MatchedRequest[]    @relation("TransporterMatches")
-  nationalIdStatus    VerificationStatus? @relation("NationalIdStatus", fields: [nationalIdStatusId], references: [id])
-  driverLicenseStatus VerificationStatus? @relation("DriverLicenseStatus", fields: [driverLicenseStatusId], references: [id])
-  verificationStatus  VerificationStatus? @relation("TransporterVerification", fields: [verificationStatusId], references: [id])
+  user               User                @relation(fields: [userId], references: [id])
+  trips              Trip[]
+  achievements       Achievement[]
+  matchedRequests    MatchedRequest[]    @relation("TransporterMatches")
+  nationalIdStatus   VerificationStatus? @relation("NationalIdStatus", fields: [nationalIdStatusId], references: [id])
+  licenseStatus      VerificationStatus? @relation("DriverLicenseStatus", fields: [licenseStatusId], references: [id])
+  verificationStatus VerificationStatus? @relation("TransporterVerification", fields: [verificationStatusId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -234,7 +234,7 @@ model VehicleBrand {
   name String @db.VarChar
 
   // Relations
-  models   VehicleModel[]
+  models VehicleModel[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
