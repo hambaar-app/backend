@@ -135,7 +135,6 @@ model User {
 
   // Relations
   transporter     Transporter?
-  vehicles        Vehicle[]
   packages        Package[]
   addresses       Address[]
   wallet          Wallet?
@@ -165,6 +164,7 @@ model Transporter {
 
   // Relations
   user               User                @relation(fields: [userId], references: [id])
+  vehicles           Vehicle[]
   trips              Trip[]
   achievements       Achievement[]
   matchedRequests    MatchedRequest[]    @relation("TransporterMatches")
@@ -219,7 +219,7 @@ model Vehicle {
 
   // Relations
   trips Trip[]
-  owner User          @relation(fields: [ownerId], references: [id])
+  owner Transporter   @relation(fields: [ownerId], references: [id])
   model VehicleModel? @relation(fields: [modelId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
