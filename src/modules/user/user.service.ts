@@ -13,7 +13,7 @@ export class UserService {
     userWhereUniqueInput: Prisma.UserWhereUniqueInput,
     userInclude: Prisma.UserInclude = { transporter: true },
     tx: PrismaService | PrismaTransaction = this.prisma
-  ): Promise<User | null> {
+  ) {
     return tx.user.findUnique({
       where: userWhereUniqueInput,
       include: userInclude
@@ -26,9 +26,9 @@ export class UserService {
 
   async getTransporter(
     transporterWhereUniqueInput: Prisma.TransporterWhereUniqueInput,
-    transporterInclude?: Prisma.TransporterInclude,
+    transporterInclude: Prisma.TransporterInclude = { vehicles: true },
     tx: PrismaService | PrismaTransaction = this.prisma
-  ): Promise<Transporter | null> {
+  ) {
     return tx.transporter.findUniqueOrThrow({
       where: transporterWhereUniqueInput,
       include: transporterInclude
