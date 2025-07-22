@@ -13,5 +13,6 @@ export enum AuthMessages {
 }
 
 export enum NotFoundMessages {
+  Vehicle = 'Vehicle not found.',
   VehicleModel = 'Vehicle model not found.'
 }
