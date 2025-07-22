@@ -7,10 +7,14 @@ import { CreateVehicleDto, VehicleDocumentsDto } from './dto/create-vehicle.dto'
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class VehicleService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private userService: UserService
+  ) {}
 
   async createBrand({ name }: CreateBrandDto) {
     return this.prisma.vehicleBrand.create({
@@ -56,19 +60,23 @@ export class VehicleService {
   }
 
   async create(
-    ownerId: string,
+    userId: string,
     { verificationDocuments ,...vehicleDto }: CreateVehicleDto
   ) {
-    const plainDocs = instanceToPlain(verificationDocuments);
-    return this.prisma.vehicle.create({
-      data: {
-        ownerId,
-        verificationDocuments: plainDocs,
-        ...vehicleDto
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
+    return this.prisma.$transaction(async tx => {
+      const { id: ownerId } = await this.userService.getTransporter({ userId }, undefined, tx);
+    
+      const plainDocs = instanceToPlain(verificationDocuments);
+      return tx.vehicle.create({
+        data: {
+          ownerId,
+          verificationDocuments: plainDocs,
+          ...vehicleDto
+        }
+      }).catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
     });
   }
 
