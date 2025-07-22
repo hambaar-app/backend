@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { formatPrismaError } from 'src/common/utilities';
 import { CreateModelDto } from './dto/create-model.dto';
+import { CreateVehicleDto } from './dto/create-vehicle.dto';
+import { instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class VehicleService {
@@ -47,6 +49,20 @@ export class VehicleService {
           contains: search,
           mode: 'insensitive'
         }
+      }
+    });
+  }
+
+  async create(
+    ownerId: string,
+    { verificationDocuments ,...vehicleDto }: CreateVehicleDto
+  ) {
+    const plainDocs = instanceToPlain(verificationDocuments);
+    return this.prisma.vehicle.create({
+      data: {
+        ownerId,
+        verificationDocuments: plainDocs,
+        ...vehicleDto
       }
     });
   }

@@ -10,6 +10,7 @@ datasource db {
 
 enum RolesEnum {
   sender
+  transporter
   admin
   support
 
@@ -200,9 +201,9 @@ model Vehicle {
   id                            String                 @id @default(uuid()) @db.Uuid
   ownerId                       String                 @map("owner_id") @db.Uuid
   vin                           String?                @unique @db.VarChar
-  vehicleLicensePlate           String                 @unique @map("vehicle_license_plate") @db.VarChar
-  vehicleCardNumber             String?                @map("vehicle_card_number") @db.VarChar
-  greenCardNumber               String?                @unique @map("green_card_number") @db.VarChar
+  licensePlate                  String                 @unique @map("license_plate") @db.VarChar
+  barcode                       String?                @map("barcode") @db.VarChar
+  greenSheetNumber              String?                @unique @map("green_sheet_number") @db.VarChar
   vehicleType                   VehicleTypeEnum        @map("vehicle_type")
   brandId                       String?                @map("brand_id") @db.Uuid
   modelId                       String?                @map("model_id") @db.Uuid
