@@ -47,7 +47,7 @@ export class SignupTransporterDto {
   @IsNotEmpty()
   @Length(10, 10)
   @IsNumberString()
-  driverLicenseNumber: string;
+  licenseNumber: string;
 
   @ApiProperty({ enum: LicenseTypeEnum })
   @IsNotEmpty()

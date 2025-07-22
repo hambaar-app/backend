@@ -86,7 +86,7 @@ export class VehicleService {
 
   async update(
     id: string,
-    { verificationDocuments ,...vehicleDto }: UpdateVehicleDto,
+    { verificationDocuments, ...vehicleDto }: UpdateVehicleDto,
     tx: PrismaService | PrismaTransaction = this.prisma
   ) {
     const vehicle = await this.getById(id, tx);
