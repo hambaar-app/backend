@@ -221,7 +221,7 @@ export class AuthService {
       nationalId,
       licenseNumber,
       licenseType,
-      profilePictureUrl,
+      profilePictureKey,
       ...transporterDto
     }: SignupTransporterDto
   ) {
@@ -234,7 +234,7 @@ export class AuthService {
             nationalId,
             licenseNumber,
             licenseType,
-            profilePictureUrl,
+            profilePictureKey,
           }
         },
       },
@@ -265,15 +265,15 @@ export class AuthService {
   async submitDocuments(
     userId: string,
     {
-      nationalIdDocumentUrl,
-      licenseDocumentUrl,
+      nationalIdDocumentKey,
+      licenseDocumentKey,
       ...vehicleDocs
     }: SubmitDocumentsDto,
     phoneNumber: string
   ) {
     await this.prisma.$transaction(async tx => {
       await this.userService.updateTransporter(userId, {
-        nationalIdDocumentUrl, licenseDocumentUrl
+        nationalIdDocumentKey, licenseDocumentKey
       }, tx);
 
       const transporter = await this.userService.getTransporter({ userId }, undefined, tx);

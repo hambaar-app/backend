@@ -152,14 +152,14 @@ model Transporter {
   userId                String           @unique @map("user_id") @db.Uuid
   nationalId            String?          @unique @map("national_id") @db.VarChar
   nationalIdStatusId    String?          @map("national_id_status_id") @db.Uuid
-  nationalIdDocumentUrl String?          @map("national_id_document_url") @db.VarChar
+  nationalIdDocumentKey String?          @map("national_id_document_key") @db.VarChar
   licenseNumber         String?          @unique @map("license_number") @db.VarChar
   licenseStatusId       String?          @map("license_status_id") @db.Uuid
-  licenseDocumentUrl    String?          @map("license_document_url") @db.VarChar
+  licenseDocumentKey    String?          @map("license_document_key") @db.VarChar
   licenseType           LicenseTypeEnum? @map("license_type")
   licenseExpiryDate     DateTime?        @map("license_expiry_date") @db.Date
   verificationStatusId  String?          @map("verification_status_id") @db.Uuid
-  profilePictureUrl     String?          @map("profile_picture_url") @db.VarChar
+  profilePictureKey     String?          @map("profile_picture_key") @db.VarChar
   bio                   String?          @db.Text
 
   // Relations

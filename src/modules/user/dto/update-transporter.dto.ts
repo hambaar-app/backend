@@ -1,4 +1,4 @@
-import { IsNumberString, IsOptional, IsUrl, Length } from 'class-validator';
+import { IsNumberString, IsOptional, IsString, Length } from 'class-validator';
 
 export class UpdateTransporterDto {
   @IsOptional()
@@ -12,14 +12,14 @@ export class UpdateTransporterDto {
   driverLicenseNumber?: string;
 
   @IsOptional()
-  @IsUrl()
-  profilePictureUrl?: string;
+ @IsString()
+  profilePictureKey?: string;
 
   @IsOptional()
-  @IsUrl()
-  nationalIdDocumentUrl?: string;
+  @IsString()
+  nationalIdDocumentKey?: string;
   
   @IsOptional()
-  @IsUrl()
-  licenseDocumentUrl?: string;
+  @IsString()
+  licenseDocumentKey?: string;
 }
