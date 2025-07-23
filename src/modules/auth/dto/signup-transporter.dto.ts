@@ -7,7 +7,7 @@ import {
   IsNumberString,
   IsOptional,
   IsPhoneNumber,
-  IsUrl,
+  IsString,
   Length,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -55,6 +55,6 @@ export class SignupTransporterDto {
   licenseType: LicenseTypeEnum;
 
   @IsOptional()
-  @IsUrl()
-  profilePictureUrl: string;
+  @IsString()
+  profilePictureKey: string;
 }

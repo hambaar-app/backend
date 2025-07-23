@@ -1,21 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsAlpha, IsArray, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsNumberString, IsOptional, IsString, IsUrl, IsUUID, Length, Matches, Max, Min } from 'class-validator';
+import { IsAlpha, IsArray, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsNumberString, IsOptional, IsString, IsUUID, Length, Matches, Max, Min } from 'class-validator';
 import { VehicleTypeEnum } from 'generated/prisma';
 
 export class VehicleDocumentsDto {
   @IsNotEmpty()
-  @IsUrl()
-  greenSheetUrl: string;
+  @IsString()
+  greenSheetKey: string;
 
   @IsNotEmpty()
-  @IsUrl()
-  cardUrl: string;
+  @IsString()
+  cardKey: string;
 
   @IsNotEmpty()
   @IsArray()
-  @IsUrl({}, { each: true })
-  vehiclePicsUrl: string[];
+  @IsString({ each: true })
+  vehiclePicsKey: string[];
 }
 
 export class CreateVehicleDto {

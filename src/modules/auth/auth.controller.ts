@@ -220,13 +220,13 @@ export class AuthController {
   @ApiOperation({
     summary: 'Submit transporter documents during authentication (Stage 3)',
     description: `This endpoint handles the final stage of transporter registration.
-    After successful submission of vehicle information, the user submits URLs for required uploaded 
+    After successful submission of vehicle information, the user submits keys for required uploaded 
     (with our s3 service) documents. And generates an access token and sets it as an cookie.`
   })
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.OK)
   @Post('transporter/submit-docs')
-  async submitTransporterDocumentUrls(
+  async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
