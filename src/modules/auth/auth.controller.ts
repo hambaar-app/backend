@@ -38,6 +38,7 @@ import { UserStatesEnum } from './types/auth.enums';
 @Controller('auth')
 export class AuthController {
   private cookieMaxAge: number;
+  private progressMaxAge: number;
 
   constructor(
     private authService: AuthService,
@@ -45,6 +46,7 @@ export class AuthController {
     config: ConfigService
   ) {
     this.cookieMaxAge = config.get<number>('COOKIE_MAX_AGE', 15 * 24 * 3600 * 1000); // 15 days
+    this.progressMaxAge = 24 * 60 * 60 * 1000; // 1 day
   }
 
   @ApiOperation({
@@ -85,7 +87,7 @@ export class AuthController {
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ): Promise<CheckOtpResponseDto> {
-    const { userId, token, type } = await this.authService.checkOtp(body);
+    const { userId, token, type, ...response } = await this.authService.checkOtp(body);
     
     switch (type) {
       case AuthTokens.Access:
@@ -109,12 +111,19 @@ export class AuthController {
           maxAge: 20 * 60 * 1000,
         });
         break;
+
+      case AuthTokens.Progress:
+        res.cookie(CookieNames.ProgressToken, token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: this.progressMaxAge,
+        });
+        break;
     }
 
     session.phoneNumber = body.phoneNumber;
-    return {
-      authenticated: type === AuthTokens.Access
-    };
+    return response;
   }
 
   @ApiOperation({
@@ -190,7 +199,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: this.progressMaxAge,
     });
     res.clearCookie(CookieNames.TemporaryToken);
 

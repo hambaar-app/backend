@@ -6,6 +6,8 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { UserStatesEnum } from '../types/auth.enums';
+import { Transporter } from 'generated/prisma';
 
 export class CheckOtpDto {
   @IsNotEmpty()
@@ -21,5 +23,7 @@ export class CheckOtpDto {
 }
 
 export class CheckOtpResponseDto {
-  authenticated: boolean;
+  isNewUser: boolean;
+  userState?: UserStatesEnum;
+  transporter?: Transporter;
 }
