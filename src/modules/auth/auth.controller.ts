@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -43,22 +44,25 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private vehicleService: VehicleService,
-    config: ConfigService
+    config: ConfigService,
   ) {
-    this.cookieMaxAge = config.get<number>('COOKIE_MAX_AGE', 15 * 24 * 3600 * 1000); // 15 days
+    this.cookieMaxAge = config.get<number>(
+      'COOKIE_MAX_AGE',
+      15 * 24 * 3600 * 1000,
+    ); // 15 days
     this.progressMaxAge = 24 * 60 * 60 * 1000; // 1 day
   }
 
   @ApiOperation({
-    summary: 'Sends OTP code to the user\'s phone number',
+    summary: "Sends OTP code to the user's phone number",
     description: `Sends a OTP code to the user's phone number or email for authentication for login or signup.
-      This endpoint is used by both senders and transporters to verify their identity.`
+      This endpoint is used by both senders and transporters to verify their identity.`,
   })
   @ApiTooManyRequestsResponse({
-    description: AuthMessages.MaxAttempts
+    description: AuthMessages.MaxAttempts,
   })
   @ApiTooManyRequestsResponse({
-    description: AuthMessages.TooManyAttempts
+    description: AuthMessages.TooManyAttempts,
   })
   @UseGuards(DenyAuthorizedGuard)
   @HttpCode(HttpStatus.OK)
@@ -69,16 +73,16 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Verifies OTP code for login or signup',
-    description: `Verifies the OTP code sent to the user's phone number for authentication during login or signup.`
+    description: `Verifies the OTP code sent to the user's phone number for authentication during login or signup.`,
   })
   @ApiTooManyRequestsResponse({
-    description: AuthMessages.TooManyAttempts
+    description: AuthMessages.TooManyAttempts,
   })
   @ApiUnauthorizedResponse({
-    description: AuthMessages.OtpExpired
+    description: AuthMessages.OtpExpired,
   })
   @ApiUnauthorizedResponse({
-    description: AuthMessages.OtpInvalid
+    description: AuthMessages.OtpInvalid,
   })
   @HttpCode(HttpStatus.OK)
   @Post('check-otp')
@@ -87,8 +91,9 @@ export class AuthController {
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ): Promise<CheckOtpResponseDto> {
-    const { userId, token, type, ...response } = await this.authService.checkOtp(body);
-    
+    const { userId, token, type, ...response } =
+      await this.authService.checkOtp(body);
+
     switch (type) {
       case AuthTokens.Access:
         session.accessToken = token;
@@ -102,7 +107,7 @@ export class AuthController {
           maxAge: this.cookieMaxAge,
         });
         break;
-    
+
       case AuthTokens.Temporary:
         res.cookie(CookieNames.TemporaryToken, token, {
           httpOnly: true,
@@ -130,13 +135,13 @@ export class AuthController {
     summary: 'Registers a sender user',
     description: `This endpoint registers a new sender user using the provided data,
       generates an access token and sets it as an cookie.
-      You should authorized the phone number with otp before the request.`
+      You should authorized the phone number with otp before the request.`,
   })
   @ApiBadRequestResponse({
-    description: AuthMessages.UnauthorizedPhoneNumber
+    description: AuthMessages.UnauthorizedPhoneNumber,
   })
   @ApiConflictResponse({
-    description: 'Unique database constraint for => phoneNumber and email'
+    description: 'Unique database constraint for => phoneNumber and email',
   })
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -173,13 +178,14 @@ export class AuthController {
     description: `This endpoint handles the first stage of transporter registration.
     After successful OTP verification, a token with a 1-day validity is generated and stored in a cookie,
     allowing the user to proceed with subsequent registration stages (vehicle information and submit documents)
-    without re-verifying OTP.`
+    without re-verifying OTP.`,
   })
   @ApiBadRequestResponse({
-    description: AuthMessages.UnauthorizedPhoneNumber
+    description: AuthMessages.UnauthorizedPhoneNumber,
   })
   @ApiConflictResponse({
-    description: 'Unique database constraint for => phoneNumber, email, nationalId and driverLicenseNumber'
+    description:
+      'Unique database constraint for => phoneNumber, email, nationalId and driverLicenseNumber',
   })
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -193,7 +199,8 @@ export class AuthController {
       throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
     }
 
-    const { transporter, progressToken } = await this.authService.signupTransporter(body);
+    const { transporter, progressToken } =
+      await this.authService.signupTransporter(body);
 
     res.cookie(CookieNames.ProgressToken, progressToken, {
       httpOnly: true,
@@ -206,28 +213,29 @@ export class AuthController {
     session.userState = UserStatesEnum.PersonalInfoSubmitted;
     session.userId = transporter.userId;
     session.phoneNumber = transporter.phoneNumber;
-    
+
     return transporter;
   }
 
   @ApiOperation({
-    summary: 'Register a vehicle for a transporter during authentication (Stage 2)',
+    summary:
+      'Register a vehicle for a transporter during authentication (Stage 2)',
     description: `This endpoint handles the second stage of transporter registration.
-    The user submits vehicle information.`
+    The user submits vehicle information.`,
   })
   @ApiNotFoundResponse({
-    description: NotFoundMessages.VehicleModel
+    description: NotFoundMessages.VehicleModel,
   })
   @ApiConflictResponse({
     description: `Unique database constraint for =>
-      vin, licensePlate, barcode, greenSheetNumber and insuranceNumber`
+      vin, licensePlate, barcode, greenSheetNumber and insuranceNumber`,
   })
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('transporter/vehicle')
   async registerTransporterVehicle(
     @Body() body: CreateVehicleDto,
-    @Session() session: SessionData
+    @Session() session: SessionData,
   ) {
     const ownerId = session.userId;
     const vehicle = await this.vehicleService.create(ownerId!, body);
@@ -236,12 +244,11 @@ export class AuthController {
     return vehicle;
   }
 
-
   @ApiOperation({
     summary: 'Submit transporter documents during authentication (Stage 3)',
     description: `This endpoint handles the final stage of transporter registration.
     After successful submission of vehicle information, the user submits keys for required uploaded 
-    (with our s3 service) documents. And generates an access token and sets it as an cookie.`
+    (with our s3 service) documents. And generates an access token and sets it as an cookie.`,
   })
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.OK)
@@ -252,7 +259,11 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { userId, phoneNumber } = session;
-    const { accessToken } = await this.authService.submitDocuments(userId!, body, phoneNumber!);
+    const { accessToken } = await this.authService.submitDocuments(
+      userId!,
+      body,
+      phoneNumber!,
+    );
 
     res.cookie(CookieNames.AccessToken, accessToken, {
       httpOnly: true,
@@ -265,5 +276,15 @@ export class AuthController {
     session.accessToken = accessToken;
     session.userState = UserStatesEnum.DocumentsSubmitted;
     return true;
+  }
+
+  @ApiOperation({
+    summary: 'Retrieves user state',
+  })
+  @UseGuards(ProgressTokenGuard)
+  @UseGuards(DenyAuthorizedGuard)
+  @Get('state')
+  async getAllBrandModels(@Session() session: SessionData) {
+    return this.authService.getUserState(session);
   }
 }

@@ -359,8 +359,8 @@ export class AuthService {
         };
       }
 
-      // For other cases, return user info
-      return { state: session.userState, user };
+      // For other cases, return null
+      return null;
     }
 
     // Compute and set initial state

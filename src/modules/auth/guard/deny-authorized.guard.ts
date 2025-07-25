@@ -22,8 +22,8 @@ export class DenyAuthorizedGuard implements CanActivate {
       return true;
     }
 
-    const isOkToken = (payload.sub && payload.phoneNumber)
-      && (session.userId === payload.sub) && (session.phoneNumber === payload.phoneNumber);
+    const isOkToken = (session.phoneNumber === payload.phoneNumber) 
+        || (session.userId === payload.sub);
     if (isOkToken) {
       throw new BadRequestException(AuthMessages.AlreadyAuthorized);
     }
