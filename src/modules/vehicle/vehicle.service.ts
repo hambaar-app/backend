@@ -64,14 +64,20 @@ export class VehicleService {
     { verificationDocuments ,...vehicleDto }: CreateVehicleDto
   ) {
     return this.prisma.$transaction(async tx => {
-      const { id: ownerId } = await this.userService.getTransporter({ userId }, undefined, tx);
+      const { id: ownerId } = await this.userService.getTransporter({ userId }, tx);
     
       const plainDocs = instanceToPlain(verificationDocuments);
+      const verificationStatus = await tx.verificationStatus.create({ data: {} }); // Nested create got an error :(
+
       return tx.vehicle.create({
         data: {
+          ...vehicleDto,
           ownerId,
           verificationDocuments: plainDocs,
-          ...vehicleDto
+          verificationStatusId: verificationStatus.id,
+          // verificationStatus: {
+          //   create: {}
+          // }
         }
       }).catch((error: Error) => {
         formatPrismaError(error);

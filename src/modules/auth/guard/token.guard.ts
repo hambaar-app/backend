@@ -45,8 +45,7 @@ export class ProgressTokenGuard implements CanActivate {
     }
 
     const payload = this.tokenService.verifyToken(progressToken, AuthTokens.Progress);
-    const isOkToken = (payload.sub && payload.phoneNumber)
-      && (session.userId === payload.sub) && (session.phoneNumber === payload.phoneNumber);
+    const isOkToken = payload.phoneNumber && (session.phoneNumber === payload.phoneNumber);
   
     if (!isOkToken) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);

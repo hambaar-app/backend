@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Transporter, User } from 'generated/prisma';
+import { Prisma, User } from 'generated/prisma';
 import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { formatPrismaError } from 'src/common/utilities';
@@ -10,13 +10,20 @@ export class UserService {
   constructor(private prisma: PrismaService) {}
 
   async get(
-    userWhereUniqueInput: Prisma.UserWhereUniqueInput,
-    userInclude: Prisma.UserInclude = { transporter: true },
+    userWhereInput: Prisma.UserWhereInput,
     tx: PrismaService | PrismaTransaction = this.prisma
   ) {
-    return tx.user.findUnique({
-      where: userWhereUniqueInput,
-      include: userInclude
+    return tx.user.findFirst({
+      where: userWhereInput,
+      include: {
+        transporter: {
+          include: {
+            nationalIdStatus: true,
+            licenseStatus: true,
+            verificationStatus: true,
+          }
+        }
+      }
     });
   }
 
@@ -25,13 +32,21 @@ export class UserService {
   }
 
   async getTransporter(
-    transporterWhereUniqueInput: Prisma.TransporterWhereUniqueInput,
-    transporterInclude: Prisma.TransporterInclude = { vehicles: true },
+    transporterWhereInput: Prisma.TransporterWhereInput,
     tx: PrismaService | PrismaTransaction = this.prisma
   ) {
-    return tx.transporter.findUniqueOrThrow({
-      where: transporterWhereUniqueInput,
-      include: transporterInclude
+    return tx.transporter.findFirstOrThrow({
+      where: transporterWhereInput,
+      include: {
+        nationalIdStatus: true,
+        licenseStatus: true,
+        verificationStatus: true,
+        vehicles: {
+          include: {
+            verificationStatus: true
+          }
+        }
+      }
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;

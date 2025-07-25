@@ -1,11 +1,11 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Keyv } from '@keyv/redis';
 import { CheckOtpDto } from './dto/check-otp.dto';
 import { ConfigService } from '@nestjs/config';
-import { AuthMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 import { TokenService } from '../token/token.service';
 import { UserService } from '../user/user.service';
 import { AuthTokens } from 'src/common/enums/auth.enum';
@@ -18,7 +18,6 @@ import { SignupTransporterDto } from './dto/signup-transporter.dto';
 import { RolesEnum } from 'generated/prisma';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
-import { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -245,6 +244,15 @@ export class AuthService {
             licenseNumber,
             licenseType,
             profilePictureKey,
+            nationalIdStatus: {
+              create: {}
+            },
+            licenseStatus: {
+              create: {}
+            },
+            verificationStatus: {
+              create: {}
+            }
           }
         },
       },
@@ -286,7 +294,7 @@ export class AuthService {
         nationalIdDocumentKey, licenseDocumentKey
       }, tx);
 
-      const transporter = await this.userService.getTransporter({ userId }, undefined, tx);
+      const transporter = await this.userService.getTransporter({ userId }, tx);
       const vehicleId = transporter.vehicles[0].id;
       await this.vehicleService.update(vehicleId, {
         verificationDocuments: vehicleDocs

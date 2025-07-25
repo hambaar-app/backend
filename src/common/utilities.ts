@@ -8,6 +8,8 @@ export const generateOTP = () => {
 
 
 export const formatPrismaError = (error: Error): never => {
+  if (process.env.NODE_ENV === 'development') console.log(error);
+
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     const target = Array.isArray(error.meta?.target)
       ? error.meta.target.join(', ')
@@ -28,6 +30,7 @@ export const formatPrismaError = (error: Error): never => {
           `Foreign key constraint failed on ${target} in ${model}.`
         );
       case 'P2025':
+
         throw new NotFoundException(
           `Record not found in ${model} for the provided ${target}.`
         );

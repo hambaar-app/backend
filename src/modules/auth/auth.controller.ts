@@ -33,7 +33,7 @@ import { SignupTransporterDto } from './dto/signup-transporter.dto';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
-import { UserStatesEnum } from './types/session-data';
+import { UserStatesEnum } from './types/auth.enums';
 
 @Controller('auth')
 export class AuthController {
@@ -153,6 +153,9 @@ export class AuthController {
     res.clearCookie(CookieNames.TemporaryToken);
 
     session.userState = UserStatesEnum.Authenticated;
+    session.userId = sender.id;
+    session.phoneNumber = sender.phoneNumber;
+
     return sender;
   }
 
@@ -192,6 +195,9 @@ export class AuthController {
     res.clearCookie(CookieNames.TemporaryToken);
 
     session.userState = UserStatesEnum.PersonalInfoSubmitted;
+    session.userId = transporter.userId;
+    session.phoneNumber = transporter.phoneNumber;
+    
     return transporter;
   }
 
@@ -237,7 +243,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { userId, phoneNumber } = session;
-    const { accessToken } = await this.authService.submitDocuments(userId!, body, phoneNumber);
+    const { accessToken } = await this.authService.submitDocuments(userId!, body, phoneNumber!);
 
     res.cookie(CookieNames.AccessToken, accessToken, {
       httpOnly: true,
