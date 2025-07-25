@@ -13,7 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SignupSenderDto } from './dto/signup-sender.dto';
 import { formatPrismaError, generateOTP } from 'src/common/utilities';
 import { TooManyRequestsException } from 'src/common/custom.exceptions';
-import { CachedUserData, UserAttempts } from './types/auth.types';
+import { CachedUserData, CheckOtpResult, UserAttempts } from './types/auth.types';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
 import { RolesEnum, Transporter, VerificationStatusEnum } from 'generated/prisma';
 import { VehicleService } from '../vehicle/vehicle.service';
@@ -82,7 +82,7 @@ export class AuthService {
 
   async checkOtp(
     { phoneNumber, code }: CheckOtpDto
-  ): Promise<{ userId: string | undefined; token: string; type: AuthTokens }> {
+  ): Promise<CheckOtpResult> {
     const userKey = this.getUserKey(phoneNumber);
     const userData = await this.getUserData(userKey);
 
@@ -116,29 +116,46 @@ export class AuthService {
     await this.setUserData(userKey, userData);
 
     const user = await this.userService.getByPhoneNumber(phoneNumber);
-    let token: string;
-    let type: AuthTokens;
-    let userId: string | undefined = undefined;
 
     if (!user) {
       const payload = { phoneNumber };
-      token = this.tokenService['generateTempToken'](payload);
-      type = AuthTokens.Temporary;
-    } else {
-      userId = user.id;
-      const payload = {
-        sub: userId,
-        phoneNumber: user.phoneNumber,
+      const token = this.tokenService['generateTempToken'](payload);
+        
+      return {
+        isNewUser: true,
+        token,
+        type: AuthTokens.Temporary,
       };
-      token = this.tokenService['generateAccessToken'](payload);
-      type = AuthTokens.Access;
+    }
+  
+    // Handle existing user
+    const payload = {
+      sub: user.id,
+      phoneNumber: user.phoneNumber,
+    };
+
+    // Base result
+    const result: CheckOtpResult = {
+      isNewUser: false,
+      userId: user.id,
+      token: this.tokenService['generateAccessToken'](payload),
+      type: AuthTokens.Access,
+    };
+
+    if (user.role === RolesEnum.transporter) {
+      const transporterState = await this.computeTransporterState(user.id);
+      result.userState = transporterState.state;
+
+      if (transporterState.state !== UserStatesEnum.Authenticated) {
+        result.token = this.tokenService['generateProgressToken'](payload);
+        result.type = AuthTokens.Progress;
+        result.transporter = transporterState.transporter;
+      }
+    } else if (user.role === RolesEnum.sender) {
+      result.userState = UserStatesEnum.Authenticated;
     }
 
-    return {
-      userId,
-      token,
-      type
-    };
+    return result;
   }
 
   private getUserKey(
