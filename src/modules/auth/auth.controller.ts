@@ -34,6 +34,7 @@ import { SignupTransporterDto } from './dto/signup-transporter.dto';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
+import { UserStatesEnum } from './types/session-data';
 
 @Controller('auth')
 export class AuthController {
@@ -85,11 +86,14 @@ export class AuthController {
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ): Promise<CheckOtpResponseDto> {
-    const { token, type } = await this.authService.checkOtp(body);
+    const { userId, token, type } = await this.authService.checkOtp(body);
     
     switch (type) {
       case AuthTokens.Access:
         session.accessToken = token;
+        session.userId = userId;
+        session.userState = UserStatesEnum.Authenticated;
+
         res.cookie(CookieNames.AccessToken, token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
@@ -108,6 +112,7 @@ export class AuthController {
         break;
     }
 
+    session.phoneNumber = body.phoneNumber;
     return {
       authenticated: type === AuthTokens.Access
     };
@@ -131,10 +136,9 @@ export class AuthController {
   async signupSender(
     @Body() body: SignupSenderDto,
     @Session() session: SessionData,
-    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (req.user?.phoneNumber !== body.phoneNumber) {
+    if (session.phoneNumber !== body.phoneNumber) {
       throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
     }
 
@@ -147,9 +151,9 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: this.cookieMaxAge,
     });
-
     res.clearCookie(CookieNames.TemporaryToken);
-    
+
+    session.userState = UserStatesEnum.Authenticated;
     return sender;
   }
 
@@ -171,10 +175,10 @@ export class AuthController {
   @Post('transporter/signup')
   async signupTransporter(
     @Body() body: SignupTransporterDto,
-    @Req() req: Request,
+    @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (req.user?.phoneNumber !== body.phoneNumber) {
+    if (session.phoneNumber !== body.phoneNumber) {
       throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
     }
 
@@ -186,9 +190,9 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000,
     });
-
     res.clearCookie(CookieNames.TemporaryToken);
-    
+
+    session.userState = UserStatesEnum.PersonalInfoSubmitted;
     return transporter;
   }
 
@@ -209,11 +213,13 @@ export class AuthController {
   @Post('transporter/vehicle')
   async registerTransporterVehicle(
     @Body() body: CreateVehicleDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
+    @Session() session: SessionData
   ) {
-    const ownerId = req.user?.id;
-    return this.vehicleService.create(ownerId!, body);
+    const ownerId = session.userId;
+    const vehicle = await this.vehicleService.create(ownerId!, body);
+
+    session.userState = UserStatesEnum.VehicleInfoSubmitted;
+    return vehicle;
   }
 
 
@@ -228,11 +234,11 @@ export class AuthController {
   @Post('transporter/submit-docs')
   async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
-    @Req() req: Request,
+    @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { id, phoneNumber } = req.user!;
-    const { accessToken } = await this.authService.submitDocuments(id!, body, phoneNumber);
+    const { userId, phoneNumber } = session;
+    const { accessToken } = await this.authService.submitDocuments(userId!, body, phoneNumber);
 
     res.cookie(CookieNames.AccessToken, accessToken, {
       httpOnly: true,
@@ -240,9 +246,10 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: this.cookieMaxAge,
     });
+    res.clearCookie(CookieNames.ProgressToken);
 
-    res.clearCookie(CookieNames.ProgressToken)
-    
+    session.accessToken = accessToken;
+    session.userState = UserStatesEnum.DocumentsSubmitted;
     return true;
   }
 }

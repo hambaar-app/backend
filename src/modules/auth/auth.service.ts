@@ -76,7 +76,7 @@ export class AuthService {
 
   async checkOtp(
     { phoneNumber, code }: CheckOtpDto
-  ): Promise<{ token: string; type: AuthTokens }> {
+  ): Promise<{ userId: string | undefined; token: string; type: AuthTokens }> {
     const userKey = this.getUserKey(phoneNumber);
     const userData = await this.getUserData(userKey);
 
@@ -110,19 +110,29 @@ export class AuthService {
     await this.setUserData(userKey, userData);
 
     const user = await this.userService.getByPhoneNumber(phoneNumber);
-    const payload = { phoneNumber };
     let token: string;
     let type: AuthTokens;
+    let userId: string | undefined = undefined;
 
     if (!user) {
+      const payload = { phoneNumber };
       token = this.tokenService['generateTempToken'](payload);
       type = AuthTokens.Temporary;
     } else {
+      userId = user.id;
+      const payload = {
+        sub: userId,
+        phoneNumber: user.phoneNumber,
+      };
       token = this.tokenService['generateAccessToken'](payload);
       type = AuthTokens.Access;
     }
 
-    return { token, type };
+    return {
+      userId,
+      token,
+      type
+    };
   }
 
   private getUserKey(
