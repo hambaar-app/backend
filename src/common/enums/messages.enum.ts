@@ -3,7 +3,7 @@ export enum AuthMessages {
   OtpExpired = 'OTP not found or has expired. Please request a new one.',
   OtpInvalid = 'Invalid OTP code. Please check and try again.',
   MaxAttempts = 'Maximum send attempts exceeded. Please try again later.',
-  InvalidToken = `Invalid token format.`,
+  InvalidToken = `Invalid token. Please authorize first.`,
   MissingTempToken = 'Temporary token is required but was not provided. Please auth with otp first.',
   MissingProgressToken = 'Progress token is required but was not provided.',
   SendOtpFailed = 'Failed to send OTP.',

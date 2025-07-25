@@ -11,14 +11,15 @@ export class TemporaryTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const tempToken = request.cookies?.[CookieNames.TemporaryToken];
+    const session = request.session;
+    const tempToken = request.cookies?.[CookieNames.TemporaryToken] as string;
 
     if (!tempToken) {
       throw new UnauthorizedException(AuthMessages.MissingTempToken);
     }
 
     const payload = this.tokenService.verifyToken(tempToken, AuthTokens.Temporary);
-    if (!payload?.phoneNumber) {
+    if (!payload.phoneNumber || payload.phoneNumber !== session.phoneNumber) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 
@@ -36,14 +37,18 @@ export class ProgressTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const progressToken = request.cookies?.[CookieNames.ProgressToken];
+    const session = request.session;
+    const progressToken = request.cookies?.[CookieNames.ProgressToken] as string;
 
     if (!progressToken) {
       throw new UnauthorizedException(AuthMessages.MissingProgressToken);
     }
 
     const payload = this.tokenService.verifyToken(progressToken, AuthTokens.Progress);
-    if (!payload?.sub || !payload?.phoneNumber) {
+    const isOkToken = (payload.sub && payload.phoneNumber)
+      && (session.userId === payload.sub) && (session.phoneNumber === payload.phoneNumber);
+  
+    if (!isOkToken) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 
