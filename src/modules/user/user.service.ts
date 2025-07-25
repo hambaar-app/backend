@@ -14,16 +14,7 @@ export class UserService {
     tx: PrismaService | PrismaTransaction = this.prisma
   ) {
     return tx.user.findFirst({
-      where: userWhereInput,
-      include: {
-        transporter: {
-          include: {
-            nationalIdStatus: true,
-            licenseStatus: true,
-            verificationStatus: true,
-          }
-        }
-      }
+      where: userWhereInput
     });
   }
 
@@ -38,6 +29,7 @@ export class UserService {
     return tx.transporter.findFirstOrThrow({
       where: transporterWhereInput,
       include: {
+        user: true,
         nationalIdStatus: true,
         licenseStatus: true,
         verificationStatus: true,

@@ -15,9 +15,16 @@ import { formatPrismaError, generateOTP } from 'src/common/utilities';
 import { TooManyRequestsException } from 'src/common/custom.exceptions';
 import { CachedUserData, UserAttempts } from './types/auth.types';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
-import { RolesEnum } from 'generated/prisma';
+import { RolesEnum, Transporter, VerificationStatusEnum } from 'generated/prisma';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
+import { SessionData } from 'express-session';
+import { UserStatesEnum } from './types/auth.enums';
+
+interface TransporterState {
+  transporter?: Transporter
+  state: UserStatesEnum;
+}
 
 @Injectable()
 export class AuthService {
@@ -309,5 +316,96 @@ export class AuthService {
     return {
       accessToken
     };
+  }
+
+  async getUserState(session: SessionData) {
+    if (session.userState) {
+      // For authenticated users, just return state
+      if (session.userState === UserStatesEnum.Authenticated) {
+        return { state: session.userState };
+      }
+
+      const user = await this.userService.get({ id: session.userId });
+      if (!user) {
+        throw new NotFoundException(NotFoundMessages.User);
+      }
+
+      // For transporters in progress, return complete transporter data
+      if (user.role === RolesEnum.transporter) {
+        const transporter = await this.userService.getTransporter({ id: session.userId });
+        return { 
+          state: session.userState, 
+          transporter: {
+            ...user,
+            ...transporter
+          }
+        };
+      }
+
+      // For other cases, return user info
+      return { state: session.userState, user };
+    }
+
+    // Compute and set initial state
+    const user = await this.userService.get({ id: session.userId });
+    if (!user) {
+      throw new NotFoundException(NotFoundMessages.User);
+    }
+
+    let computedState: UserStatesEnum | undefined;
+    let transporter: Transporter | undefined;
+
+    switch (user.role) {
+      case RolesEnum.sender:
+        computedState = UserStatesEnum.Authenticated;
+        break;
+
+      case RolesEnum.transporter:
+        const transporterState = await this.computeTransporterState(session.userId!);
+        computedState = transporterState.state;
+        transporter = transporterState.transporter;
+        break;
+    }
+
+    // Update session with computed state
+    session.userState = computedState;
+
+    return computedState === UserStatesEnum.Authenticated 
+      ? { state: computedState }
+      : {
+          state: computedState,
+          transporter: {
+            ...user,
+            ...transporter
+          }
+        };
+  }
+
+  private async computeTransporterState(
+    userId: string
+  ): Promise<TransporterState> {
+    const transporter = await this.userService.getTransporter({ id: userId });
+
+    // No vehicles submitted yet
+    if (transporter.vehicles.length === 0) {
+      return { state: UserStatesEnum.PersonalInfoSubmitted };
+    }
+
+    // Vehicle info submitted
+    const firstVehicle = transporter.vehicles[0];
+    const hasAllDocuments = transporter.licenseDocumentKey 
+      && transporter.nationalIdDocumentKey 
+      && firstVehicle.verificationDocuments;
+
+    if (!hasAllDocuments) {
+      return { state: UserStatesEnum.VehicleInfoSubmitted };
+    }
+
+    // Transporter verified or not
+    const isVerified = transporter.verificationStatus?.status === VerificationStatusEnum.verified;
+    
+    return isVerified
+      ? { state: UserStatesEnum.Authenticated }
+      : { transporter, state: UserStatesEnum.DocumentsSubmitted };
   }
 }
