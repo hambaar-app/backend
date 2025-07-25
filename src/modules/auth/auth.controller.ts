@@ -5,7 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   Res,
   Session,
   UseGuards
@@ -23,13 +22,13 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { CheckOtpDto, CheckOtpResponseDto } from './dto/check-otp.dto';
 import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
 import { ProgressTokenGuard, TemporaryTokenGuard } from './guard/token.guard';
 import { AuthMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
-import { AlreadyAuthorizedGuard } from './guard/authorized.guard';
+import { DenyAuthorizedGuard } from './guard/deny-authorized.guard';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
@@ -59,7 +58,7 @@ export class AuthController {
   @ApiTooManyRequestsResponse({
     description: AuthMessages.TooManyAttempts
   })
-  @UseGuards(AlreadyAuthorizedGuard)
+  @UseGuards(DenyAuthorizedGuard)
   @HttpCode(HttpStatus.OK)
   @Post('send-otp')
   async sendOtp(@Body() body: SendOtpDto): Promise<boolean> {
