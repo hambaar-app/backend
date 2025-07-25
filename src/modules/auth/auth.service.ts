@@ -310,10 +310,9 @@ export class AuthService {
       nationalIdDocumentKey,
       licenseDocumentKey,
       ...vehicleDocs
-    }: SubmitDocumentsDto,
-    phoneNumber: string
+    }: SubmitDocumentsDto
   ) {
-    await this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async tx => {
       await this.userService.updateTransporter(userId, {
         nationalIdDocumentKey, licenseDocumentKey
       }, tx);
@@ -324,15 +323,6 @@ export class AuthService {
         verificationDocuments: vehicleDocs
       }, tx);
     });
-
-    const payload = {
-      sub: userId,
-      phoneNumber
-    };
-    const accessToken = this.tokenService['generateAccessToken'](payload);
-    return {
-      accessToken
-    };
   }
 
   async getUserState(session: SessionData) {

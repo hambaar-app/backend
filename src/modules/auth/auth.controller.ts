@@ -46,11 +46,8 @@ export class AuthController {
     private vehicleService: VehicleService,
     config: ConfigService,
   ) {
-    this.cookieMaxAge = config.get<number>(
-      'COOKIE_MAX_AGE',
-      15 * 24 * 3600 * 1000,
-    ); // 15 days
-    this.progressMaxAge = 24 * 60 * 60 * 1000; // 1 day
+    this.cookieMaxAge = config.get<number>('COOKIE_MAX_AGE', 15 * 24 * 3600 * 1000); // 15 days
+    this.progressMaxAge = 2 * 24 * 60 * 60 * 1000; // 2 days
   }
 
   @ApiOperation({
@@ -256,24 +253,9 @@ export class AuthController {
   async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
     @Session() session: SessionData,
-    @Res({ passthrough: true }) res: Response,
   ) {
-    const { userId, phoneNumber } = session;
-    const { accessToken } = await this.authService.submitDocuments(
-      userId!,
-      body,
-      phoneNumber!,
-    );
-
-    res.cookie(CookieNames.AccessToken, accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: this.cookieMaxAge,
-    });
-    res.clearCookie(CookieNames.ProgressToken);
-
-    session.accessToken = accessToken;
+    const { userId } = session;
+    await this.authService.submitDocuments(userId!, body);
     session.userState = UserStatesEnum.DocumentsSubmitted;
     return true;
   }
@@ -284,7 +266,24 @@ export class AuthController {
   @UseGuards(ProgressTokenGuard)
   @UseGuards(DenyAuthorizedGuard)
   @Get('state')
-  async getAllBrandModels(@Session() session: SessionData) {
+  async getUserState(@Session() session: SessionData) {
     return this.authService.getUserState(session);
+  }
+
+  @ApiOperation({
+    summary: 'Logout user and destroy session',
+  })
+  @Post('logout')
+  async logoutUser(
+    @Session() session: SessionData,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    session.destroy();
+    res.clearCookie(CookieNames.SessionId);
+    res.clearCookie(CookieNames.TemporaryToken);
+    res.clearCookie(CookieNames.ProgressToken);
+    res.clearCookie(CookieNames.AccessToken);
+
+    return true;
   }
 }
