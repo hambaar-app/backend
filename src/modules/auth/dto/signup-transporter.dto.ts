@@ -56,5 +56,5 @@ export class SignupTransporterDto {
 
   @IsOptional()
   @IsString()
-  profilePictureKey: string;
+  profilePictureKey?: string;
 }

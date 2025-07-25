@@ -1,11 +1,11 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Keyv } from '@keyv/redis';
 import { CheckOtpDto } from './dto/check-otp.dto';
 import { ConfigService } from '@nestjs/config';
-import { AuthMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 import { TokenService } from '../token/token.service';
 import { UserService } from '../user/user.service';
 import { AuthTokens } from 'src/common/enums/auth.enum';
@@ -13,12 +13,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SignupSenderDto } from './dto/signup-sender.dto';
 import { formatPrismaError, generateOTP } from 'src/common/utilities';
 import { TooManyRequestsException } from 'src/common/custom.exceptions';
-import { CachedUserData, UserAttempts } from './types/auth.types';
+import { CachedUserData, CheckOtpResult, UserAttempts } from './types/auth.types';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
-import { RolesEnum } from 'generated/prisma';
+import { RolesEnum, Transporter, VerificationStatusEnum } from 'generated/prisma';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
-import { Request } from 'express';
+import { SessionData } from 'express-session';
+import { UserStatesEnum } from './types/auth.enums';
+
+interface TransporterState {
+  transporter?: Transporter
+  state: UserStatesEnum;
+}
 
 @Injectable()
 export class AuthService {
@@ -76,7 +82,7 @@ export class AuthService {
 
   async checkOtp(
     { phoneNumber, code }: CheckOtpDto
-  ): Promise<{ token: string; type: AuthTokens }> {
+  ): Promise<CheckOtpResult> {
     const userKey = this.getUserKey(phoneNumber);
     const userData = await this.getUserData(userKey);
 
@@ -110,19 +116,46 @@ export class AuthService {
     await this.setUserData(userKey, userData);
 
     const user = await this.userService.getByPhoneNumber(phoneNumber);
-    const payload = { phoneNumber };
-    let token: string;
-    let type: AuthTokens;
 
     if (!user) {
-      token = this.tokenService['generateTempToken'](payload);
-      type = AuthTokens.Temporary;
-    } else {
-      token = this.tokenService['generateAccessToken'](payload);
-      type = AuthTokens.Access;
+      const payload = { phoneNumber };
+      const token = this.tokenService['generateTempToken'](payload);
+        
+      return {
+        isNewUser: true,
+        token,
+        type: AuthTokens.Temporary,
+      };
+    }
+  
+    // Handle existing user
+    const payload = {
+      sub: user.id,
+      phoneNumber: user.phoneNumber,
+    };
+
+    // Base result
+    const result: CheckOtpResult = {
+      isNewUser: false,
+      userId: user.id,
+      token: this.tokenService['generateAccessToken'](payload),
+      type: AuthTokens.Access,
+    };
+
+    if (user.role === RolesEnum.transporter) {
+      const transporterState = await this.computeTransporterState(user.id);
+      result.userState = transporterState.state;
+
+      if (transporterState.state !== UserStatesEnum.Authenticated) {
+        result.token = this.tokenService['generateProgressToken'](payload);
+        result.type = AuthTokens.Progress;
+        result.transporter = transporterState.transporter;
+      }
+    } else if (user.role === RolesEnum.sender) {
+      result.userState = UserStatesEnum.Authenticated;
     }
 
-    return { token, type };
+    return result;
   }
 
   private getUserKey(
@@ -235,6 +268,15 @@ export class AuthService {
             licenseNumber,
             licenseType,
             profilePictureKey,
+            nationalIdStatus: {
+              create: {}
+            },
+            licenseStatus: {
+              create: {}
+            },
+            verificationStatus: {
+              create: {}
+            }
           }
         },
       },
@@ -268,28 +310,109 @@ export class AuthService {
       nationalIdDocumentKey,
       licenseDocumentKey,
       ...vehicleDocs
-    }: SubmitDocumentsDto,
-    phoneNumber: string
+    }: SubmitDocumentsDto
   ) {
-    await this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async tx => {
       await this.userService.updateTransporter(userId, {
         nationalIdDocumentKey, licenseDocumentKey
       }, tx);
 
-      const transporter = await this.userService.getTransporter({ userId }, undefined, tx);
+      const transporter = await this.userService.getTransporter({ userId }, tx);
       const vehicleId = transporter.vehicles[0].id;
       await this.vehicleService.update(vehicleId, {
         verificationDocuments: vehicleDocs
       }, tx);
     });
+  }
 
-    const payload = {
-      sub: userId,
-      phoneNumber
-    };
-    const accessToken = this.tokenService['generateAccessToken'](payload);
-    return {
-      accessToken
-    };
+  async getUserState(session: SessionData) {
+    if (session.userState) {
+      // For authenticated users, just return state
+      if (session.userState === UserStatesEnum.Authenticated) {
+        return { state: session.userState };
+      }
+
+      const user = await this.userService.get({ id: session.userId });
+      if (!user) {
+        throw new NotFoundException(NotFoundMessages.User);
+      }
+
+      // For transporters in progress, return complete transporter data
+      if (user.role === RolesEnum.transporter) {
+        const transporter = await this.userService.getTransporter({ id: session.userId });
+        return { 
+          state: session.userState, 
+          transporter: {
+            ...user,
+            ...transporter
+          }
+        };
+      }
+
+      // For other cases, return null
+      return null;
+    }
+
+    // Compute and set initial state
+    const user = await this.userService.get({ id: session.userId });
+    if (!user) {
+      throw new NotFoundException(NotFoundMessages.User);
+    }
+
+    let computedState: UserStatesEnum | undefined;
+    let transporter: Transporter | undefined;
+
+    switch (user.role) {
+      case RolesEnum.sender:
+        computedState = UserStatesEnum.Authenticated;
+        break;
+
+      case RolesEnum.transporter:
+        const transporterState = await this.computeTransporterState(session.userId!);
+        computedState = transporterState.state;
+        transporter = transporterState.transporter;
+        break;
+    }
+
+    // Update session with computed state
+    session.userState = computedState;
+
+    return computedState === UserStatesEnum.Authenticated 
+      ? { state: computedState }
+      : {
+          state: computedState,
+          transporter: {
+            ...user,
+            ...transporter
+          }
+        };
+  }
+
+  private async computeTransporterState(
+    userId: string
+  ): Promise<TransporterState> {
+    const transporter = await this.userService.getTransporter({ id: userId });
+
+    // No vehicles submitted yet
+    if (transporter.vehicles.length === 0) {
+      return { state: UserStatesEnum.PersonalInfoSubmitted };
+    }
+
+    // Vehicle info submitted
+    const firstVehicle = transporter.vehicles[0];
+    const hasAllDocuments = transporter.licenseDocumentKey 
+      && transporter.nationalIdDocumentKey 
+      && firstVehicle.verificationDocuments;
+
+    if (!hasAllDocuments) {
+      return { state: UserStatesEnum.VehicleInfoSubmitted };
+    }
+
+    // Transporter verified or not
+    const isVerified = transporter.verificationStatus?.status === VerificationStatusEnum.verified;
+    
+    return isVerified
+      ? { state: UserStatesEnum.Authenticated }
+      : { transporter, state: UserStatesEnum.DocumentsSubmitted };
   }
 }

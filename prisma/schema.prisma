@@ -189,6 +189,7 @@ model VerificationStatus {
   transporterNationalId    Transporter[] @relation("NationalIdStatus")
   transporterDriverLicense Transporter[] @relation("DriverLicenseStatus")
   transporterVerification  Transporter[] @relation("TransporterVerification")
+  transporterVehicle       Vehicle[]     @relation("TransporterVehicleStatus")
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -198,29 +199,30 @@ model VerificationStatus {
 }
 
 model Vehicle {
-  id                            String                 @id @default(uuid()) @db.Uuid
-  ownerId                       String                 @map("owner_id") @db.Uuid
-  vin                           String?                @unique @db.VarChar
-  licensePlate                  String                 @unique @map("license_plate") @db.VarChar
-  barcode                       String?                @unique @map("barcode") @db.VarChar
-  greenSheetNumber              String?                @unique @map("green_sheet_number") @db.VarChar
-  vehicleType                   VehicleTypeEnum        @map("vehicle_type")
-  modelId                       String?                @map("model_id") @db.Uuid
-  manufactureYear               Int?                   @map("manufacture_year")
-  color                         String?                @db.VarChar
-  technicalInspectionDate       DateTime?              @map("technical_inspection_date") @db.Date
-  technicalInspectionExpiryDate DateTime?              @map("technical_inspection_expiry_date") @db.Date
-  insuranceNumber               String?                @unique @map("insurance_number") @db.VarChar
-  insuranceExpiryDate           DateTime?              @map("insurance_expiry_date") @db.Date
-  maxWeightCapacity             Float?                 @map("max_weight_capacity") // in kg
-  isActive                      Boolean                @default(true) @map("is_active")
-  verificationStatus            VerificationStatusEnum @default(pending) @map("verification_status")
-  verificationDocuments         Json?                  @map("verification_documents") @db.JsonB
+  id                            String          @id @default(uuid()) @db.Uuid
+  ownerId                       String          @map("owner_id") @db.Uuid
+  vin                           String?         @unique @db.VarChar
+  licensePlate                  String          @unique @map("license_plate") @db.VarChar
+  barcode                       String?         @unique @map("barcode") @db.VarChar
+  greenSheetNumber              String?         @unique @map("green_sheet_number") @db.VarChar
+  vehicleType                   VehicleTypeEnum @map("vehicle_type")
+  modelId                       String?         @map("model_id") @db.Uuid
+  manufactureYear               Int?            @map("manufacture_year")
+  color                         String?         @db.VarChar
+  technicalInspectionDate       DateTime?       @map("technical_inspection_date") @db.Date
+  technicalInspectionExpiryDate DateTime?       @map("technical_inspection_expiry_date") @db.Date
+  insuranceNumber               String?         @unique @map("insurance_number") @db.VarChar
+  insuranceExpiryDate           DateTime?       @map("insurance_expiry_date") @db.Date
+  maxWeightCapacity             Float?          @map("max_weight_capacity") // in kg
+  isActive                      Boolean         @default(true) @map("is_active")
+  verificationDocuments         Json?           @map("verification_documents") @db.JsonB
+  verificationStatusId          String?         @map("verification_status_id") @db.Uuid
 
   // Relations
-  trips Trip[]
-  owner Transporter   @relation(fields: [ownerId], references: [id])
-  model VehicleModel? @relation(fields: [modelId], references: [id])
+  trips              Trip[]
+  verificationStatus VerificationStatus? @relation("TransporterVehicleStatus", fields: [verificationStatusId], references: [id])
+  owner              Transporter         @relation(fields: [ownerId], references: [id])
+  model              VehicleModel?       @relation(fields: [modelId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()

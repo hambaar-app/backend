@@ -2,10 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   Res,
   Session,
   UseGuards
@@ -23,42 +23,45 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { CheckOtpDto, CheckOtpResponseDto } from './dto/check-otp.dto';
 import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
 import { ProgressTokenGuard, TemporaryTokenGuard } from './guard/token.guard';
 import { AuthMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
-import { AlreadyAuthorizedGuard } from './guard/authorized.guard';
+import { DenyAuthorizedGuard } from './guard/deny-authorized.guard';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
+import { UserStatesEnum } from './types/auth.enums';
 
 @Controller('auth')
 export class AuthController {
   private cookieMaxAge: number;
+  private progressMaxAge: number;
 
   constructor(
     private authService: AuthService,
     private vehicleService: VehicleService,
-    config: ConfigService
+    config: ConfigService,
   ) {
     this.cookieMaxAge = config.get<number>('COOKIE_MAX_AGE', 15 * 24 * 3600 * 1000); // 15 days
+    this.progressMaxAge = 2 * 24 * 60 * 60 * 1000; // 2 days
   }
 
   @ApiOperation({
-    summary: 'Sends OTP code to the user\'s phone number',
+    summary: "Sends OTP code to the user's phone number",
     description: `Sends a OTP code to the user's phone number or email for authentication for login or signup.
-      This endpoint is used by both senders and transporters to verify their identity.`
+      This endpoint is used by both senders and transporters to verify their identity.`,
   })
   @ApiTooManyRequestsResponse({
-    description: AuthMessages.MaxAttempts
+    description: AuthMessages.MaxAttempts,
   })
   @ApiTooManyRequestsResponse({
-    description: AuthMessages.TooManyAttempts
+    description: AuthMessages.TooManyAttempts,
   })
-  @UseGuards(AlreadyAuthorizedGuard)
+  @UseGuards(DenyAuthorizedGuard)
   @HttpCode(HttpStatus.OK)
   @Post('send-otp')
   async sendOtp(@Body() body: SendOtpDto): Promise<boolean> {
@@ -67,16 +70,16 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Verifies OTP code for login or signup',
-    description: `Verifies the OTP code sent to the user's phone number for authentication during login or signup.`
+    description: `Verifies the OTP code sent to the user's phone number for authentication during login or signup.`,
   })
   @ApiTooManyRequestsResponse({
-    description: AuthMessages.TooManyAttempts
+    description: AuthMessages.TooManyAttempts,
   })
   @ApiUnauthorizedResponse({
-    description: AuthMessages.OtpExpired
+    description: AuthMessages.OtpExpired,
   })
   @ApiUnauthorizedResponse({
-    description: AuthMessages.OtpInvalid
+    description: AuthMessages.OtpInvalid,
   })
   @HttpCode(HttpStatus.OK)
   @Post('check-otp')
@@ -85,11 +88,15 @@ export class AuthController {
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ): Promise<CheckOtpResponseDto> {
-    const { token, type } = await this.authService.checkOtp(body);
-    
+    const { userId, token, type, ...response } =
+      await this.authService.checkOtp(body);
+
     switch (type) {
       case AuthTokens.Access:
         session.accessToken = token;
+        session.userId = userId;
+        session.userState = UserStatesEnum.Authenticated;
+
         res.cookie(CookieNames.AccessToken, token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
@@ -97,7 +104,7 @@ export class AuthController {
           maxAge: this.cookieMaxAge,
         });
         break;
-    
+
       case AuthTokens.Temporary:
         res.cookie(CookieNames.TemporaryToken, token, {
           httpOnly: true,
@@ -106,24 +113,32 @@ export class AuthController {
           maxAge: 20 * 60 * 1000,
         });
         break;
+
+      case AuthTokens.Progress:
+        res.cookie(CookieNames.ProgressToken, token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: this.progressMaxAge,
+        });
+        break;
     }
 
-    return {
-      authenticated: type === AuthTokens.Access
-    };
+    session.phoneNumber = body.phoneNumber;
+    return response;
   }
 
   @ApiOperation({
     summary: 'Registers a sender user',
     description: `This endpoint registers a new sender user using the provided data,
       generates an access token and sets it as an cookie.
-      You should authorized the phone number with otp before the request.`
+      You should authorized the phone number with otp before the request.`,
   })
   @ApiBadRequestResponse({
-    description: AuthMessages.UnauthorizedPhoneNumber
+    description: AuthMessages.UnauthorizedPhoneNumber,
   })
   @ApiConflictResponse({
-    description: 'Unique database constraint for => phoneNumber and email'
+    description: 'Unique database constraint for => phoneNumber and email',
   })
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -131,10 +146,9 @@ export class AuthController {
   async signupSender(
     @Body() body: SignupSenderDto,
     @Session() session: SessionData,
-    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (req.user?.phoneNumber !== body.phoneNumber) {
+    if (session.phoneNumber !== body.phoneNumber) {
       throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
     }
 
@@ -147,9 +161,12 @@ export class AuthController {
       sameSite: 'strict',
       maxAge: this.cookieMaxAge,
     });
-
     res.clearCookie(CookieNames.TemporaryToken);
-    
+
+    session.userState = UserStatesEnum.Authenticated;
+    session.userId = sender.id;
+    session.phoneNumber = sender.phoneNumber;
+
     return sender;
   }
 
@@ -158,91 +175,115 @@ export class AuthController {
     description: `This endpoint handles the first stage of transporter registration.
     After successful OTP verification, a token with a 1-day validity is generated and stored in a cookie,
     allowing the user to proceed with subsequent registration stages (vehicle information and submit documents)
-    without re-verifying OTP.`
+    without re-verifying OTP.`,
   })
   @ApiBadRequestResponse({
-    description: AuthMessages.UnauthorizedPhoneNumber
+    description: AuthMessages.UnauthorizedPhoneNumber,
   })
   @ApiConflictResponse({
-    description: 'Unique database constraint for => phoneNumber, email, nationalId and driverLicenseNumber'
+    description:
+      'Unique database constraint for => phoneNumber, email, nationalId and driverLicenseNumber',
   })
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('transporter/signup')
   async signupTransporter(
     @Body() body: SignupTransporterDto,
-    @Req() req: Request,
+    @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (req.user?.phoneNumber !== body.phoneNumber) {
+    if (session.phoneNumber !== body.phoneNumber) {
       throw new BadRequestException(AuthMessages.UnauthorizedPhoneNumber);
     }
 
-    const { transporter, progressToken } = await this.authService.signupTransporter(body);
+    const { transporter, progressToken } =
+      await this.authService.signupTransporter(body);
 
     res.cookie(CookieNames.ProgressToken, progressToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: this.progressMaxAge,
     });
-
     res.clearCookie(CookieNames.TemporaryToken);
-    
+
+    session.userState = UserStatesEnum.PersonalInfoSubmitted;
+    session.userId = transporter.userId;
+    session.phoneNumber = transporter.phoneNumber;
+
     return transporter;
   }
 
   @ApiOperation({
-    summary: 'Register a vehicle for a transporter during authentication (Stage 2)',
+    summary:
+      'Register a vehicle for a transporter during authentication (Stage 2)',
     description: `This endpoint handles the second stage of transporter registration.
-    The user submits vehicle information.`
+    The user submits vehicle information.`,
   })
   @ApiNotFoundResponse({
-    description: NotFoundMessages.VehicleModel
+    description: NotFoundMessages.VehicleModel,
   })
   @ApiConflictResponse({
     description: `Unique database constraint for =>
-      vin, licensePlate, barcode, greenSheetNumber and insuranceNumber`
+      vin, licensePlate, barcode, greenSheetNumber and insuranceNumber`,
   })
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('transporter/vehicle')
   async registerTransporterVehicle(
     @Body() body: CreateVehicleDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
+    @Session() session: SessionData,
   ) {
-    const ownerId = req.user?.id;
-    return this.vehicleService.create(ownerId!, body);
-  }
+    const ownerId = session.userId;
+    const vehicle = await this.vehicleService.create(ownerId!, body);
 
+    session.userState = UserStatesEnum.VehicleInfoSubmitted;
+    return vehicle;
+  }
 
   @ApiOperation({
     summary: 'Submit transporter documents during authentication (Stage 3)',
     description: `This endpoint handles the final stage of transporter registration.
     After successful submission of vehicle information, the user submits keys for required uploaded 
-    (with our s3 service) documents. And generates an access token and sets it as an cookie.`
+    (with our s3 service) documents. And generates an access token and sets it as an cookie.`,
   })
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.OK)
   @Post('transporter/submit-docs')
   async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
-    @Req() req: Request,
+    @Session() session: SessionData,
+  ) {
+    const { userId } = session;
+    await this.authService.submitDocuments(userId!, body);
+    session.userState = UserStatesEnum.DocumentsSubmitted;
+    return true;
+  }
+
+  @ApiOperation({
+    summary: 'Retrieves user state',
+  })
+  @UseGuards(ProgressTokenGuard)
+  @UseGuards(DenyAuthorizedGuard)
+  @Get('state')
+  async getUserState(@Session() session: SessionData) {
+    return this.authService.getUserState(session);
+  }
+
+  @ApiOperation({
+    summary: 'Logout user and destroy session',
+  })
+  @Post('logout')
+  async logoutUser(
+    @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { id, phoneNumber } = req.user!;
-    const { accessToken } = await this.authService.submitDocuments(id!, body, phoneNumber);
+    session.destroy();
+    res.clearCookie(CookieNames.SessionId);
+    res.clearCookie(CookieNames.TemporaryToken);
+    res.clearCookie(CookieNames.ProgressToken);
+    res.clearCookie(CookieNames.AccessToken);
 
-    res.cookie(CookieNames.AccessToken, accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: this.cookieMaxAge,
-    });
-
-    res.clearCookie(CookieNames.ProgressToken)
-    
     return true;
   }
 }
