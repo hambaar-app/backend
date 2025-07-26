@@ -7,7 +7,8 @@ import {
   Min,
 } from 'class-validator';
 import { UserStatesEnum } from '../types/auth.enums';
-import { Transporter } from 'generated/prisma';
+import { Expose, Type } from 'class-transformer';
+import { TransporterCompactDto } from 'src/modules/user/dto/transporter-response.dto';
 
 export class CheckOtpDto {
   @IsNotEmpty()
@@ -23,7 +24,13 @@ export class CheckOtpDto {
 }
 
 export class CheckOtpResponseDto {
+  @Expose()
   isNewUser: boolean;
+  
+  @Expose()
   userState?: UserStatesEnum;
-  transporter?: Transporter;
+
+  @Expose()
+  @Type(() => TransporterCompactDto)
+  transporter?: TransporterCompactDto;
 }

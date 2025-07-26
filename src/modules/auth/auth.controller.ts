@@ -88,8 +88,7 @@ export class AuthController {
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ): Promise<CheckOtpResponseDto> {
-    const { userId, token, type, ...response } =
-      await this.authService.checkOtp(body);
+    const { userId, token, type, ...response } = await this.authService.checkOtp(body);
 
     switch (type) {
       case AuthTokens.Access:

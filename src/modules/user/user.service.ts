@@ -4,6 +4,7 @@ import { Prisma, User } from 'generated/prisma';
 import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { formatPrismaError } from 'src/common/utilities';
+import { TransporterResponseDto } from './dto/transporter-response.dto';
 
 @Injectable()
 export class UserService {
@@ -42,7 +43,7 @@ export class UserService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });
+    }) as Promise<TransporterResponseDto>;
   }
 
   async updateTransporter(
