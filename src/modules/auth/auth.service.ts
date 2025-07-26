@@ -254,6 +254,7 @@ export class AuthService {
     {
       nationalId,
       licenseNumber,
+      licenseExpiryDate,
       licenseType,
       profilePictureKey,
       ...transporterDto
@@ -267,6 +268,7 @@ export class AuthService {
           create: {
             nationalId,
             licenseNumber,
+            licenseExpiryDate,
             licenseType,
             profilePictureKey,
             nationalIdStatus: {
