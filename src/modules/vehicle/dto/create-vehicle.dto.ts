@@ -62,7 +62,7 @@ export class CreateVehicleDto {
   manufactureYear: number;
 
   @IsNotEmpty()
-  @IsAlpha('fa-IR')
+  @IsAlpha('fa-IR', { message: 'color should be a string only contain persian letters' })
   color: string;
 
   @IsNotEmpty()
