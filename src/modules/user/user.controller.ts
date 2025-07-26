@@ -12,13 +12,14 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @ApiOperation({
-    summary: 'Updates user info',
+    summary: 'Updates user info by its id',
     description: "For sender and user related transporter info. Update phoneNumber will be ignored."
   })
   @ApiOkResponse({
     type: UserResponseDto
   })
   @Serialize(UserResponseDto)
+  // TODO: Add guards
   @Patch(':id')
   async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
@@ -28,13 +29,14 @@ export class UserController {
   }
 
   @ApiOperation({
-    summary: 'Updates transporter info',
+    summary: 'Updates transporter info by user id',
     description: "For transformer related info."
   })
   @ApiOkResponse({
     type: TransporterCompactDto
   })
   @Serialize(TransporterCompactDto)
+  // TODO: Add guards
   @Patch('transporters/:userId')
   async updateTransporter(
     @Param('userId', ParseUUIDPipe) userId: string,
