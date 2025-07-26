@@ -1,0 +1,67 @@
+import { Expose, Type } from 'class-transformer';
+import { VehicleDocumentsDto } from './create-vehicle.dto';
+import { VerificationStatusDto } from 'src/modules/auth/dto/verification-status.dto';
+
+export class VehicleResponseDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  ownerId: string;
+
+  @Expose()
+  vin: string;
+
+  @Expose()
+  licensePlate: string;
+
+  @Expose()
+  barcode: string;
+
+  @Expose()
+  greenSheetNumber: string;
+
+  @Expose()
+  vehicleType: string;
+
+  @Expose()
+  modelId: string;
+
+  @Expose()
+  manufactureYear: number;
+
+  @Expose()
+  color: string;
+
+  @Expose()
+  technicalInspectionDate: Date;
+
+  @Expose()
+  technicalInspectionExpiryDate: Date;
+
+  @Expose()
+  insuranceNumberDate?: Date;
+
+  @Expose()
+  insuranceExpiryDate?: Date;
+
+  @Expose()
+  maxWeightCapacity?: number;
+
+  @Expose()
+  @Type(() => VehicleDocumentsDto)
+  verificationDocuments?: VehicleDocumentsDto | null;
+
+  @Expose()
+  @Type(() => VerificationStatusDto)
+  verificationStatus?: VerificationStatusDto | null;
+
+  @Expose()
+  createdAt: Date;
+
+  @Expose()
+  updatedAt: Date;
+
+  @Expose()
+  deletedAt: Date;
+}

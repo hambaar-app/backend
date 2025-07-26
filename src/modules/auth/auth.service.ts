@@ -20,9 +20,10 @@ import { VehicleService } from '../vehicle/vehicle.service';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 import { SessionData } from 'express-session';
 import { UserStatesEnum } from './types/auth.enums';
+import { TransporterCompactDto } from '../user/dto/transporter-response.dto';
 
 interface TransporterState {
-  transporter?: Transporter
+  transporter?: TransporterCompactDto;
   state: UserStatesEnum;
 }
 
@@ -360,7 +361,7 @@ export class AuthService {
     }
 
     let computedState: UserStatesEnum | undefined;
-    let transporter: Transporter | undefined;
+    let transporter: TransporterCompactDto | undefined;
 
     switch (user.role) {
       case RolesEnum.sender:
