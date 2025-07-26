@@ -12,11 +12,11 @@ import { GendersEnum } from 'generated/prisma/client';
 
 export class SignupSenderDto {
   @IsNotEmpty()
-  @IsAlpha('fa-IR')
+  @IsAlpha('fa-IR', { message: 'firstName should be a string only contain persian letters' })
   firstName: string;
 
   @IsNotEmpty()
-  @IsAlpha('fa-IR')
+  @IsAlpha('fa-IR', { message: 'lastName should be a string only contain persian letters' })
   lastName: string;
 
   @IsNotEmpty()

@@ -5,6 +5,7 @@ import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { formatPrismaError } from 'src/common/utilities';
 import { TransporterResponseDto } from './dto/transporter-response.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -21,6 +22,16 @@ export class UserService {
 
   async getByPhoneNumber(phoneNumber: string): Promise<User | null> {
     return this.get({ phoneNumber });
+  }
+
+  async update(id: string, { phoneNumber, ...userDto }: UpdateUserDto) {
+    return this.prisma.user.update({
+      where: { id },
+      data: userDto
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
   }
 
   async getTransporter(
