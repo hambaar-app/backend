@@ -25,6 +25,7 @@ export class UserService {
   }
 
   async update(id: string, { phoneNumber, ...userDto }: UpdateUserDto) {
+    // TODO
     return this.prisma.user.update({
       where: { id },
       data: userDto
@@ -62,14 +63,40 @@ export class UserService {
     transporterDto: UpdateTransporterDto,
     tx: PrismaService | PrismaTransaction = this.prisma
   ) {
+    const updatedData: Prisma.TransporterUpdateInput = transporterDto;
+
+    if (transporterDto.nationalId) {
+      updatedData.nationalIdStatus = {
+        create: {
+          status: 'pending',
+          description: null,
+          verifiedAt: null
+        }
+      };
+    }
+
+    if (transporterDto.licenseNumber) {
+      updatedData.nationalIdStatus = {
+        create: {
+          status: 'pending',
+          description: null,
+          verifiedAt: null
+        }
+      };
+    }
+
     return tx.transporter.update({
       where: {
         userId
       },
-      data: transporterDto
+      data: updatedData,
+    include: {
+      nationalIdStatus: true,
+      licenseStatus: true
+    }
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });;
+    });
   }
 }

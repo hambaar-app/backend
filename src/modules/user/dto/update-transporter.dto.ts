@@ -9,10 +9,10 @@ export class UpdateTransporterDto {
   @IsOptional()
   @Length(10, 10)
   @IsNumberString()
-  driverLicenseNumber?: string;
+  licenseNumber?: string;
 
   @IsOptional()
- @IsString()
+  @IsString()
   profilePictureKey?: string;
 
   @IsOptional()
