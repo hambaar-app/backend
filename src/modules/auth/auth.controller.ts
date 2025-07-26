@@ -13,7 +13,9 @@ import {
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
+  ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse
@@ -30,11 +32,14 @@ import { SignupSenderDto } from './dto/signup-sender.dto';
 import { ProgressTokenGuard, TemporaryTokenGuard } from './guard/token.guard';
 import { AuthMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 import { DenyAuthorizedGuard } from './guard/deny-authorized.guard';
-import { SignupTransporterDto } from './dto/signup-transporter.dto';
+import { SignupTransporterDto, SignupTransporterResponseDto } from './dto/signup-transporter.dto';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 import { UserStatesEnum } from './types/auth.enums';
+import { UserResponseDto } from '../user/dto/user-response.dto';
+import { Serialize } from 'src/common/serialize.interceptor';
+import { VehicleResponseDto } from '../vehicle/dto/vehicle-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -81,13 +86,17 @@ export class AuthController {
   @ApiUnauthorizedResponse({
     description: AuthMessages.OtpInvalid,
   })
+  @ApiOkResponse({
+    type: CheckOtpResponseDto
+  })
+  @Serialize(CheckOtpResponseDto)
   @HttpCode(HttpStatus.OK)
   @Post('check-otp')
   async checkOtp(
     @Body() body: CheckOtpDto,
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<CheckOtpResponseDto> {
+  ) {
     const { userId, token, type, ...response } = await this.authService.checkOtp(body);
 
     switch (type) {
@@ -139,6 +148,10 @@ export class AuthController {
   @ApiConflictResponse({
     description: 'Unique database constraint for => phoneNumber and email',
   })
+  @ApiCreatedResponse({
+    type: UserResponseDto
+  })
+  @Serialize(UserResponseDto)
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('sender/signup')
@@ -183,6 +196,10 @@ export class AuthController {
     description:
       'Unique database constraint for => phoneNumber, email, nationalId and driverLicenseNumber',
   })
+  @ApiCreatedResponse({
+    type: SignupTransporterResponseDto
+  })
+  @Serialize(SignupTransporterResponseDto)
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('transporter/signup')
@@ -226,6 +243,10 @@ export class AuthController {
     description: `Unique database constraint for =>
       vin, licensePlate, barcode, greenSheetNumber and insuranceNumber`,
   })
+  @ApiCreatedResponse({
+    type: VehicleResponseDto
+  })
+  @Serialize(VehicleResponseDto)
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post('transporter/vehicle')
@@ -252,7 +273,7 @@ export class AuthController {
   async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
     @Session() session: SessionData,
-  ) {
+  ): Promise<true> {
     const { userId } = session;
     await this.authService.submitDocuments(userId!, body);
     session.userState = UserStatesEnum.DocumentsSubmitted;
@@ -276,7 +297,7 @@ export class AuthController {
   async logoutUser(
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<true> {
     session.destroy();
     res.clearCookie(CookieNames.SessionId);
     res.clearCookie(CookieNames.TemporaryToken);
