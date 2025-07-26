@@ -1,8 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { ApiConflictResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiConflictResponse, ApiOkResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { CreateModelDto } from './dto/create-model.dto';
+import { Serialize } from 'src/common/serialize.interceptor';
+import { UpdateVehicleDto } from './dto/update-vehicle.dto';
+import { VehicleResponseDto } from './dto/vehicle-response.dto';
 
 @Controller('vehicles')
 export class VehicleController {
@@ -61,5 +64,21 @@ export class VehicleController {
     @Query('search') search?: string
   ) {
     return this.vehicleService.getAllBrandModels(brandId, search);
+  }
+
+  @ApiOperation({
+    summary: 'Updates a vehicle by its id',
+  })
+  @ApiOkResponse({
+    type: VehicleResponseDto
+  })
+  @Serialize(VehicleResponseDto)
+  // TODO: Add guards
+  @Patch('/:id')
+  async updateTransporter(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateVehicleDto
+  ) {
+    return this.vehicleService.update(id, body);
   }
 }

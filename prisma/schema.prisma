@@ -270,7 +270,7 @@ model Address {
   province      String? @db.VarChar
   city          String? @db.VarChar
   street        String? @db.VarChar
-  houseNumber   Int?    @map("house_number")
+  plate         Int?    @map("plate")
   postalCode    String? @map("postal_code") @db.VarChar
   latitude      Float?
   longitude     Float?

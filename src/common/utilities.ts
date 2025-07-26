@@ -30,9 +30,8 @@ export const formatPrismaError = (error: Error): never => {
           `Foreign key constraint failed on ${target} in ${model}.`
         );
       case 'P2025':
-
         throw new NotFoundException(
-          `Record not found in ${model} for the provided ${target}.`
+          `Record not found in ${model} ${target ? `for the provided ${target}` : ''}.`
         );
       default:
         throw new BadRequestException(

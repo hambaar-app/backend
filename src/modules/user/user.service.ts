@@ -5,6 +5,7 @@ import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { formatPrismaError } from 'src/common/utilities';
 import { TransporterResponseDto } from './dto/transporter-response.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -21,6 +22,17 @@ export class UserService {
 
   async getByPhoneNumber(phoneNumber: string): Promise<User | null> {
     return this.get({ phoneNumber });
+  }
+
+  async update(id: string, { phoneNumber, ...userDto }: UpdateUserDto) {
+    // TODO
+    return this.prisma.user.update({
+      where: { id },
+      data: userDto
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
   }
 
   async getTransporter(
@@ -51,14 +63,40 @@ export class UserService {
     transporterDto: UpdateTransporterDto,
     tx: PrismaService | PrismaTransaction = this.prisma
   ) {
+    const updatedData: Prisma.TransporterUpdateInput = transporterDto;
+
+    if (transporterDto.nationalId) {
+      updatedData.nationalIdStatus = {
+        create: {
+          status: 'pending',
+          description: null,
+          verifiedAt: null
+        }
+      };
+    }
+
+    if (transporterDto.licenseNumber) {
+      updatedData.nationalIdStatus = {
+        create: {
+          status: 'pending',
+          description: null,
+          verifiedAt: null
+        }
+      };
+    }
+
     return tx.transporter.update({
       where: {
         userId
       },
-      data: transporterDto
+      data: updatedData,
+    include: {
+      nationalIdStatus: true,
+      licenseStatus: true
+    }
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });;
+    });
   }
 }
