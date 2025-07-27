@@ -394,21 +394,22 @@ export class AuthService {
   private async computeTransporterState(
     userId: string
   ): Promise<TransporterState> {
-    const transporter = await this.userService.getTransporter({ id: userId });
+    const transporter = await this.userService.getTransporter({ userId });
+    let state: UserStatesEnum | undefined;
 
-    // No vehicles submitted yet
+    // No vehicles submitted yet / submitted
     if (transporter.vehicles.length === 0) {
-      return { state: UserStatesEnum.PersonalInfoSubmitted };
+      state = UserStatesEnum.PersonalInfoSubmitted;
+    } else {
+      state = UserStatesEnum.VehicleInfoSubmitted;
     }
 
-    // Vehicle info submitted
-    const firstVehicle = transporter.vehicles[0];
     const hasAllDocuments = transporter.licenseDocumentKey 
       && transporter.nationalIdDocumentKey 
-      && firstVehicle.verificationDocuments;
+      && transporter.vehicles[0].verificationDocuments;
 
-    if (!hasAllDocuments) {
-      return { state: UserStatesEnum.VehicleInfoSubmitted };
+    if (hasAllDocuments) {
+      state = UserStatesEnum.DocumentsSubmitted;
     }
 
     // Transporter verified or not
@@ -416,6 +417,6 @@ export class AuthService {
     
     return isVerified
       ? { state: UserStatesEnum.Authenticated }
-      : { transporter, state: UserStatesEnum.DocumentsSubmitted };
+      : { transporter, state };
   }
 }
