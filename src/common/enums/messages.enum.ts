@@ -9,7 +9,8 @@ export enum AuthMessages {
   SendOtpFailed = 'Failed to send OTP.',
   TooManyAttempts = 'Too many failed attempts. Please try again later.',
   AlreadyAuthorized = 'User is already authorized.',
-  UnauthorizedPhoneNumber = 'Phone number in request does not match the authenticated user’s phone number'
+  UnauthorizedPhoneNumber = 'Phone number in request does not match the authenticated user’s phone number',
+  AccessDenied = 'Access Denied. You are not authorized to perform this action.'
 }
 
 export enum NotFoundMessages {
