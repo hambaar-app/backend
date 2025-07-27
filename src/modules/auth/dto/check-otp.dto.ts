@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { UserStatesEnum } from '../types/auth.enums';
 import { Expose, Type } from 'class-transformer';
-import { TransporterCompactDto } from 'src/modules/user/dto/transporter-response.dto';
+import { TransporterResponseDto } from 'src/modules/user/dto/transporter-response.dto';
 
 export class CheckOtpDto {
   @IsNotEmpty()
@@ -31,6 +31,6 @@ export class CheckOtpResponseDto {
   userState?: UserStatesEnum;
 
   @Expose()
-  @Type(() => TransporterCompactDto)
-  transporter?: TransporterCompactDto;
+  @Type(() => TransporterResponseDto)
+  transporter?: TransporterResponseDto;
 }
