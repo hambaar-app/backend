@@ -6,7 +6,7 @@ import { createPrismaAbility } from '@casl/prisma';
 
 @Injectable()
 export class CaslAbilityFactory {
-  defineAbilityFor(user: { id: string; role: RolesEnum }): AppAbility {
+  defineAbilityFor(user: { id: string; role?: RolesEnum }): AppAbility {
     const { can, cannot, build } = new AbilityBuilder<AppAbility>(createPrismaAbility);
 
     // None authenticated user permissions

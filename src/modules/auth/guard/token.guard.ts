@@ -21,11 +21,7 @@ export class TemporaryTokenGuard implements CanActivate {
     const payload = this.tokenService.verifyToken(tempToken, AuthTokens.Temporary);
     if (!payload.phoneNumber || payload.phoneNumber !== session.phoneNumber) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
-    }
-
-    request.user = {
-      phoneNumber: payload.phoneNumber
-    };
+    } 
 
     return true;
   }
@@ -45,14 +41,14 @@ export class ProgressTokenGuard implements CanActivate {
     }
 
     const payload = this.tokenService.verifyToken(progressToken, AuthTokens.Progress);
-    const isOkToken = payload.phoneNumber && (session.phoneNumber === payload.phoneNumber);
+    const isOkToken = payload.sub && payload.phoneNumber && (session.phoneNumber === payload.phoneNumber);
   
     if (!isOkToken) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 
     request.user = {
-      id: payload.sub,
+      id: payload.sub!,
       phoneNumber: payload.phoneNumber
     };
 
