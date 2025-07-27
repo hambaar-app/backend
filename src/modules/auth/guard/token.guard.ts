@@ -47,11 +47,6 @@ export class ProgressTokenGuard implements CanActivate {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 
-    request.user = {
-      id: payload.sub!,
-      phoneNumber: payload.phoneNumber
-    };
-
     return true;
   }
 }

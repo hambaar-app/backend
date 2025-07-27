@@ -23,8 +23,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
     "@aws-sdk/s3-request-presigner": "^3.850.0",
-    "@casl/ability": "^6.7.3",
-    "@casl/prisma": "^1.5.1",
     "@keyv/redis": "^4.6.0",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",
