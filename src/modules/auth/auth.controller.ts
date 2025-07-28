@@ -105,7 +105,6 @@ export class AuthController {
       case AuthTokens.Access:
         session.accessToken = token;
         session.userId = userId;
-        session.userState = UserStatesEnum.Authenticated;
 
         res.cookie(CookieNames.AccessToken, token, {
           httpOnly: true,
@@ -277,10 +276,11 @@ export class AuthController {
     @Body() body: SubmitDocumentsDto,
     @Session() session: SessionData,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
   ): Promise<true> {
     const userId = req.user?.id;    
     await this.authService.submitDocuments(userId!, body);
-    session.userState = UserStatesEnum.DocumentsSubmitted;
+    res.clearCookie(CookieNames.ProgressToken);
     return true;
   }
 
@@ -291,8 +291,7 @@ export class AuthController {
     type: StateDto
   })
   @Serialize(StateDto)
-  @UseGuards(ProgressTokenGuard)
-  @UseGuards(DenyAuthorizedGuard)
+  @UseGuards(DenyAuthorizedGuard, ProgressTokenGuard)
   @Get('state')
   async getUserState(@Session() session: SessionData) {
     return this.authService.getUserState(session);    

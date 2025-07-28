@@ -143,10 +143,17 @@ export class AuthService {
       const transporterState = await this.computeTransporterState(user.id);
       result.userState = transporterState.userState;
 
-      if (transporterState.userState !== UserStatesEnum.Authenticated) {
+      const progressStates = [
+        UserStatesEnum.PersonalInfoSubmitted,
+        UserStatesEnum.VehicleInfoSubmitted
+      ];
+      if (progressStates.includes(transporterState.userState)) {
         result.token = this.tokenService['generateProgressToken'](payload);
         result.type = AuthTokens.Progress;
-        result.transporter = transporterState.transporter;
+        result.transporter = transporterState.transporter as TransporterResponseDto;
+      } else {
+        result.token = this.tokenService['generateAccessToken'](payload);
+        result.type = AuthTokens.Access;
       }
     } else if (user.role === RolesEnum.sender) {
       result.userState = UserStatesEnum.Authenticated;
@@ -324,7 +331,7 @@ export class AuthService {
     });
   }
 
-  async getUserState(session: SessionData): Promise<StateDto | null> {
+  async getUserState(session: SessionData) {
     if (session.userState) {
       // For authenticated users, just return state
       if (session.userState === UserStatesEnum.Authenticated) {
@@ -337,7 +344,7 @@ export class AuthService {
       }
 
       // For transporters in progress, return complete transporter data
-      if (user.role === RolesEnum.transporter) {        
+      if (user.role === RolesEnum.transporter) {
         const transporter = await this.userService.getTransporter({ userId: session.userId });
         return { 
           userState: session.userState, 
@@ -364,7 +371,7 @@ export class AuthService {
     if (user.role === RolesEnum.transporter) {
       const transporterState = await this.computeTransporterState(session.userId!);
       computedState = transporterState.userState;
-      transporter = transporterState.transporter; 
+      transporter = transporterState.transporter as TransporterResponseDto; 
     }
 
     // Update session with computed state
@@ -377,13 +384,11 @@ export class AuthService {
           transporter: {
             ...user,
             ...transporter,
-          } as TransporterResponseDto
+          }
         };
   }
 
-  private async computeTransporterState(
-    userId: string
-  ): Promise<StateDto> {
+  private async computeTransporterState(userId: string) {
     const transporter = await this.userService.getTransporter({ userId });
     let state: UserStatesEnum | undefined;
 

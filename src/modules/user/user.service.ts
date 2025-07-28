@@ -55,7 +55,7 @@ export class UserService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    }) as Promise<TransporterResponseDto>;
+    });
   }
 
   async updateTransporter(
