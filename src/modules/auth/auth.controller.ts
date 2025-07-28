@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
   Session,
   UseGuards
@@ -25,7 +26,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { CheckOtpDto, CheckOtpResponseDto } from './dto/check-otp.dto';
 import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
@@ -253,8 +254,9 @@ export class AuthController {
   async registerTransporterVehicle(
     @Body() body: CreateVehicleDto,
     @Session() session: SessionData,
+    @Req() req: Request,
   ) {
-    const ownerId = session.userId;
+    const ownerId = req.user?.id;
     const vehicle = await this.vehicleService.create(ownerId!, body);
 
     session.userState = UserStatesEnum.VehicleInfoSubmitted;
@@ -273,8 +275,11 @@ export class AuthController {
   async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
     @Session() session: SessionData,
+    @Req() req: Request,
   ): Promise<true> {
-    const { userId } = session;
+    const userId = req.user?.id;
+    console.log(req.user);
+    
     await this.authService.submitDocuments(userId!, body);
     session.userState = UserStatesEnum.DocumentsSubmitted;
     return true;

@@ -341,8 +341,8 @@ export class AuthService {
       }
 
       // For transporters in progress, return complete transporter data
-      if (user.role === RolesEnum.transporter) {
-        const transporter = await this.userService.getTransporter({ id: session.userId });
+      if (user.role === RolesEnum.transporter) {        
+        const transporter = await this.userService.getTransporter({ userId: session.userId });
         return { 
           state: session.userState, 
           transporter: {
