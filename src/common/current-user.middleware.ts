@@ -8,10 +8,10 @@ export class CurrentUserMiddleware implements NestMiddleware {
   constructor(private userService: UserService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    const { userId } = req.session;
-
-    if (userId) {
-      const user = await this.userService.get({ id: userId });
+    const id = req.user?.id;
+    
+    if (id) {
+      const user = await this.userService.get({ id });
       req.user = user ?? undefined;
     }
 

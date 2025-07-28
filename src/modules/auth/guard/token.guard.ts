@@ -47,6 +47,10 @@ export class ProgressTokenGuard implements CanActivate {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 
+    request.user = {
+      id: payload.sub
+    };
+
     return true;
   }
 }
@@ -70,6 +74,10 @@ export class AccessTokenGuard implements CanActivate {
     if (!isOkToken) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
+
+    request.user = {
+      id: payload.sub
+    };
 
     return true;
   }

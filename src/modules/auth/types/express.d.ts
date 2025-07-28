@@ -6,7 +6,7 @@ declare global {
   namespace Express {
     interface Request {
       session: SessionData;
-      user?: User;
+      user?: Partial<User>;
     }
   }
 }
