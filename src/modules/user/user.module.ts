@@ -3,10 +3,12 @@ import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CurrentUserMiddleware } from 'src/common/current-user.middleware';
+import { TokenModule } from '../token/token.module';
 
 @Module({
   imports: [
-    PrismaModule
+    PrismaModule,
+    TokenModule
   ],
   controllers: [UserController],
   providers: [UserService],
