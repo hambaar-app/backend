@@ -18,4 +18,16 @@ export class SupportController {
   ) {
     return this.supportService.updateVerification(id, body);
   }
+
+  @ApiOperation({
+    summary: 'Update a transporter verification status by its userId',
+    description: 'Just for Admin and Support users (But it hasn\'t implemented yet.)'
+  })
+  @Patch('verification/transporters/:id')
+  updateTransporterVerification(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateVerificationDto
+  ) {
+    return this.supportService.updateTransporterVerification(id, body);
+  }
 }
