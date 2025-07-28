@@ -7,6 +7,8 @@ import { Serialize } from 'src/common/serialize.interceptor';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { VehicleResponseDto } from './dto/vehicle-response.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
+import { OwnershipGuard } from '../auth/guard/ownership.guard';
+import { CheckOwnership } from '../auth/ownership.decorator';
 
 @Controller('vehicles')
 export class VehicleController {
@@ -74,7 +76,10 @@ export class VehicleController {
     type: VehicleResponseDto
   })
   @Serialize(VehicleResponseDto)
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'vehicle'
+  })
   @Patch('/:id')
   async updateTransporter(
     @Param('id', ParseUUIDPipe) id: string,
