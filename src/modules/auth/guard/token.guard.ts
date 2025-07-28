@@ -50,3 +50,27 @@ export class ProgressTokenGuard implements CanActivate {
     return true;
   }
 }
+
+@Injectable()
+export class AccessTokenGuard implements CanActivate {
+  constructor(private tokenService: TokenService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
+    const session = request.session;
+    const accessToken = request.cookies?.[CookieNames.AccessToken] as string;
+
+    if (!accessToken) {
+      throw new UnauthorizedException(AuthMessages.MissingAccessToken);
+    }
+
+    const payload = this.tokenService.verifyToken(accessToken, AuthTokens.Access);
+    const isOkToken = payload.sub && payload.phoneNumber && (session.phoneNumber === payload.phoneNumber);
+  
+    if (!isOkToken) {
+      throw new UnauthorizedException(AuthMessages.InvalidToken);
+    }
+
+    return true;
+  }
+}
