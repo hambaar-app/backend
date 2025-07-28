@@ -55,7 +55,7 @@ export class UserService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    }) as Promise<TransporterResponseDto>;
+    });
   }
 
   async updateTransporter(
@@ -70,7 +70,6 @@ export class UserService {
         create: {
           status: 'pending',
           description: null,
-          verifiedAt: null
         }
       };
     }
@@ -80,7 +79,6 @@ export class UserService {
         create: {
           status: 'pending',
           description: null,
-          verifiedAt: null
         }
       };
     }

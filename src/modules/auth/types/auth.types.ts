@@ -29,3 +29,8 @@ export interface CheckOtpResult {
   userState?: UserStatesEnum;
   transporter?: TransporterCompactDto;
 }
+
+export interface OwnershipConfig {
+  entity: string;
+  paramName?: string;
+}

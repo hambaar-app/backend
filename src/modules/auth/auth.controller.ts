@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
   Session,
   UseGuards
@@ -25,7 +26,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { CheckOtpDto, CheckOtpResponseDto } from './dto/check-otp.dto';
 import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
@@ -40,6 +41,7 @@ import { UserStatesEnum } from './types/auth.enums';
 import { UserResponseDto } from '../user/dto/user-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { VehicleResponseDto } from '../vehicle/dto/vehicle-response.dto';
+import { StateDto } from './dto/state-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -103,7 +105,6 @@ export class AuthController {
       case AuthTokens.Access:
         session.accessToken = token;
         session.userId = userId;
-        session.userState = UserStatesEnum.Authenticated;
 
         res.cookie(CookieNames.AccessToken, token, {
           httpOnly: true,
@@ -253,8 +254,9 @@ export class AuthController {
   async registerTransporterVehicle(
     @Body() body: CreateVehicleDto,
     @Session() session: SessionData,
+    @Req() req: Request,
   ) {
-    const ownerId = session.userId;
+    const ownerId = req.user?.id;
     const vehicle = await this.vehicleService.create(ownerId!, body);
 
     session.userState = UserStatesEnum.VehicleInfoSubmitted;
@@ -273,21 +275,26 @@ export class AuthController {
   async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
     @Session() session: SessionData,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
   ): Promise<true> {
-    const { userId } = session;
+    const userId = req.user?.id;    
     await this.authService.submitDocuments(userId!, body);
-    session.userState = UserStatesEnum.DocumentsSubmitted;
+    res.clearCookie(CookieNames.ProgressToken);
     return true;
   }
 
   @ApiOperation({
-    summary: 'Retrieves user state',
+    summary: 'Retrieves user state for not-authorized transporters',
   })
-  @UseGuards(ProgressTokenGuard)
-  @UseGuards(DenyAuthorizedGuard)
+  @ApiOkResponse({
+    type: StateDto
+  })
+  @Serialize(StateDto)
+  @UseGuards(DenyAuthorizedGuard, ProgressTokenGuard)
   @Get('state')
   async getUserState(@Session() session: SessionData) {
-    return this.authService.getUserState(session);
+    return this.authService.getUserState(session);    
   }
 
   @ApiOperation({

@@ -15,17 +15,13 @@ import { formatPrismaError, generateOTP } from 'src/common/utilities';
 import { TooManyRequestsException } from 'src/common/custom.exceptions';
 import { CachedUserData, CheckOtpResult, UserAttempts } from './types/auth.types';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
-import { RolesEnum, Transporter, VerificationStatusEnum } from 'generated/prisma';
+import { RolesEnum, VerificationStatusEnum } from 'generated/prisma';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 import { SessionData } from 'express-session';
 import { UserStatesEnum } from './types/auth.enums';
-import { TransporterCompactDto } from '../user/dto/transporter-response.dto';
-
-interface TransporterState {
-  transporter?: TransporterCompactDto;
-  state: UserStatesEnum;
-}
+import { TransporterResponseDto } from '../user/dto/transporter-response.dto';
+import { StateDto } from './dto/state-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -145,12 +141,19 @@ export class AuthService {
 
     if (user.role === RolesEnum.transporter) {
       const transporterState = await this.computeTransporterState(user.id);
-      result.userState = transporterState.state;
+      result.userState = transporterState.userState;
 
-      if (transporterState.state !== UserStatesEnum.Authenticated) {
+      const progressStates = [
+        UserStatesEnum.PersonalInfoSubmitted,
+        UserStatesEnum.VehicleInfoSubmitted
+      ];
+      if (progressStates.includes(transporterState.userState)) {
         result.token = this.tokenService['generateProgressToken'](payload);
         result.type = AuthTokens.Progress;
-        result.transporter = transporterState.transporter;
+        result.transporter = transporterState.transporter as TransporterResponseDto;
+      } else {
+        result.token = this.tokenService['generateAccessToken'](payload);
+        result.type = AuthTokens.Access;
       }
     } else if (user.role === RolesEnum.sender) {
       result.userState = UserStatesEnum.Authenticated;
@@ -254,6 +257,7 @@ export class AuthService {
     {
       nationalId,
       licenseNumber,
+      licenseExpiryDate,
       licenseType,
       profilePictureKey,
       ...transporterDto
@@ -267,6 +271,7 @@ export class AuthService {
           create: {
             nationalId,
             licenseNumber,
+            licenseExpiryDate,
             licenseType,
             profilePictureKey,
             nationalIdStatus: {
@@ -330,7 +335,7 @@ export class AuthService {
     if (session.userState) {
       // For authenticated users, just return state
       if (session.userState === UserStatesEnum.Authenticated) {
-        return { state: session.userState };
+        return { userState: session.userState };
       }
 
       const user = await this.userService.get({ id: session.userId });
@@ -340,9 +345,9 @@ export class AuthService {
 
       // For transporters in progress, return complete transporter data
       if (user.role === RolesEnum.transporter) {
-        const transporter = await this.userService.getTransporter({ id: session.userId });
+        const transporter = await this.userService.getTransporter({ userId: session.userId });
         return { 
-          state: session.userState, 
+          userState: session.userState, 
           transporter: {
             ...user,
             ...transporter
@@ -360,60 +365,53 @@ export class AuthService {
       throw new NotFoundException(NotFoundMessages.User);
     }
 
-    let computedState: UserStatesEnum | undefined;
-    let transporter: TransporterCompactDto | undefined;
+    let computedState: UserStatesEnum = UserStatesEnum.Authenticated;
+    let transporter: TransporterResponseDto | undefined;
 
-    switch (user.role) {
-      case RolesEnum.sender:
-        computedState = UserStatesEnum.Authenticated;
-        break;
-
-      case RolesEnum.transporter:
-        const transporterState = await this.computeTransporterState(session.userId!);
-        computedState = transporterState.state;
-        transporter = transporterState.transporter;
-        break;
+    if (user.role === RolesEnum.transporter) {
+      const transporterState = await this.computeTransporterState(session.userId!);
+      computedState = transporterState.userState;
+      transporter = transporterState.transporter as TransporterResponseDto; 
     }
 
     // Update session with computed state
     session.userState = computedState;
 
     return computedState === UserStatesEnum.Authenticated 
-      ? { state: computedState }
+      ? { userState: computedState }
       : {
-          state: computedState,
+          userState: computedState,
           transporter: {
             ...user,
-            ...transporter
+            ...transporter,
           }
         };
   }
 
-  private async computeTransporterState(
-    userId: string
-  ): Promise<TransporterState> {
-    const transporter = await this.userService.getTransporter({ id: userId });
+  private async computeTransporterState(userId: string) {
+    const transporter = await this.userService.getTransporter({ userId });
+    let state: UserStatesEnum | undefined;
 
-    // No vehicles submitted yet
+    // No vehicles submitted yet / submitted
     if (transporter.vehicles.length === 0) {
-      return { state: UserStatesEnum.PersonalInfoSubmitted };
+      state = UserStatesEnum.PersonalInfoSubmitted;
+    } else {
+      state = UserStatesEnum.VehicleInfoSubmitted;
     }
 
-    // Vehicle info submitted
-    const firstVehicle = transporter.vehicles[0];
     const hasAllDocuments = transporter.licenseDocumentKey 
       && transporter.nationalIdDocumentKey 
-      && firstVehicle.verificationDocuments;
+      && transporter.vehicles[0].verificationDocuments;
 
-    if (!hasAllDocuments) {
-      return { state: UserStatesEnum.VehicleInfoSubmitted };
+    if (hasAllDocuments) {
+      state = UserStatesEnum.DocumentsSubmitted;
     }
 
     // Transporter verified or not
     const isVerified = transporter.verificationStatus?.status === VerificationStatusEnum.verified;
     
     return isVerified
-      ? { state: UserStatesEnum.Authenticated }
-      : { transporter, state: UserStatesEnum.DocumentsSubmitted };
+      ? { userState: UserStatesEnum.Authenticated }
+      : { userState: state, transporter };
   }
 }
