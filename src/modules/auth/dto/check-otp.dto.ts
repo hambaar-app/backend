@@ -9,6 +9,7 @@ import {
 import { UserStatesEnum } from '../types/auth.enums';
 import { Expose, Type } from 'class-transformer';
 import { TransporterResponseDto } from 'src/modules/user/dto/transporter-response.dto';
+import { StateDto } from './state-response.dto';
 
 export class CheckOtpDto {
   @IsNotEmpty()
@@ -23,14 +24,7 @@ export class CheckOtpDto {
   code: number;
 }
 
-export class CheckOtpResponseDto {
+export class CheckOtpResponseDto extends StateDto {
   @Expose()
   isNewUser: boolean;
-  
-  @Expose()
-  userState?: UserStatesEnum;
-
-  @Expose()
-  @Type(() => TransporterResponseDto)
-  transporter?: TransporterResponseDto;
 }

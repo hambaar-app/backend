@@ -41,6 +41,7 @@ import { UserStatesEnum } from './types/auth.enums';
 import { UserResponseDto } from '../user/dto/user-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { VehicleResponseDto } from '../vehicle/dto/vehicle-response.dto';
+import { StateDto } from './dto/state-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -277,22 +278,24 @@ export class AuthController {
     @Session() session: SessionData,
     @Req() req: Request,
   ): Promise<true> {
-    const userId = req.user?.id;
-    console.log(req.user);
-    
+    const userId = req.user?.id;    
     await this.authService.submitDocuments(userId!, body);
     session.userState = UserStatesEnum.DocumentsSubmitted;
     return true;
   }
 
   @ApiOperation({
-    summary: 'Retrieves user state',
+    summary: 'Retrieves user state for not-authorized transporters',
   })
+  @ApiOkResponse({
+    type: StateDto
+  })
+  @Serialize(StateDto)
   @UseGuards(ProgressTokenGuard)
   @UseGuards(DenyAuthorizedGuard)
   @Get('state')
   async getUserState(@Session() session: SessionData) {
-    return this.authService.getUserState(session);
+    return this.authService.getUserState(session);    
   }
 
   @ApiOperation({

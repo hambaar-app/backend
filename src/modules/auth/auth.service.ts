@@ -15,17 +15,13 @@ import { formatPrismaError, generateOTP } from 'src/common/utilities';
 import { TooManyRequestsException } from 'src/common/custom.exceptions';
 import { CachedUserData, CheckOtpResult, UserAttempts } from './types/auth.types';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
-import { RolesEnum, Transporter, VerificationStatusEnum } from 'generated/prisma';
+import { RolesEnum, VerificationStatusEnum } from 'generated/prisma';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 import { SessionData } from 'express-session';
 import { UserStatesEnum } from './types/auth.enums';
-import { TransporterCompactDto } from '../user/dto/transporter-response.dto';
-
-interface TransporterState {
-  transporter?: TransporterCompactDto;
-  state: UserStatesEnum;
-}
+import { TransporterResponseDto } from '../user/dto/transporter-response.dto';
+import { StateDto } from './dto/state-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -145,9 +141,9 @@ export class AuthService {
 
     if (user.role === RolesEnum.transporter) {
       const transporterState = await this.computeTransporterState(user.id);
-      result.userState = transporterState.state;
+      result.userState = transporterState.userState;
 
-      if (transporterState.state !== UserStatesEnum.Authenticated) {
+      if (transporterState.userState !== UserStatesEnum.Authenticated) {
         result.token = this.tokenService['generateProgressToken'](payload);
         result.type = AuthTokens.Progress;
         result.transporter = transporterState.transporter;
@@ -328,11 +324,11 @@ export class AuthService {
     });
   }
 
-  async getUserState(session: SessionData) {
+  async getUserState(session: SessionData): Promise<StateDto | null> {
     if (session.userState) {
       // For authenticated users, just return state
       if (session.userState === UserStatesEnum.Authenticated) {
-        return { state: session.userState };
+        return { userState: session.userState };
       }
 
       const user = await this.userService.get({ id: session.userId });
@@ -344,7 +340,7 @@ export class AuthService {
       if (user.role === RolesEnum.transporter) {        
         const transporter = await this.userService.getTransporter({ userId: session.userId });
         return { 
-          state: session.userState, 
+          userState: session.userState, 
           transporter: {
             ...user,
             ...transporter
@@ -362,38 +358,32 @@ export class AuthService {
       throw new NotFoundException(NotFoundMessages.User);
     }
 
-    let computedState: UserStatesEnum | undefined;
-    let transporter: TransporterCompactDto | undefined;
+    let computedState: UserStatesEnum = UserStatesEnum.Authenticated;
+    let transporter: TransporterResponseDto | undefined;
 
-    switch (user.role) {
-      case RolesEnum.sender:
-        computedState = UserStatesEnum.Authenticated;
-        break;
-
-      case RolesEnum.transporter:
-        const transporterState = await this.computeTransporterState(session.userId!);
-        computedState = transporterState.state;
-        transporter = transporterState.transporter;
-        break;
+    if (user.role === RolesEnum.transporter) {
+      const transporterState = await this.computeTransporterState(session.userId!);
+      computedState = transporterState.userState;
+      transporter = transporterState.transporter; 
     }
 
     // Update session with computed state
     session.userState = computedState;
 
     return computedState === UserStatesEnum.Authenticated 
-      ? { state: computedState }
+      ? { userState: computedState }
       : {
-          state: computedState,
+          userState: computedState,
           transporter: {
             ...user,
-            ...transporter
-          }
+            ...transporter,
+          } as TransporterResponseDto
         };
   }
 
   private async computeTransporterState(
     userId: string
-  ): Promise<TransporterState> {
+  ): Promise<StateDto> {
     const transporter = await this.userService.getTransporter({ userId });
     let state: UserStatesEnum | undefined;
 
@@ -416,7 +406,7 @@ export class AuthService {
     const isVerified = transporter.verificationStatus?.status === VerificationStatusEnum.verified;
     
     return isVerified
-      ? { state: UserStatesEnum.Authenticated }
-      : { transporter, state };
+      ? { userState: UserStatesEnum.Authenticated }
+      : { userState: state, transporter };
   }
 }
