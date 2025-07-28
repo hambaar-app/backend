@@ -183,7 +183,6 @@ model VerificationStatus {
   id          String                 @id @default(uuid()) @db.Uuid
   status      VerificationStatusEnum @default(pending)
   description String?                @db.Text
-  verifiedAt  DateTime?              @map("verified_at") @db.Timestamp
 
   // Relations
   transporterNationalId    Transporter[] @relation("NationalIdStatus")

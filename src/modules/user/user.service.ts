@@ -70,7 +70,6 @@ export class UserService {
         create: {
           status: 'pending',
           description: null,
-          verifiedAt: null
         }
       };
     }
@@ -80,7 +79,6 @@ export class UserService {
         create: {
           status: 'pending',
           description: null,
-          verifiedAt: null
         }
       };
     }
