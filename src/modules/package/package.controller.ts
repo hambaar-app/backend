@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { Request } from 'express';
@@ -8,6 +8,8 @@ import { RecipientResponseDto } from './dto/recipient-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { PackageResponseDto } from './dto/package-response.dto';
+import { OwnershipGuard } from '../auth/guard/ownership.guard';
+import { CheckOwnership } from '../auth/ownership.decorator';
 
 @Controller('package')
 export class PackageController {
@@ -68,5 +70,23 @@ export class PackageController {
   ) {
     const userId = req.user?.id;
     return this.packageService.create(userId!, body);
+  }
+
+  @ApiOperation({
+    summary: 'Retrieves a package by its id'
+  })
+  @ApiCreatedResponse({
+    type: PackageResponseDto
+  })
+  @Serialize(PackageResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'package'
+  })
+  @Get(':id')
+  async getPackageById(
+    @Param('id', ParseUUIDPipe) id: string
+  ) {
+    return this.packageService.getById(id);
   }
 }

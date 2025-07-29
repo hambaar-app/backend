@@ -4,6 +4,7 @@ import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { AuthMessages } from 'src/common/enums/messages.enum';
 import { formatPrismaError } from 'src/common/utilities';
+import { UpdatePackageDto } from './dto/update.package.dto';
 
 @Injectable()
 export class PackageService {
@@ -98,9 +99,30 @@ export class PackageService {
         },
         include: {
           originAddress: true,
-          recipient: true
+          recipient: {
+            include: {
+              address: true
+            }
+          }
         }
       });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
+  async getById(id: string) {
+    return this.prisma.package.findFirstOrThrow({
+      where: { id },
+      include: {
+        originAddress: true,
+        recipient: {
+          include: {
+            address: true
+          }
+        }
+      }
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;

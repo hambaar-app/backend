@@ -86,6 +86,10 @@ export class OwnershipGuard implements CanActivate {
       address: {
         id: entityId,
         userId: ownerId
+      },
+      package: {
+        id: entityId,
+        senderId: ownerId
       }
       // ...
     };
