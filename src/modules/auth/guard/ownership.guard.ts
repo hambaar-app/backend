@@ -55,7 +55,7 @@ export class OwnershipGuard implements CanActivate {
 
       if (!record) {
         throw new ForbiddenException(
-          `Access Denied. You don't have permission to access this ${config.entity}.`,
+          `${AuthMessages.EntityAccessDenied} ${config.entity}.`,
         );
       }
 

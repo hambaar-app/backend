@@ -11,7 +11,8 @@ export enum AuthMessages {
   TooManyAttempts = 'Too many failed attempts. Please try again later.',
   AlreadyAuthorized = 'User is already authorized.',
   UnauthorizedPhoneNumber = 'Phone number in request does not match the authenticated user’s phone number',
-  AccessDenied = 'Access Denied. You are not authorized to perform this action.'
+  AccessDenied = 'Access Denied. You are not authorized to perform this action.',
+  EntityAccessDenied = 'Access Denied. You don\'t have permission to access this'
 }
 
 export enum NotFoundMessages {
