@@ -311,10 +311,10 @@ model PackageRecipient {
 model Package {
   id                    String            @id @default(uuid()) @db.Uuid
   senderId              String            @map("sender_id") @db.Uuid
-  itemsDescription      String?           @map("items_description") @db.Text
+  items                 Json?             @map("items_description") @db.JsonB
   originAddressId       String            @map("origin_address_id") @db.Uuid
   recipientId           String            @map("recipient_id") @db.Uuid
-  weight                Float? // in kg
+  weight                Int? // gr
   dimensions            String?           @db.VarChar // in cm and "LxWxH" format
   suggestedPrice        Int?              @map("suggested_price") // IRR
   finalPrice            Int?              @map("final_price") // IRR
@@ -324,9 +324,9 @@ model Package {
   isPerishable          Boolean?          @map("is_perishable")
   description           String?           @db.Text
   pickupAtOrigin        Boolean?          @map("pickup_at_origin")
-  deliveryAtOrigin      Boolean?          @map("delivery_at_origin")
-  preferredPickupTime   DateTime?         @map("preferred_pickup_time") @db.Timestamp
-  preferredDeliveryTime DateTime?         @map("preferred_delivery_time") @db.Timestamp
+  deliveryAtDestination Boolean?          @map("delivery_at_destination")
+  preferredPickupTime   Json?             @map("preferred_pickup_time") @db.JsonB
+  preferredDeliveryTime Json?             @map("preferred_delivery_time") @db.JsonB
 
   // Relations
   deliveryRequests DeliveryRequest[] @relation("SenderRequests")
@@ -351,7 +351,7 @@ model Trip {
   vehicleId           String         @map("vehicle_id") @db.Uuid
   maxPackageWeight    Float?         @map("max_package_weight") // in kg
   availableCapacityKg Float?         @map("available_capacity_kg") // in kg
-  restrictedItems     String?        @map("restricted_items") @db.Text
+  restrictedItems     Json?          @map("restricted_items") @db.JsonB
   departureTime       DateTime       @map("departure_time") @db.Timestamp
   tripStatus          TripStatusEnum @default(scheduled) @map("trip_status")
   description         String?        @db.Text
