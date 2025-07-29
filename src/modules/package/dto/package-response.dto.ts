@@ -2,20 +2,12 @@ import { Expose, Type } from 'class-transformer';
 import { AddressResponseDto } from 'src/modules/address/dto/address-response.dto';
 import { RecipientResponseDto } from './recipient-response.dto';
 
-export class PackageResponseDto {
+export class PackageCompactResponseDto {
   @Expose()
   id: string;
 
   @Expose()
   items: string[];
-
-  @Expose()
-  @Type(() => AddressResponseDto)
-  originAddress: AddressResponseDto;
-
-  @Expose()
-  @Type(() => RecipientResponseDto)
-  recipient: RecipientResponseDto;
 
   @Expose()
   weight: number;
@@ -58,4 +50,16 @@ export class PackageResponseDto {
 
   @Expose()
   deletedAt: Date;
+}
+
+export class PackageCompactPlusResponseDto extends PackageCompactResponseDto {
+  @Expose()
+  @Type(() => RecipientResponseDto)
+  recipient: RecipientResponseDto;
+}
+
+export class PackageResponseDto extends PackageCompactPlusResponseDto {
+  @Expose()
+  @Type(() => AddressResponseDto)
+  originAddress: AddressResponseDto;
 }

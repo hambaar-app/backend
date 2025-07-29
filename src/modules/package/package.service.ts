@@ -113,6 +113,23 @@ export class PackageService {
     });
   }
 
+  async getAll(userId: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    return this.prisma.package.findMany({
+      where: {
+        senderId: userId
+      },
+      include: {
+        recipient: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      skip,
+      take: limit
+    });
+  }
+
   async getById(id: string) {
     return this.prisma.package.findFirstOrThrow({
       where: { id },
