@@ -16,6 +16,7 @@ import { UserModule } from '../user/user.module';
 import { VehicleModule } from '../vehicle/vehicle.module';
 import { S3Module } from '../s3/s3.module';
 import { SupportModule } from '../support/support.module';
+import { AddressModule } from '../address/address.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { SupportModule } from '../support/support.module';
     VehicleModule,
     S3Module,
     SupportModule,
+    AddressModule,
   ],
   controllers: [AppController],
   providers: [
