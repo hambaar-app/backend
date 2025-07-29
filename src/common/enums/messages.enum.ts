@@ -20,3 +20,7 @@ export enum NotFoundMessages {
   VehicleModel = 'Vehicle model not found.',
   User = 'User not found.'
 }
+
+export enum BadRequestMessages {
+  BasePackageStatus = 'You can not update a package with status '
+}

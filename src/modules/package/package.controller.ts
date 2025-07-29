@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { Request } from 'express';
@@ -85,6 +85,26 @@ export class PackageController {
   })
   @Get(':id')
   async getPackageById(
+    @Param('id', ParseUUIDPipe) id: string
+  ) {
+    return this.packageService.getById(id);
+  }
+
+  @ApiOperation({
+  summary: 'Update a package by its id',
+  description: `Updates specific properties of an existing package identified by its ID. 
+    Partial updates are supported, but modifications are only allowed if the package has not been matched yet.`
+})
+  @ApiCreatedResponse({
+    type: PackageResponseDto
+  })
+  @Serialize(PackageResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'package'
+  })
+  @Patch(':id')
+  async updatePackage(
     @Param('id', ParseUUIDPipe) id: string
   ) {
     return this.packageService.getById(id);

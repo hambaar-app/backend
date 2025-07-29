@@ -1,10 +1,11 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
-import { AuthMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
 import { formatPrismaError } from 'src/common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
+import { PackageStatusEnum } from 'generated/prisma';
 
 @Injectable()
 export class PackageService {
@@ -126,6 +127,29 @@ export class PackageService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
+    });
+  }
+
+  async update(id: string, packageDto: UpdatePackageDto) {
+    return this.prisma.$transaction(async tx => {
+      const { shippingStatus } = await tx.package.findFirstOrThrow({
+        where: { id },
+        select: { shippingStatus: true }
+      }).catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
+
+      const isValidStatus = shippingStatus === PackageStatusEnum.created || 
+                     shippingStatus === PackageStatusEnum.searching_transporter;
+      if (!isValidStatus) {
+        throw new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${shippingStatus}.`);
+      }
+
+      return this.prisma.package.update({
+        where: { id },
+        data: packageDto
+      });
     });
   }
 }
