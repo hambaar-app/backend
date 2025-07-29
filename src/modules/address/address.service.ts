@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
+import { formatPrismaError } from 'src/common/utilities';
 
 @Injectable()
 export class AddressService {
@@ -13,6 +14,18 @@ export class AddressService {
         userId,
         ...addressDto
       }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
+  async getAll(userId: string, isHighlighted = true) {
+    return this.prisma.address.findMany({
+      where: {
+        userId,
+        isHighlighted
+      }
     });
   }
 
@@ -22,6 +35,9 @@ export class AddressService {
         id: addressId
       },
       data: addressDto
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 }

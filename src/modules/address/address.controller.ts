@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AddressService } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { Request } from 'express';
@@ -32,6 +32,20 @@ export class AddressController {
   ) {
     const userId = req.user?.id;
     return this.addressService.create(userId!, body);
+  }
+
+  @ApiOperation({
+    summary: 'Retrieves all highlighted addresses',
+  })
+  @ApiCreatedResponse({
+    type: [AddressResponseDto]
+  })
+  @Serialize(AddressResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @Get()
+  async getAllAddresses(@Req() req: Request) {
+    const userId = req.user?.id;
+    return this.addressService.getAll(userId!);
   }
 
   @ApiOperation({

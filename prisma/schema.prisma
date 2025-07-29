@@ -274,7 +274,7 @@ model Address {
   latitude      String?
   longitude     String?
   details       String? @db.Text
-  isHighlighted Boolean @default(true) @map("is_highlighted")
+  isHighlighted Boolean @default(false) @map("is_highlighted")
 
   // Relations
   user             User               @relation(fields: [userId], references: [id])
