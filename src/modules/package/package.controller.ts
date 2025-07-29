@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { Request } from 'express';
@@ -32,6 +32,20 @@ export class PackageController {
   ) {
     const userId = req.user?.id;
     return this.packageService.createRecipient(userId!, body);
+  }
+
+  @ApiOperation({
+    summary: 'Retrieves all highlighted recipients',
+  })
+  @ApiCreatedResponse({
+    type: [RecipientResponseDto]
+  })
+  @Serialize(RecipientResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @Get('recipients')
+  async getAllRecipients(@Req() req: Request) {
+    const userId = req.user?.id;
+    return this.packageService.getAllRecipients(userId!);
   }
 
   @ApiOperation({

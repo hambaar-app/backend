@@ -2,8 +2,8 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
-import { instanceToPlain } from 'class-transformer';
 import { AuthMessages } from 'src/common/enums/messages.enum';
+import { formatPrismaError } from 'src/common/utilities';
 
 @Injectable()
 export class PackageService {
@@ -23,13 +23,34 @@ export class PackageService {
         address: {
           create: {
             userId,
-            ...address
+            ...address,
+            title: address.title ?? recipientDto.fullName,
           }
         }
       },
       include: {
         address: true
       }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
+  async getAllRecipients(userId: string, isHighlighted = true) {
+    return this.prisma.packageRecipient.findMany({
+      where: {
+        address: {
+          userId
+        },
+        isHighlighted
+      },
+      include: {
+        address: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 
@@ -42,7 +63,6 @@ export class PackageService {
       ...packageDto
     }: CreatePackageDto
   ) {
-    // const plainItems = instanceToPlain(items);
     return this.prisma.$transaction(async tx => {
       const originAddress = await tx.address.findFirst({
         where: {
@@ -81,6 +101,9 @@ export class PackageService {
           recipient: true
         }
       });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 }

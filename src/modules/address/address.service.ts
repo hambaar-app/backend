@@ -26,7 +26,10 @@ export class AddressService {
         userId,
         isHighlighted
       }
-    });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });;
   }
 
   async update(addressId: string, addressDto: UpdateAddressDto) {

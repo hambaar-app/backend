@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import { Prisma } from 'generated/prisma';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
 import { isDate, isAfter, isValid } from 'date-fns';
 
@@ -10,6 +10,8 @@ export const generateOTP = () => {
 
 export const formatPrismaError = (error: Error): never => {
   if (process.env.NODE_ENV === 'development') console.log(error);
+
+  if (error instanceof ForbiddenException) throw error;
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     const target = Array.isArray(error.meta?.target)
