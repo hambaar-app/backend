@@ -82,8 +82,11 @@ export class OwnershipGuard implements CanActivate {
       vehicle: {
         id: entityId,
         ownerId
+      },
+      address: {
+        id: entityId,
+        userId: ownerId
       }
-
       // ...
     };
 
