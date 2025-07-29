@@ -17,6 +17,7 @@ import { VehicleModule } from '../vehicle/vehicle.module';
 import { S3Module } from '../s3/s3.module';
 import { SupportModule } from '../support/support.module';
 import { AddressModule } from '../address/address.module';
+import { PackageModule } from '../package/package.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AddressModule } from '../address/address.module';
     S3Module,
     SupportModule,
     AddressModule,
+    PackageModule,
   ],
   controllers: [AppController],
   providers: [
