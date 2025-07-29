@@ -1,48 +1,48 @@
-import { Exclude } from 'class-transformer';
+import { Expose } from 'class-transformer';
 
 export class AddressResponseDto {
-  @Exclude()
+  @Expose()
   id: string;
 
-  @Exclude()
+  @Expose()
   title?: string;
 
-  @Exclude()
+  @Expose()
   country?: string;
 
-  @Exclude()
+  @Expose()
   province: string;
 
-  @Exclude()
+  @Expose()
   city: string;
 
-  @Exclude()
+  @Expose()
   street: string;
 
-  @Exclude()
+  @Expose()
   details: string;
 
-  @Exclude()
+  @Expose()
   plate?: number;
 
-  @Exclude()
+  @Expose()
   postalCode?: string;
 
-  @Exclude()
+  @Expose()
   latitude: string;
 
-  @Exclude()
+  @Expose()
   longitude: string;
 
-  @Exclude()
+  @Expose()
   isHighlighted?: boolean;
 
-  @Exclude()
+  @Expose()
   createdAt: Date;
 
-  @Exclude()
+  @Expose()
   updatedAt: Date;
 
-  @Exclude()
+  @Expose()
   deletedAt: Date;
 }

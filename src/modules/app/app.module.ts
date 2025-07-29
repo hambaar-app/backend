@@ -48,6 +48,7 @@ import { AddressModule } from '../address/address.module';
       provide: APP_PIPE,
       useValue: new ValidationPipe({
         whitelist: true,
+        transform: true,
       }),
     }
   ],

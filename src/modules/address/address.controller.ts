@@ -1,11 +1,14 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AddressService } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { Request } from 'express';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
-import { ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { AddressResponseDto } from './dto/address-response.dto';
+import { CheckOwnership } from '../auth/ownership.decorator';
+import { OwnershipGuard } from '../auth/guard/ownership.guard';
+import { UpdateAddressDto } from './dto/update-address.dto';
 
 @Controller('addresses')
 export class AddressController {
@@ -14,7 +17,7 @@ export class AddressController {
   @ApiOperation({
     summary: 'Create a new address',
     description: `This endpoint is used for creating addresses in package, packageRecipient, and trip creation.
-    If \`isHighlighted\` is set to \`true\`, the address will be displayed in the response of the \`GET /addresses\` endpoint.`
+      If \`isHighlighted\` is set to \`true\`, the address will be displayed in the response of the \`GET /addresses\` endpoint.`
   })
   @ApiCreatedResponse({
     type: AddressResponseDto
@@ -29,5 +32,26 @@ export class AddressController {
   ) {
     const userId = req.user?.id;
     return this.addressService.create(userId!, body);
+  }
+
+  @ApiOperation({
+    summary: 'Update a address by its id',
+    description: `This endpoint updates an existing address.
+      Note that addresses cannot be deleted; they can only be unhighlighted by setting \`isHighlighted\` to \`false\`.`
+  })
+  @ApiOkResponse({
+    type: AddressResponseDto
+  })
+  @Serialize(AddressResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'address'
+  })
+  @Patch(':id')
+  async updateAddress(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateAddressDto,
+  ) {
+    return this.addressService.update(id, body);
   }
 }
