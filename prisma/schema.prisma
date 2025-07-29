@@ -271,17 +271,17 @@ model Address {
   street        String? @db.VarChar
   plate         Int?    @map("plate")
   postalCode    String? @map("postal_code") @db.VarChar
-  latitude      Float?
-  longitude     Float?
+  latitude      String?
+  longitude     String?
   details       String? @db.Text
-  isHighlighted Boolean @default(true) @map("is_highlighted")
+  isHighlighted Boolean @default(false) @map("is_highlighted")
 
   // Relations
-  user                User      @relation(fields: [userId], references: [id])
-  packagesOrigin      Package[] @relation("OriginAddress")
-  packagesDestination Package[] @relation("DestinationAddress")
-  tripsOrigin         Trip[]    @relation("TripOrigin")
-  tripsDestination    Trip[]    @relation("TripDestination")
+  user             User               @relation(fields: [userId], references: [id])
+  packagesOrigin   Package[]          @relation("OriginAddress")
+  tripsOrigin      Trip[]             @relation("TripOrigin")
+  tripsDestination Trip[]             @relation("TripDestination")
+  packageRecipient PackageRecipient[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -294,9 +294,11 @@ model PackageRecipient {
   id            String  @id @default(uuid()) @db.Uuid
   fullName      String  @map("full_name") @db.VarChar
   phoneNumber   String  @map("phone_number") @db.VarChar
+  addressId     String  @map("address_id") @db.Uuid
   isHighlighted Boolean @default(true) @map("is_highlighted")
 
   // Relations
+  address  Address   @relation(fields: [addressId], references: [id])
   packages Package[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
@@ -309,10 +311,10 @@ model PackageRecipient {
 model Package {
   id                    String            @id @default(uuid()) @db.Uuid
   senderId              String            @map("sender_id") @db.Uuid
-  itemsDescription      String?           @map("items_description") @db.Text
+  items                 Json?             @map("items_description") @db.JsonB
   originAddressId       String            @map("origin_address_id") @db.Uuid
-  destinationAddressId  String            @map("destination_address_id") @db.Uuid
-  weight                Float? // in kg
+  recipientId           String            @map("recipient_id") @db.Uuid
+  weight                Int? // gr
   dimensions            String?           @db.VarChar // in cm and "LxWxH" format
   suggestedPrice        Int?              @map("suggested_price") // IRR
   finalPrice            Int?              @map("final_price") // IRR
@@ -321,19 +323,17 @@ model Package {
   isFragile             Boolean?          @map("is_fragile")
   isPerishable          Boolean?          @map("is_perishable")
   description           String?           @db.Text
-  recipientId           String            @map("recipient_id") @db.Uuid
   pickupAtOrigin        Boolean?          @map("pickup_at_origin")
-  deliveryAtOrigin      Boolean?          @map("delivery_at_origin")
-  preferredPickupTime   DateTime?         @map("preferred_pickup_time") @db.Timestamp
-  preferredDeliveryTime DateTime?         @map("preferred_delivery_time") @db.Timestamp
+  deliveryAtDestination Boolean?          @map("delivery_at_destination")
+  preferredPickupTime   Json?             @map("preferred_pickup_time") @db.JsonB
+  preferredDeliveryTime Json?             @map("preferred_delivery_time") @db.JsonB
 
   // Relations
-  deliveryRequests   DeliveryRequest[] @relation("SenderRequests")
-  matchedRequest     MatchedRequest?
-  sender             User              @relation(fields: [senderId], references: [id])
-  originAddress      Address           @relation("OriginAddress", fields: [originAddressId], references: [id])
-  destinationAddress Address           @relation("DestinationAddress", fields: [destinationAddressId], references: [id])
-  recipient          PackageRecipient  @relation(fields: [recipientId], references: [id])
+  deliveryRequests DeliveryRequest[] @relation("SenderRequests")
+  matchedRequest   MatchedRequest?
+  sender           User              @relation(fields: [senderId], references: [id])
+  originAddress    Address           @relation("OriginAddress", fields: [originAddressId], references: [id])
+  recipient        PackageRecipient  @relation(fields: [recipientId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -351,7 +351,7 @@ model Trip {
   vehicleId           String         @map("vehicle_id") @db.Uuid
   maxPackageWeight    Float?         @map("max_package_weight") // in kg
   availableCapacityKg Float?         @map("available_capacity_kg") // in kg
-  restrictedItems     String?        @map("restricted_items") @db.Text
+  restrictedItems     Json?          @map("restricted_items") @db.JsonB
   departureTime       DateTime       @map("departure_time") @db.Timestamp
   tripStatus          TripStatusEnum @default(scheduled) @map("trip_status")
   description         String?        @db.Text

@@ -55,7 +55,7 @@ export class OwnershipGuard implements CanActivate {
 
       if (!record) {
         throw new ForbiddenException(
-          `Access Denied. You don't have permission to access this ${config.entity}.`,
+          `${AuthMessages.EntityAccessDenied} ${config.entity}.`,
         );
       }
 
@@ -81,9 +81,19 @@ export class OwnershipGuard implements CanActivate {
     const entityCustomWhereMap: Record<string, Record<string, any>> = {
       vehicle: {
         id: entityId,
-        ownerId
+        ownerId,
+        deletedAt: null
+      },
+      address: {
+        id: entityId,
+        userId: ownerId,
+        deletedAt: null
+      },
+      package: {
+        id: entityId,
+        senderId: ownerId,
+        deletedAt: null
       }
-
       // ...
     };
 

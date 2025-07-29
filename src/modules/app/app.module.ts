@@ -16,6 +16,8 @@ import { UserModule } from '../user/user.module';
 import { VehicleModule } from '../vehicle/vehicle.module';
 import { S3Module } from '../s3/s3.module';
 import { SupportModule } from '../support/support.module';
+import { AddressModule } from '../address/address.module';
+import { PackageModule } from '../package/package.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { SupportModule } from '../support/support.module';
     VehicleModule,
     S3Module,
     SupportModule,
+    AddressModule,
+    PackageModule,
   ],
   controllers: [AppController],
   providers: [
@@ -46,6 +50,7 @@ import { SupportModule } from '../support/support.module';
       provide: APP_PIPE,
       useValue: new ValidationPipe({
         whitelist: true,
+        transform: true,
       }),
     }
   ],
