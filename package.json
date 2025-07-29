@@ -38,6 +38,7 @@
     "connect-redis": "^9.0.0",
     "cookie-parser": "^1.4.7",
     "cross-env": "^7.0.3",
+    "date-fns": "^4.1.0",
     "express-session": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
     "redis": "^5.6.0",

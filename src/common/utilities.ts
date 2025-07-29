@@ -1,11 +1,12 @@
 import * as crypto from 'crypto';
 import { Prisma } from 'generated/prisma';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
+import { isDate, isAfter, isValid } from 'date-fns';
 
 export const generateOTP = () => {
   return crypto.randomInt(11111, 99999);
 };
-
 
 export const formatPrismaError = (error: Error): never => {
   if (process.env.NODE_ENV === 'development') console.log(error);
@@ -44,3 +45,60 @@ export const formatPrismaError = (error: Error): never => {
   }
   throw new BadRequestException('An unexpected database error occurred.');
 };
+
+@ValidatorConstraint({ name: 'isValidDateTimeTuple', async: false })
+export class IsValidDateTimeTupleConstraint implements ValidatorConstraintInterface {
+  validate(value: any, args: ValidationArguments): boolean {
+    if (!Array.isArray(value) || value.length !== 2) {
+      return false;
+    }
+
+    const [start, end] = value;
+
+    const startDate = start instanceof Date ? start : new Date(start);
+    const endDate = end instanceof Date ? end : new Date(end);
+
+    if (!isValid(startDate) || !isValid(endDate)) {
+      return false;
+    }
+
+    return isAfter(endDate, startDate);
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} must be a tuple of two valid DateTime values where the second is after the first (e.g., ["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]).`;
+  }
+}
+
+@ValidatorConstraint({ name: 'isDeliveryAfterPickup', async: false })
+export class IsDeliveryAfterPickupConstraint implements ValidatorConstraintInterface {
+  validate(preferredDeliveryTime: any, args: ValidationArguments): boolean {
+    const { object } = args;
+    const preferredPickupTime = (object as any).preferredPickupTime;
+
+    if (
+      !Array.isArray(preferredPickupTime) ||
+      preferredPickupTime.length !== 2 ||
+      !Array.isArray(preferredDeliveryTime) ||
+      preferredDeliveryTime.length !== 2
+    ) {
+      return false;
+    }
+
+    const [, pickupEnd] = preferredPickupTime;
+    const [deliveryStart] = preferredDeliveryTime;
+
+    const pickupEndDate = pickupEnd instanceof Date ? pickupEnd : new Date(pickupEnd);
+    const deliveryStartDate = deliveryStart instanceof Date ? deliveryStart : new Date(deliveryStart);
+
+    if (!isValid(pickupEndDate) || !isValid(deliveryStartDate)) {
+      return false;
+    }
+
+    return isAfter(deliveryStartDate, pickupEndDate);
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} start time must be after preferredPickupTime end time.`;
+  }
+}
