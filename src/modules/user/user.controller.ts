@@ -9,7 +9,7 @@ import { TransporterCompactDto } from './dto/transporter-response.dto';
 import { Request } from 'express';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
 

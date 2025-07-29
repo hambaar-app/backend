@@ -13,7 +13,7 @@ import { CheckOwnership } from '../auth/ownership.decorator';
 import { ApiQueryPagination } from 'src/common/query.decorator';
 import { UpdatePackageDto } from './dto/update.package.dto';
 
-@Controller('package')
+@Controller('packages')
 export class PackageController {
   constructor(private packageService: PackageService) {}
 
