@@ -1,9 +1,9 @@
-import { Body, Controller, DefaultValuePipe, Get, HttpCode, HttpStatus, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { Request } from 'express';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
-import { ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { RecipientResponseDto } from './dto/recipient-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { CreatePackageDto } from './dto/create-package.dto';
@@ -11,6 +11,7 @@ import { PackageCompactPlusResponseDto, PackageCompactResponseDto, PackageRespon
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/ownership.decorator';
 import { ApiQueryPagination } from 'src/common/query.decorator';
+import { UpdatePackageDto } from './dto/update.package.dto';
 
 @Controller('package')
 export class PackageController {
@@ -40,7 +41,7 @@ export class PackageController {
   @ApiOperation({
     summary: 'Retrieves all highlighted recipients',
   })
-  @ApiCreatedResponse({
+  @ApiOkResponse({
     type: [RecipientResponseDto]
   })
   @Serialize(RecipientResponseDto)
@@ -58,8 +59,8 @@ export class PackageController {
       Recipients can be included by providing recipient Ids created via \`POST /packages/recipients\`
       or retrieved from \`GET /packages/recipients\`.`
   })
-  @ApiCreatedResponse({
-    type: PackageResponseDto
+  @ApiOkResponse({
+    type: [PackageResponseDto]
   })
   @Serialize(PackageResponseDto)
   @UseGuards(AccessTokenGuard)
@@ -114,7 +115,7 @@ export class PackageController {
   summary: 'Update a package by its id',
   description: `Updates specific properties of an existing package identified by its ID. 
     Partial updates are supported, but modifications are only allowed if the package has not been matched yet.`
-})
+  })
   @ApiCreatedResponse({
     type: PackageCompactResponseDto
   })
@@ -125,8 +126,28 @@ export class PackageController {
   })
   @Patch(':id')
   async updatePackage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdatePackageDto
+  ) {
+    return this.packageService.update(id, body);
+  }
+
+  @ApiOperation({
+    summary: 'Delete a package by its id',
+    description: `Deletion are only allowed if the package has not been matched yet.`
+  })
+  @ApiCreatedResponse({
+    type: PackageCompactResponseDto
+  })
+  @Serialize(PackageCompactResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'package'
+  })
+  @Delete(':id')
+  async deletePackage(
     @Param('id', ParseUUIDPipe) id: string
   ) {
-    return this.packageService.getById(id);
+    return this.packageService.delete(id);
   }
 }

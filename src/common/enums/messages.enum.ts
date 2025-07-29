@@ -22,5 +22,5 @@ export enum NotFoundMessages {
 }
 
 export enum BadRequestMessages {
-  BasePackageStatus = 'You can not update a package with status '
+  BasePackageStatus = 'You can not update/delete a package with status '
 }

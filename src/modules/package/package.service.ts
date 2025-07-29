@@ -117,7 +117,8 @@ export class PackageService {
     const skip = (page - 1) * limit;
     return this.prisma.package.findMany({
       where: {
-        senderId: userId
+        senderId: userId,
+        deletedAt: null
       },
       include: {
         recipient: true
@@ -132,7 +133,10 @@ export class PackageService {
 
   async getById(id: string) {
     return this.prisma.package.findFirstOrThrow({
-      where: { id },
+      where: {
+        id,
+        deletedAt: null
+      },
       include: {
         originAddress: true,
         recipient: {
@@ -150,7 +154,10 @@ export class PackageService {
   async update(id: string, packageDto: UpdatePackageDto) {
     return this.prisma.$transaction(async tx => {
       const { shippingStatus } = await tx.package.findFirstOrThrow({
-        where: { id },
+        where: {
+          id,
+          deletedAt: null
+        },
         select: { shippingStatus: true }
       }).catch((error: Error) => {
         formatPrismaError(error);
@@ -166,6 +173,31 @@ export class PackageService {
       return this.prisma.package.update({
         where: { id },
         data: packageDto
+      });
+    });
+  }
+
+  async delete(id: string) {
+    return this.prisma.$transaction(async tx => {
+      const { shippingStatus } = await tx.package.findFirstOrThrow({
+        where: { id },
+        select: { shippingStatus: true }
+      }).catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
+
+      const isValidStatus = shippingStatus === PackageStatusEnum.created || 
+                     shippingStatus === PackageStatusEnum.searching_transporter;
+      if (!isValidStatus) {
+        throw new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${shippingStatus}.`);
+      }
+
+      return this.prisma.package.update({
+        where: { id },
+        data: {
+          deletedAt: new Date()
+        }
       });
     });
   }

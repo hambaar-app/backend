@@ -81,15 +81,18 @@ export class OwnershipGuard implements CanActivate {
     const entityCustomWhereMap: Record<string, Record<string, any>> = {
       vehicle: {
         id: entityId,
-        ownerId
+        ownerId,
+        deletedAt: null
       },
       address: {
         id: entityId,
-        userId: ownerId
+        userId: ownerId,
+        deletedAt: null
       },
       package: {
         id: entityId,
-        senderId: ownerId
+        senderId: ownerId,
+        deletedAt: null
       }
       // ...
     };
