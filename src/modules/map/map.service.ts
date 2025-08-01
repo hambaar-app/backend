@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CalculateDistanceInput, CalculateDistanceResult, DistanceMatrixResponse } from './map.types';
 import { ConfigService } from '@nestjs/config';
 import { TripTypeEnum } from 'generated/prisma';
@@ -35,7 +35,15 @@ export class MapService {
     });
 
     if (!response.ok) {
-      throw new InternalServerErrorException();      
+      const errorBody = await response.json();
+      const errorCode =response.status;
+
+      if (errorCode === 407) {
+        throw new BadRequestException('Invalid geographic coordinates provided.');
+      }
+
+      console.error(errorBody);
+      throw new InternalServerErrorException('Something wrong.');      
     }
 
     const data: DistanceMatrixResponse = await response.json();
