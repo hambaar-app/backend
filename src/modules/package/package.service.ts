@@ -35,7 +35,7 @@ export class PackageService {
         }
       });
 
-      return this.prisma.packageRecipient.create({
+      return tx.packageRecipient.create({
         data: {
           ...recipientDto,
           address: {
@@ -200,12 +200,15 @@ export class PackageService {
 
   async update(id: string, packageDto: UpdatePackageDto) {
     return this.prisma.$transaction(async tx => {
-      const { shippingStatus } = await tx.package.findFirstOrThrow({
+      const { shippingStatus, suggestedPrice } = await tx.package.findFirstOrThrow({
         where: {
           id,
           deletedAt: null
         },
-        select: { shippingStatus: true }
+        select: {
+          shippingStatus: true,
+          suggestedPrice: true
+        }
       }).catch((error: Error) => {
         formatPrismaError(error);
         throw error;
@@ -215,6 +218,10 @@ export class PackageService {
                      shippingStatus === PackageStatusEnum.searching_transporter;
       if (!isValidStatus) {
         throw new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${shippingStatus}.`);
+      }
+
+      if (packageDto.finalPrice < suggestedPrice) {
+        throw new BadRequestException(BadRequestMessages.InvalidPrice);
       }
 
       return this.prisma.package.update({

@@ -22,5 +22,6 @@ export enum NotFoundMessages {
 }
 
 export enum BadRequestMessages {
-  BasePackageStatus = 'You can not update/delete a package with status '
+  BasePackageStatus = 'You can not update/delete a package with status ',
+  InvalidPrice = 'The final price cannot be set lower than the suggested price.'
 }
