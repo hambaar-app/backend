@@ -112,6 +112,29 @@ export class PackageService {
         throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} recipient.`);
       }
 
+      // Calculate distance for pricing
+      const { distance } = await this.mapService.calculateDistance({
+        vehicleType: 'car',
+        tripType: 'intercity',
+        origin: {
+          latitude: originAddress.latitude!,
+          longitude: originAddress.longitude!
+        },
+        destination: {
+          latitude: recipient.address.latitude!,
+          longitude: recipient.address.longitude!
+        }
+      });
+
+      const { suggestedPrice } = this.pricingService.calculateSuggestedPrice({
+          distanceKm: distance,
+          weightKg: packageDto.weight,
+          isFragile: packageDto.isFragile ?? false,
+          isPerishable: packageDto.isPerishable ?? false,
+          originCity: originAddress.city!,
+          destinationCity: recipient.address.city!
+      });
+
       return tx.package.create({
         data: {
           senderId: userId,
@@ -119,6 +142,8 @@ export class PackageService {
           originAddressId: originAddress.id,
           recipientId: recipient.id,
           ...packageDto,
+          suggestedPrice,
+          finalPrice: suggestedPrice
         },
         include: {
           originAddress: true,
