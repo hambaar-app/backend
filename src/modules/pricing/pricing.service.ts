@@ -31,7 +31,7 @@ export class PricingService {
     // Base Constants (in Iranian Rial)
     this.basePrice = this.configService.get<number>('PRICING_BASE_PRICE', 50000);
     this.fuelRate = this.configService.get<number>('PRICING_FUEL_RATE', 200);
-    this.weightBaseRate = this.configService.get<number>('PRICING_WEIGHT_BASE_RATE', 8000);
+    this.weightBaseRate = this.configService.get<number>('PRICING_WEIGHT_BASE_RATE', 10000);
     this.driverShare = this.configService.get<number>('PRICING_DRIVER_SHARE', 0.7);
     this.platformCommission = 1 - this.driverShare;
 
@@ -52,8 +52,7 @@ export class PricingService {
 
     // Major Cities List
     const majorCitiesString = this.configService.get<string>(
-      'PRICING_MAJOR_CITIES',
-      'Tehran,Isfahan,Mashhad,Shiraz,Tabriz,Ahvaz,Kermanshah,Urmia,Rasht,Kerman,Karaj'
+      'PRICING_MAJOR_CITIES', 'تهران,اصفهان,مشهد'
     );
     this.majorCities = majorCitiesString.split(',').map(city => city.trim());
 
@@ -62,12 +61,12 @@ export class PricingService {
       {
         minKm: 0,
         maxKm: 100,
-        ratePerKm: this.configService.get<number>('PRICING_TIER_1_RATE', 1200)
+        ratePerKm: this.configService.get<number>('PRICING_TIER_1_RATE', 1000)
       },
       {
         minKm: 101,
         maxKm: 300,
-        ratePerKm: this.configService.get<number>('PRICING_TIER_2_RATE', 1000)
+        ratePerKm: this.configService.get<number>('PRICING_TIER_2_RATE', 950)
       },
       {
         minKm: 301,
@@ -82,7 +81,7 @@ export class PricingService {
       {
         minKm: 1001,
         maxKm: Infinity,
-        ratePerKm: this.configService.get<number>('PRICING_TIER_5_RATE', 650)
+        ratePerKm: this.configService.get<number>('PRICING_TIER_5_RATE', 600)
       }
     ];
   }
@@ -159,11 +158,11 @@ export class PricingService {
   }
 
   // Calculate weight-based additional cost
-  private calculateWeightCost(weightKg: number): number {
-    if (weightKg <= 1) {
+  private calculateWeightCost(weightGr: number): number {
+    if (weightGr < 500) {
       return 0; // No additional cost for packages ≤ 1kg
     }
-    return (weightKg - 1) * this.weightBaseRate;
+    return (weightGr / 100) * this.weightBaseRate;
   }
 
   // Calculate special multipliers
