@@ -1,4 +1,4 @@
-import { Exclude } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
@@ -19,18 +19,22 @@ export class CreateAddressDto {
   @IsString()
   country?: string;
 
-  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  @IsNotEmpty()
   @IsString()
   province: string;
 
-  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  @IsNotEmpty()
   @IsString()
   city: string;
 
+  @Transform(({ value }) => value?.trim())
   @IsNotEmpty()
   @IsString()
   street: string;
 
+  @Transform(({ value }) => value?.trim())
   @IsNotEmpty()
   @IsString()
   details: string;

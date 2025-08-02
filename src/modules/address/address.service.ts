@@ -8,6 +8,16 @@ import { formatPrismaError } from 'src/common/utilities';
 export class AddressService {
   constructor(private prisma: PrismaService) {}
 
+  async getAllProvinces() {
+    return this.prisma.province.findMany();
+  }
+
+  async getAllProvinceCities(provinceId: string) {
+    return this.prisma.city.findMany({
+      where: { provinceId }
+    });
+  }
+
   async create(userId: string, addressDto: CreateAddressDto) {
     return this.prisma.address.create({
       data: {
