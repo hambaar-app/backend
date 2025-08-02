@@ -261,6 +261,25 @@ model VehicleModel {
   @@map("vehicle_models")
 }
 
+model Province {
+  id          String @id @default(uuid()) @db.Uuid
+  persianName String @unique @map("persian_name")
+  englishName String @unique @map("english_name")
+  cities      City[]
+
+  @@map("provinces")
+}
+
+model City {
+  id          String   @id @default(uuid()) @db.Uuid
+  provinceId  String   @map("province_id") @db.Uuid
+  persianName String   @unique @map("persian_name")
+  englishName String   @unique @map("english_name")
+  province    Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+
+  @@map("cities")
+}
+
 model Address {
   id            String  @id @default(uuid()) @db.Uuid
   userId        String  @map("user_id") @db.Uuid
