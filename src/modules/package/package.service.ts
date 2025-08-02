@@ -6,33 +6,52 @@ import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum
 import { formatPrismaError } from 'src/common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { PackageStatusEnum } from 'generated/prisma';
+import { MapService } from '../map/map.service';
+import { PricingService } from '../pricing/pricing.service';
 
 @Injectable()
 export class PackageService {
   constructor(
-    private prisma: PrismaService
+    private prisma: PrismaService,
+    private mapService: MapService,
+    private pricingService: PricingService
   ) {}
 
   async createRecipient(
     userId: string,
     {
-      address, ...recipientDto
+      address: {
+        cityId,
+        ...address
+      },
+      ...recipientDto
     }: CreateRecipientDto
   ) {
-    return this.prisma.packageRecipient.create({
-      data: {
-        ...recipientDto,
-        address: {
-          create: {
-            userId,
-            ...address,
-            title: address.title ?? recipientDto.fullName,
-          }
+    return this.prisma.$transaction(async tx => {
+      const city = await tx.city.findUniqueOrThrow({
+        where: { id: cityId },
+        include: {
+          province: true
         }
-      },
-      include: {
-        address: true
-      }
+      });
+
+      return this.prisma.packageRecipient.create({
+        data: {
+          ...recipientDto,
+          address: {
+            create: {
+              userId,
+              ...address,
+              title: address.title ?? recipientDto.fullName,
+              province: city.province.persianName,
+              city: city.persianName,
+            }
+          }
+        },
+        include: {
+          address: true
+        }
+      });
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
@@ -83,6 +102,9 @@ export class PackageService {
           address: {
             userId
           }
+        },
+        include: {
+          address: true
         }
       });
 
@@ -96,7 +118,7 @@ export class PackageService {
           items,
           originAddressId: originAddress.id,
           recipientId: recipient.id,
-          ...packageDto
+          ...packageDto,
         },
         include: {
           originAddress: true,

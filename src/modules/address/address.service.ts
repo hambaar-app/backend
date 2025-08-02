@@ -18,12 +18,29 @@ export class AddressService {
     });
   }
 
-  async create(userId: string, addressDto: CreateAddressDto) {
-    return this.prisma.address.create({
-      data: {
-        userId,
-        ...addressDto
-      }
+  async create(
+    userId: string,
+    {
+      cityId,
+      ...addressDto
+    }: CreateAddressDto
+  ) {
+    return this.prisma.$transaction(async tx => {
+      const city = await tx.city.findUniqueOrThrow({
+        where: { id: cityId },
+        include: {
+          province: true
+        }
+      });
+
+      return this.prisma.address.create({
+        data: {
+          userId,
+          ...addressDto,
+          province: city.province.persianName,
+          city: city.persianName,
+        }
+      });
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;

@@ -8,6 +8,7 @@ import {
   IsNumberString,
   IsOptional,
   IsString,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateAddressDto {
@@ -18,16 +19,10 @@ export class CreateAddressDto {
   @IsOptional()
   @IsString()
   country?: string;
-
-  @Transform(({ value }) => value?.trim())
+  
   @IsNotEmpty()
-  @IsString()
-  province: string;
-
-  @Transform(({ value }) => value?.trim())
-  @IsNotEmpty()
-  @IsString()
-  city: string;
+  @IsUUID()
+  cityId: string;
 
   @Transform(({ value }) => value?.trim())
   @IsNotEmpty()
