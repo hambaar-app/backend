@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   ArrayNotEmpty,
@@ -30,7 +29,7 @@ export class CreatePackageDto {
   @IsUUID()
   recipientId: string;
 
-  @ApiProperty({ example: 'In gr' })
+  @ApiProperty({ description: 'In gr' })
   @IsNotEmpty()
   @IsInt()
   weight: number;
@@ -43,14 +42,6 @@ export class CreatePackageDto {
     message: 'dimensions should be in cm and "LxWxH" format.',
   })
   dimensions: string;
-
-  @IsNotEmpty()
-  @IsInt()
-  suggestedPrice: number;
-
-  @IsNotEmpty()
-  @IsInt()
-  finalPrice: number;
 
   @IsOptional()
   @IsInt()
@@ -79,14 +70,14 @@ export class CreatePackageDto {
   @ApiProperty({
     example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]'
   })
-  @IsNotEmpty()
+  @IsOptional()
   @Validate(IsValidDateTimeTupleConstraint)
   preferredPickupTime: [Date, Date]; // [startDateTime, endDateTime]
   
   @ApiProperty({
     example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]'
   })
-  @IsNotEmpty()
+  @IsOptional()
   @Validate(IsValidDateTimeTupleConstraint)
   @Validate(IsDeliveryAfterPickupConstraint)
   preferredDeliveryTime: [Date, Date]; // [startDateTime, endDateTime]

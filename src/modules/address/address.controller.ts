@@ -14,6 +14,18 @@ import { UpdateAddressDto } from './dto/update-address.dto';
 export class AddressController {
   constructor(private addressService: AddressService) {}
 
+  @Get('provinces')
+  async getProvinces() {
+    return this.addressService.getAllProvinces();
+  }
+
+  @Get('provinces/:id/cities')
+  async getCitiesByProvince(
+    @Param('id', ParseUUIDPipe) id: string
+  ) {
+    return this.addressService.getAllProvinceCities(id);
+  }
+
   @ApiOperation({
     summary: 'Create a new address',
     description: `This endpoint is used for creating addresses in package, packageRecipient, and trip creation.

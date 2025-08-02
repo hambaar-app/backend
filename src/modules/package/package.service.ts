@@ -6,33 +6,52 @@ import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum
 import { formatPrismaError } from 'src/common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { PackageStatusEnum } from 'generated/prisma';
+import { MapService } from '../map/map.service';
+import { PricingService } from '../pricing/pricing.service';
 
 @Injectable()
 export class PackageService {
   constructor(
-    private prisma: PrismaService
+    private prisma: PrismaService,
+    private mapService: MapService,
+    private pricingService: PricingService
   ) {}
 
   async createRecipient(
     userId: string,
     {
-      address, ...recipientDto
+      address: {
+        cityId,
+        ...address
+      },
+      ...recipientDto
     }: CreateRecipientDto
   ) {
-    return this.prisma.packageRecipient.create({
-      data: {
-        ...recipientDto,
-        address: {
-          create: {
-            userId,
-            ...address,
-            title: address.title ?? recipientDto.fullName,
-          }
+    return this.prisma.$transaction(async tx => {
+      const city = await tx.city.findUniqueOrThrow({
+        where: { id: cityId },
+        include: {
+          province: true
         }
-      },
-      include: {
-        address: true
-      }
+      });
+
+      return tx.packageRecipient.create({
+        data: {
+          ...recipientDto,
+          address: {
+            create: {
+              userId,
+              ...address,
+              title: address.title ?? recipientDto.fullName,
+              province: city.province.persianName,
+              city: city.persianName,
+            }
+          }
+        },
+        include: {
+          address: true
+        }
+      });
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
@@ -83,6 +102,9 @@ export class PackageService {
           address: {
             userId
           }
+        },
+        include: {
+          address: true
         }
       });
 
@@ -90,13 +112,38 @@ export class PackageService {
         throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} recipient.`);
       }
 
+      // Calculate distance for pricing
+      const { distance } = await this.mapService.calculateDistance({
+        vehicleType: 'car',
+        tripType: 'intercity',
+        origin: {
+          latitude: originAddress.latitude!,
+          longitude: originAddress.longitude!
+        },
+        destination: {
+          latitude: recipient.address.latitude!,
+          longitude: recipient.address.longitude!
+        }
+      });
+
+      const { suggestedPrice } = this.pricingService.calculateSuggestedPrice({
+          distanceKm: distance,
+          weightKg: packageDto.weight,
+          isFragile: packageDto.isFragile ?? false,
+          isPerishable: packageDto.isPerishable ?? false,
+          originCity: originAddress.city!,
+          destinationCity: recipient.address.city!
+      });
+
       return tx.package.create({
         data: {
           senderId: userId,
           items,
           originAddressId: originAddress.id,
           recipientId: recipient.id,
-          ...packageDto
+          ...packageDto,
+          suggestedPrice,
+          finalPrice: suggestedPrice
         },
         include: {
           originAddress: true,
@@ -153,12 +200,15 @@ export class PackageService {
 
   async update(id: string, packageDto: UpdatePackageDto) {
     return this.prisma.$transaction(async tx => {
-      const { shippingStatus } = await tx.package.findFirstOrThrow({
+      const { shippingStatus, suggestedPrice } = await tx.package.findFirstOrThrow({
         where: {
           id,
           deletedAt: null
         },
-        select: { shippingStatus: true }
+        select: {
+          shippingStatus: true,
+          suggestedPrice: true
+        }
       }).catch((error: Error) => {
         formatPrismaError(error);
         throw error;
@@ -168,6 +218,10 @@ export class PackageService {
                      shippingStatus === PackageStatusEnum.searching_transporter;
       if (!isValidStatus) {
         throw new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${shippingStatus}.`);
+      }
+
+      if (packageDto.finalPrice < suggestedPrice) {
+        throw new BadRequestException(BadRequestMessages.InvalidPrice);
       }
 
       return this.prisma.package.update({

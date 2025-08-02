@@ -8,12 +8,39 @@ import { formatPrismaError } from 'src/common/utilities';
 export class AddressService {
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: string, addressDto: CreateAddressDto) {
-    return this.prisma.address.create({
-      data: {
-        userId,
-        ...addressDto
-      }
+  async getAllProvinces() {
+    return this.prisma.province.findMany();
+  }
+
+  async getAllProvinceCities(provinceId: string) {
+    return this.prisma.city.findMany({
+      where: { provinceId }
+    });
+  }
+
+  async create(
+    userId: string,
+    {
+      cityId,
+      ...addressDto
+    }: CreateAddressDto
+  ) {
+    return this.prisma.$transaction(async tx => {
+      const city = await tx.city.findUniqueOrThrow({
+        where: { id: cityId },
+        include: {
+          province: true
+        }
+      });
+
+      return this.prisma.address.create({
+        data: {
+          userId,
+          ...addressDto,
+          province: city.province.persianName,
+          city: city.persianName,
+        }
+      });
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;

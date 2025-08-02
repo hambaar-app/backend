@@ -261,6 +261,25 @@ model VehicleModel {
   @@map("vehicle_models")
 }
 
+model Province {
+  id          String @id @default(uuid()) @db.Uuid
+  persianName String @unique @map("persian_name")
+  englishName String @unique @map("english_name")
+  cities      City[]
+
+  @@map("provinces")
+}
+
+model City {
+  id          String   @id @default(uuid()) @db.Uuid
+  provinceId  String   @map("province_id") @db.Uuid
+  persianName String   @unique @map("persian_name")
+  englishName String   @unique @map("english_name")
+  province    Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+
+  @@map("cities")
+}
+
 model Address {
   id            String  @id @default(uuid()) @db.Uuid
   userId        String  @map("user_id") @db.Uuid
@@ -316,8 +335,8 @@ model Package {
   recipientId           String            @map("recipient_id") @db.Uuid
   weight                Int? // gr
   dimensions            String?           @db.VarChar // in cm and "LxWxH" format
-  suggestedPrice        Int?              @map("suggested_price") // IRR
-  finalPrice            Int?              @map("final_price") // IRR
+  suggestedPrice        Int               @default(0) @map("suggested_price") // IRR
+  finalPrice            Int               @default(0) @map("final_price") // IRR
   shippingStatus        PackageStatusEnum @default(created) @map("shipping_status")
   packageValue          Int?              @map("package_value") // cost
   isFragile             Boolean?          @map("is_fragile")
@@ -394,7 +413,7 @@ model DeliveryRequest {
   id                String             @id @default(uuid()) @db.Uuid
   packageId         String             @map("package_id") @db.Uuid
   tripId            String             @map("trip_id") @db.Uuid
-  offeredPrice      Int?               @map("offered_price") // shipping_cost - commission (%)
+  offeredPrice      Int                @default(0) @map("offered_price") // shipping_cost - commission (%)
   estimatedOvertime Int                @default(0) @map("estimated_overtime") // minutes
   senderNotes       String?            @map("sender_notes") @db.Text
   status            RequestStatusEnum?

@@ -5,12 +5,16 @@ import { CurrentUserMiddleware } from 'src/common/current-user.middleware';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TokenModule } from '../token/token.module';
 import { UserModule } from '../user/user.module';
+import { MapModule } from '../map/map.module';
+import { PricingModule } from '../pricing/pricing.module';
 
 @Module({
   imports: [
     PrismaModule,
     TokenModule,
     UserModule,
+    MapModule,
+    PricingModule,
   ],
   providers: [PackageService],
   controllers: [PackageController]

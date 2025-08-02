@@ -16,7 +16,12 @@ export class UpdatePackageDto {
   @Matches(/^\d+(\.\d+)?x\d+(\.\d+)?x\d+(\.\d+)?$/, {
     message: 'dimensions should be in cm and "LxWxH" format.',
   })
+  @IsOptional()
   dimensions?: string;
+
+  @IsOptional()
+  @IsInt()
+  finalPrice: number;
 
   @IsOptional()
   @IsInt()
