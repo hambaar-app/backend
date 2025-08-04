@@ -209,9 +209,6 @@ export class PackageService {
           shippingStatus: true,
           suggestedPrice: true
         }
-      }).catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
       });
 
       const isValidStatus = shippingStatus === PackageStatusEnum.created || 
@@ -228,7 +225,10 @@ export class PackageService {
         where: { id },
         data: packageDto
       });
-    });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });;
   }
 
   async delete(id: string) {
@@ -236,9 +236,6 @@ export class PackageService {
       const { shippingStatus } = await tx.package.findFirstOrThrow({
         where: { id },
         select: { shippingStatus: true }
-      }).catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
       });
 
       const isValidStatus = shippingStatus === PackageStatusEnum.created || 
@@ -253,6 +250,9 @@ export class PackageService {
           deletedAt: new Date()
         }
       });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 }

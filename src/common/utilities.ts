@@ -22,7 +22,8 @@ export const formatPrismaError = (error: Error): never => {
   if (process.env.NODE_ENV === 'development')
     console.error(error);
 
-  if (error instanceof ForbiddenException) {
+  if (error instanceof ForbiddenException
+    || error instanceof BadRequestException) {
     throw error;
   }
 
