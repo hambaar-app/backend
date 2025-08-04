@@ -56,7 +56,7 @@ export interface RoutingResponse {
   routes: NeshanRoute[];
 }
 
-interface NeshanRoute {
+export interface NeshanRoute {
   overview_polyline: { points: string };
   legs: NeshanRouteLeg[];
 }

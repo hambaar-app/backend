@@ -11,6 +11,8 @@ import {
   RoutingDto,
   Location,
   ReverseGeocodingResponse,
+  NeshanRoute,
+  VehicleTypes,
 } from './map.types';
 import { ConfigService } from '@nestjs/config';
 import { TripTypeEnum } from 'generated/prisma';
@@ -42,7 +44,7 @@ export class MapService {
     params.append('origin', `${origin.latitude},${origin.longitude}`);
     params.append('destination', `${destination.latitude},${destination.longitude}`);
 
-    const url = this.mapApiUrl + '/distance-matrix' +
+    const url = this.mapApiUrl + '/v1/distance-matrix' +
       (tripType === TripTypeEnum.intercity ? '/no-traffic' : '') + `?${params.toString()}`;
 
     try {
@@ -91,7 +93,9 @@ export class MapService {
       params.append('origin', `${origin.latitude},${origin.longitude}`);
       params.append('destination', `${destination.latitude},${destination.longitude}`);
 
-      const url = `${this.mapApiUrl}/v4/direction?${params.toString()}`;
+      const url = `${this.mapApiUrl}/v4/direction`
+        + `${type === 'car' ? '/no-traffic' : ''}`
+        + `?${params.toString()}}`;
 
       const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
         this.httpService.get<RoutingResponse>(url, {
@@ -148,5 +152,129 @@ export class MapService {
       );
       throw new InternalServerErrorException('Failed to reverse geocode.');
     }
+  }
+
+  async getIntermediateCities(
+    origin: Location,
+    destination: Location,
+    vehicleType: VehicleTypes = 'car',
+  ): Promise<string[]> {
+    try {
+      // Get the route
+      const routeResponse = await this.getDirections({
+        type: vehicleType,
+        origin,
+        destination,
+      });
+
+      if (!routeResponse.routes.length) {
+        return [];
+      }
+
+      const route = routeResponse.routes[0];
+      const significantPoints = this.extractSignificantPoints(route);
+
+      // Process points
+      const reverseGeocodePromises = significantPoints.map(async (point, index) => {
+        try {
+          await this.delay(index * 100);
+
+          const reverseGeocode = await this.reverseGeocode({
+            latitude: String(point.lat),
+            longitude: String(point.lng),
+          });
+          
+          if (reverseGeocode.status === 'OK' && (reverseGeocode.county || reverseGeocode.city)) {
+            return reverseGeocode.county ?? reverseGeocode.city;
+          }
+          return null;
+        } catch (error) {
+          console.warn(`Failed to reverse geocode point ${point.lat}, ${point.lng}: ${error.message}.`);
+          return null;
+        }
+      });
+
+      const cities = (await Promise.all(reverseGeocodePromises)).filter(
+        city => city !== null
+      );
+
+      return [...new Set(cities)].map(c => c.replace('شهرستان ', ''));
+    } catch (error) {
+      console.error(
+        'Error getting intermediate cities:',
+        error.response?.data || error.message
+      );
+      throw new InternalServerErrorException('Failed to get intermediate cities.');
+    }
+  }
+
+  private extractSignificantPoints(route: NeshanRoute): Array<{ lat: number; lng: number }> {
+    const points: Array<{ lat: number; lng: number }> = [];
+    const minDistanceThreshold = 10000; // minimum distance between points
+    const priorityStepTypes = [
+      'roundabout',
+      'rotary',
+      'merge',
+      'turn',
+      'fork',
+      'on ramp',
+      'off ramp',
+      'roundabout turn',
+      'exit roundabout',
+      'exit rotary',
+    ];
+
+    // Include origin
+    const firstStep = route.legs[0].steps[0];
+    points.push({
+      lat: firstStep.start_location[1],
+      lng: firstStep.start_location[0],
+    });
+
+    // Select points from steps with priority point types or significant instructions (Includes 'وارد')
+    let lastPoint: { lat: number; lng: number } | null = null;
+    for (const leg of route.legs) {
+      for (const step of leg.steps) {
+        const currentPoint = {
+          lat: step.start_location[1],
+          lng: step.start_location[0],
+        };
+        
+        const pushPointCondition = ((step.instruction && step.instruction.includes('وارد')) ||
+            priorityStepTypes.includes(step.type) || step.distance.value > minDistanceThreshold) &&
+          (!lastPoint || this.haversineDistance(lastPoint, currentPoint) > minDistanceThreshold)
+        if (pushPointCondition) {
+          points.push(currentPoint);
+          lastPoint = currentPoint;
+        }
+      }
+    }
+
+    return points;
+  }
+
+  // calculates the great-circle distance between two points on the Earth's surface,
+  // given their latitude and longitude coordinates.
+  private haversineDistance(
+    point1: { lat: number; lng: number },
+    point2: { lat: number; lng: number }
+  ): number {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (point1.lat * Math.PI) / 180;
+    const φ2 = (point2.lat * Math.PI) / 180;
+    const Δφ = ((point2.lat - point1.lat) * Math.PI) / 180;
+    const Δλ = ((point2.lng - point1.lng) * Math.PI) / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  }
+
+  // Make a pause between API requests
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
