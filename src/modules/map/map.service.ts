@@ -158,7 +158,7 @@ export class MapService {
     origin: Location,
     destination: Location,
     vehicleType: VehicleTypes = 'car',
-  ): Promise<string[]> {
+  ) {
     try {
       // Get the route
       const routeResponse = await this.getDirections({
@@ -183,9 +183,14 @@ export class MapService {
             latitude: String(point.lat),
             longitude: String(point.lng),
           });
-          
-          if (reverseGeocode.status === 'OK' && (reverseGeocode.county || reverseGeocode.city)) {
-            return reverseGeocode.county ?? reverseGeocode.city;
+
+          const cityName = reverseGeocode.county ?? reverseGeocode.city;
+          if (reverseGeocode.status === 'OK' && cityName) {
+            return {
+              cityName,
+              latitude: point.lat,
+              longitude: point.lng
+            };
           }
           return null;
         } catch (error) {
@@ -198,7 +203,15 @@ export class MapService {
         city => city !== null
       );
 
-      return [...new Set(cities)].map(c => c.replace('شهرستان ', ''));
+      return [...new Set(cities.map(c => c.cityName))]
+        .map(cityName => {
+          const c = cities.find(c => c.cityName === cityName);
+          return {
+            cityName: c?.cityName.replace('شهرستان ', ''),
+            latitude: c?.latitude,
+            longitude: c?.longitude
+          };
+        });
     } catch (error) {
       console.error(
         'Error getting intermediate cities:',
