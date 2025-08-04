@@ -275,6 +275,8 @@ model City {
   provinceId  String   @map("province_id") @db.Uuid
   persianName String   @unique @map("persian_name")
   englishName String   @unique @map("english_name")
+  latitude    String
+  longitude   String
   province    Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
 
   @@map("cities")
