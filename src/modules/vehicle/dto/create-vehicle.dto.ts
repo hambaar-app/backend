@@ -81,7 +81,9 @@ export class CreateVehicleDto {
   @IsDateString()
   insuranceExpiryDate?: Date;
 
+  @ApiProperty({ description: 'In Kg' })
   @IsOptional()
+  @Min(1)
   @IsNumber()
   maxWeightCapacity?: number;
 
