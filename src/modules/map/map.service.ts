@@ -19,6 +19,7 @@ import { TripTypeEnum } from 'generated/prisma';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
+import { IntermediateCityDto } from '../trip/dto/intermediate-city.dto';
 
 @Injectable()
 export class MapService {
@@ -158,7 +159,7 @@ export class MapService {
     origin: Location,
     destination: Location,
     vehicleType: VehicleTypes = 'car',
-  ) {
+  ): Promise<IntermediateCityDto[]> {
     try {
       // Get the route
       const routeResponse = await this.getDirections({
@@ -187,7 +188,7 @@ export class MapService {
           const cityName = reverseGeocode.county ?? reverseGeocode.city;
           if (reverseGeocode.status === 'OK' && cityName) {
             return {
-              cityName,
+              name: cityName,
               latitude: point.lat,
               longitude: point.lng
             };
@@ -203,13 +204,13 @@ export class MapService {
         city => city !== null
       );
 
-      return [...new Set(cities.map(c => c.cityName))]
+      return [...new Set(cities.map(c => c.name))]
         .map(cityName => {
-          const c = cities.find(c => c.cityName === cityName);
+          const c = cities.find(c => c.name === cityName);
           return {
-            cityName: c?.cityName.replace('شهرستان ', ''),
-            latitude: c?.latitude,
-            longitude: c?.longitude
+            name: c!.name.replace('شهرستان ', ''),
+            latitude: String(c!.latitude),
+            longitude: String(c!.longitude)
           };
         });
     } catch (error) {
