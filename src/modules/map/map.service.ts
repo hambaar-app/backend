@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { CalculateDistanceInput, CalculateDistanceResult, DistanceMatrixResponse } from './map.types';
+import { CalculateDistanceInput, CalculateDistanceResult, DistanceMatrixResponse, RoutingResponse, RoutingDto } from './map.types';
 import { ConfigService } from '@nestjs/config';
 import { TripTypeEnum } from 'generated/prisma';
 import { HttpService } from '@nestjs/axios';
@@ -27,11 +27,14 @@ export class MapService {
       destination
     }: CalculateDistanceInput
   ): Promise<CalculateDistanceResult> {
+      const params = new URLSearchParams();
+      params.append('type', vehicleType);
+      params.append('origin', `${origin.latitude},${origin.longitude}`);
+      params.append('destination', `${destination.latitude},${destination.longitude}`);
+
     const url = this.mapApiUrl + '/distance-matrix'
       + (tripType === TripTypeEnum.intercity ? '/no-traffic' : '')
-      + '?type=' + vehicleType
-      + '&origins=' + origin.latitude + ',' + origin.longitude
-      + '&destinations=' + destination.latitude + ',' + destination.longitude;
+      + `?${params.toString()}`;
 
     try {
       const response: AxiosResponse<DistanceMatrixResponse> = await firstValueFrom(
@@ -63,6 +66,49 @@ export class MapService {
       // Network or other errors
       console.error('Request Error:', error.message);
       throw new InternalServerErrorException('Failed to calculate distance.');
+    }
+  }
+
+  async getDirections(
+    {
+      type = 'car',
+      origin,
+      destination
+    }: RoutingDto
+  ): Promise<RoutingResponse> {
+    try {
+      const params = new URLSearchParams();
+      params.append('type', type);
+      params.append('origin', `${origin.latitude},${origin.longitude}`);
+      params.append('destination', `${destination.latitude},${destination.longitude}`);
+
+      const url = `${this.mapApiUrl}/v4/direction?${params.toString()}`;
+      
+      const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
+        this.httpService.get<RoutingResponse>(url, {
+          headers: {
+            'Api-Key': this.mapApiKey,
+          },
+        })
+      );
+
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        const errorCode = error.response.status;
+        const errorBody = error.response.data;
+        
+        if (errorCode === 407) {
+          throw new BadRequestException('Invalid geographic coordinates provided.');
+        }
+        
+        console.error('API Error:', errorBody);
+        throw new InternalServerErrorException('Something wrong.');
+      }
+      
+      // Network or other errors
+      console.error('Request Error:', error.message);
+      throw new InternalServerErrorException('Failed to get directions.');
     }
   }
 }
