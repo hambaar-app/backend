@@ -2,13 +2,19 @@ import { BadRequestException, Injectable, InternalServerErrorException } from '@
 import { CalculateDistanceInput, CalculateDistanceResult, DistanceMatrixResponse } from './map.types';
 import { ConfigService } from '@nestjs/config';
 import { TripTypeEnum } from 'generated/prisma';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { AxiosResponse } from 'axios';
 
 @Injectable()
 export class MapService {
   private mapApiUrl: string;
   private mapApiKey: string;
 
-  constructor(config: ConfigService) {
+  constructor(
+    private httpService: HttpService,
+    config: ConfigService
+  ) {
     this.mapApiKey = config.getOrThrow<string>('MAP_API_KEY');
     this.mapApiUrl = config.getOrThrow<string>('MAP_API_URL');
   }
@@ -27,29 +33,36 @@ export class MapService {
       + '&origins=' + origin.latitude + ',' + origin.longitude
       + '&destinations=' + destination.latitude + ',' + destination.longitude;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Api-Key': this.mapApiKey,
-      },
-    });
+    try {
+      const response: AxiosResponse<DistanceMatrixResponse> = await firstValueFrom(
+        this.httpService.get<DistanceMatrixResponse>(url, {
+          headers: {
+            'Api-Key': this.mapApiKey,
+          },
+        })
+      );
 
-    if (!response.ok) {
-      const errorBody = await response.json();
-      const errorCode =response.status;
-
-      if (errorCode === 407) {
-        throw new BadRequestException('Invalid geographic coordinates provided.');
+      const data = response.data;
+      return {
+        duration: data.rows[0].elements[0].duration.value / 60,
+        distance: data.rows[0].elements[0].distance.value / 1000
+      };
+    } catch (error) {
+      if (error.response) {
+        const errorCode = error.response.status;
+        const errorBody = error.response.data;
+        
+        if (errorCode === 407) {
+          throw new BadRequestException('Invalid geographic coordinates provided.');
+        }
+        
+        console.error('API Error:', errorBody);
+        throw new InternalServerErrorException('Something wrong.');
       }
-
-      console.error(errorBody);
-      throw new InternalServerErrorException('Something wrong.');      
+      
+      // Network or other errors
+      console.error('Request Error:', error.message);
+      throw new InternalServerErrorException('Failed to calculate distance.');
     }
-
-    const data: DistanceMatrixResponse = await response.json();
-    return {
-      duration: data.rows[0].elements[0].duration.value / 60,
-      distance: data.rows[0].elements[0].distance.value / 1000
-    };
   }
 }
