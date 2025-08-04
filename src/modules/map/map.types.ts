@@ -9,7 +9,7 @@ export interface CalculateDistanceInput {
   destination: Location
 }
 
-interface Location {
+export interface Location {
   latitude: string,
   longitude: string
 }
@@ -78,4 +78,21 @@ interface NeshanRouteStep {
   duration: { value: number; text: string };
   polyline: string;
   start_location: [number, number];
+}
+
+export interface ReverseGeocodingResponse {
+  status: string;
+  formatted_address: string;
+  route_name: string;
+  route_type: string;
+  neighbourhood: string;
+  city: string;
+  state: string;
+  place: string | null;
+  municipality_zone: string;
+  in_traffic_zone: string;
+  in_odd_even_zone: string;
+  village: string | null;
+  county: string;
+  district: string;
 }
