@@ -95,7 +95,7 @@ export class MapService {
 
       const url = `${this.mapApiUrl}/v4/direction`
         + `${type === 'car' ? '/no-traffic' : ''}`
-        + `?${params.toString()}}`;
+        + `?${params.toString()}`;
 
       const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
         this.httpService.get<RoutingResponse>(url, {
