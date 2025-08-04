@@ -21,7 +21,6 @@ import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 import { SessionData } from 'express-session';
 import { UserStatesEnum } from './types/auth.enums';
 import { TransporterResponseDto } from '../user/dto/transporter-response.dto';
-import { StateDto } from './dto/state-response.dto';
 
 @Injectable()
 export class AuthService {

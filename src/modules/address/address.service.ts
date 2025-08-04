@@ -18,6 +18,27 @@ export class AddressService {
     });
   }
 
+  async searchCitiesByName(search: string) {
+    return this.prisma.city.findMany({
+      where: {
+        OR: [
+          {
+            persianName: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+          {
+            englishName: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          }
+        ]
+      }
+    });
+  }
+
   async create(
     userId: string,
     {

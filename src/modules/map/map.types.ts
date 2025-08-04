@@ -1,13 +1,15 @@
 import { TripTypeEnum } from 'generated/prisma';
 
+export type VehicleTypes = 'car' | 'motorcycle';
+
 export interface CalculateDistanceInput {
-  vehicleType: 'car' | 'motorcycle',
+  vehicleType: VehicleTypes,
   tripType: TripTypeEnum,
   origin: Location,
   destination: Location
 }
 
-interface Location {
+export interface Location {
   latitude: string,
   longitude: string
 }
@@ -42,4 +44,55 @@ interface Distance {
 export interface CalculateDistanceResult {
   duration: number;
   distance: number;
+}
+
+export class RoutingDto {
+  type?: VehicleTypes;
+  origin: Location;
+  destination: Location;
+}
+
+export interface RoutingResponse {
+  routes: NeshanRoute[];
+}
+
+export interface NeshanRoute {
+  overview_polyline: { points: string };
+  legs: NeshanRouteLeg[];
+}
+
+interface NeshanRouteLeg {
+  summary: string;
+  distance: { value: number; text: string };
+  duration: { value: number; text: string };
+  steps: NeshanRouteStep[];
+}
+
+interface NeshanRouteStep {
+  name: string;
+  instruction: string;
+  bearing_after: number;
+  type: string;
+  modifier: string;
+  distance: { value: number; text: string };
+  duration: { value: number; text: string };
+  polyline: string;
+  start_location: [number, number];
+}
+
+export interface ReverseGeocodingResponse {
+  status: string;
+  formatted_address: string;
+  route_name: string;
+  route_type: string;
+  neighbourhood: string;
+  city: string;
+  state: string;
+  place: string | null;
+  municipality_zone: string;
+  in_traffic_zone: string;
+  in_odd_even_zone: string;
+  village: string | null;
+  county: string;
+  district: string;
 }

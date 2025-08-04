@@ -1,9 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AddressService } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { Request } from 'express';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { AddressResponseDto } from './dto/address-response.dto';
 import { CheckOwnership } from '../auth/ownership.decorator';
@@ -14,16 +14,43 @@ import { UpdateAddressDto } from './dto/update-address.dto';
 export class AddressController {
   constructor(private addressService: AddressService) {}
 
+  @ApiOperation({
+    summary: 'Get all provinces',
+    description: 'Retrieves a list of all Iran\'s provinces in the database.',
+  })
   @Get('provinces')
   async getProvinces() {
     return this.addressService.getAllProvinces();
   }
 
+  @ApiOperation({
+    summary: 'Get cities by province Id',
+    description: 'Retrieves a list of all cities belonging to the specified province.',
+  })
   @Get('provinces/:id/cities')
   async getCitiesByProvince(
     @Param('id', ParseUUIDPipe) id: string
   ) {
     return this.addressService.getAllProvinceCities(id);
+  }
+
+  @ApiOperation({
+    summary: 'Search cities by name',
+    description: `Searches for cities across all provinces based on the provided search query.
+      The search parameter is required.`,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: true,
+    type: String,
+    description: 'Search term to filter cities by name (Persian or English).',
+    example: 'Ali',
+  })
+  @Get('cities')
+  async searchCitiesByName(
+    @Query('search') search: string
+  ) {
+    return this.addressService.searchCitiesByName(search);
   }
 
   @ApiOperation({
