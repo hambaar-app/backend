@@ -102,7 +102,38 @@ export class TripService {
         where: { id },
         data: tripData
       });
-    });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });;
+  }
+
+  async delete(id: string) {
+    return this.prisma.$transaction(async tx => {
+      const { tripStatus } = await tx.trip.findUniqueOrThrow({
+        where: {
+          id,
+          deletedAt: null
+        },
+        select: {
+          tripStatus: true
+        }
+      });
+      
+      if (tripStatus !== TripStatusEnum.scheduled) {
+        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+      }
+
+      return tx.trip.update({
+        where: { id },
+        data: {
+          deletedAt: new Date()
+        }
+      });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });;
   }
 
   async getIntermediateCities(

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
@@ -48,11 +48,24 @@ export class TripController {
   })
   @Patch(':id')
   async updateTrip(
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateTripDto,
-    @Req() req: Request
   ) {
-    const id = req.user?.id;
-    return this.tripService.update(id!, body);
+    return this.tripService.update(id, body);
+  }
+
+  @ApiOperation({
+    summary: 'Delete a trip by its ID',
+    description: `This endpoint allows a transporter to delete a trip with the specified id,
+    but only if its status is \`scheduled\` (from TripStatusEnum).`
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Delete(':id')
+  async deleteTrip(@Param('id', ParseUUIDPipe) id: string,) {
+    return this.tripService.delete(id);
   }
 
   @ApiOperation({
