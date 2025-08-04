@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
@@ -7,6 +7,9 @@ import { Request } from 'express';
 import { ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { IntermediateCityDto } from './dto/intermediate-city.dto';
+import { UpdateTripDto } from './dto/update-trip.dto';
+import { OwnershipGuard } from '../auth/guard/ownership.guard';
+import { CheckOwnership } from '../auth/ownership.decorator';
 
 @Controller('trips')
 export class TripController {
@@ -31,6 +34,25 @@ export class TripController {
   ) {
     const id = req.user?.id;
     return this.tripService.create(id!, body);
+  }
+
+  @ApiOperation({
+    summary: 'Update a trip by its ID',
+    description: `This endpoint allows a transporter to update a trip with the specified id,
+    but only if its status is \`scheduled\` (from TripStatusEnum).
+    \`waypoints\` will be overridden. Addresses can be updated separately via \`PATCH /addresses/:id\`.`
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Patch(':id')
+  async updateTrip(
+    @Body() body: UpdateTripDto,
+    @Req() req: Request
+  ) {
+    const id = req.user?.id;
+    return this.tripService.update(id!, body);
   }
 
   @ApiOperation({

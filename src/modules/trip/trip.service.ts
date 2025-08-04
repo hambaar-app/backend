@@ -1,11 +1,12 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { MapService } from '../map/map.service';
 import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages } from 'src/common/enums/messages.enum';
-import { Prisma, TripTypeEnum } from 'generated/prisma';
+import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
+import { Prisma, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
+import { UpdateTripDto } from './dto/update-trip.dto';
 
 @Injectable()
 export class TripService {
@@ -58,6 +59,49 @@ export class TripService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
+    });
+  }
+
+  async update(
+    id: string,
+    {
+      waypoints,
+      ...tripDto
+    }: UpdateTripDto
+  ) {
+    return this.prisma.$transaction(async tx => {
+      const { tripStatus } = await tx.trip.findUniqueOrThrow({
+        where: {
+          id,
+          deletedAt: null
+        },
+        select: {
+          tripStatus: true
+        }
+      });
+      
+      if (tripStatus !== TripStatusEnum.scheduled) {
+        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+      }
+
+      const tripData = tripDto as Prisma.TripUpdateInput;
+
+      if (waypoints) {
+        tripData.waypoints = {
+          createMany: {
+            data: waypoints
+          }
+        };
+
+        await tx.tripWaypoint.deleteMany({
+          where: { tripId: id },
+        });
+      }
+
+      return tx.trip.update({
+        where: { id },
+        data: tripData
+      });
     });
   }
 

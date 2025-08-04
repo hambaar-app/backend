@@ -3,45 +3,31 @@ import {
   ArrayMinSize,
   IsArray,
   IsInt,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Min,
   Validate,
 } from 'class-validator';
-import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
 import { IntermediateCityDto } from './intermediate-city.dto';
 import { Type } from 'class-transformer';
+import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
 
-export class CreateTripDto {
-  @IsNotEmpty()
-  @IsUUID()
-  originId: string;
-
-  @IsNotEmpty()
-  @IsUUID()
-  destinationId: string;
-
+export class UpdateTripDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @Type(() => IntermediateCityDto)
   waypoints?: IntermediateCityDto[];
 
-  @IsNotEmpty()
-  @IsUUID()
-  vehicleId: string;
-
-  @IsNotEmpty()
+  @IsOptional()
   @IsInt()
-  maxPackageWeightGr: number;
+  maxPackageWeightGr?: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @Min(1)
   @IsNumber()
-  availableCapacityKg: number;
+  availableCapacityKg?: number;
 
   @IsOptional()
   @IsString({ each: true })
@@ -52,9 +38,9 @@ export class CreateTripDto {
   @ApiProperty({
     example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @Validate(IsValidDateTimeTupleConstraint)
-  departureTime: [Date, Date];
+  departureTime?: [Date, Date];
 
   @IsOptional()
   @IsString()
