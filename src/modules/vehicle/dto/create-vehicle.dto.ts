@@ -1,17 +1,36 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsAlpha, IsArray, IsDateString, IsEnum, IsInt, IsNotEmpty, IsNumber, IsNumberString, IsOptional, IsString, IsUUID, Length, Matches, Max, Min } from 'class-validator';
+import { Expose, Type } from 'class-transformer';
+import {
+  IsAlpha,
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 import { VehicleTypeEnum } from 'generated/prisma';
 
 export class VehicleDocumentsDto {
+  @Expose()
   @IsNotEmpty()
   @IsString()
   greenSheetKey: string;
 
+  @Expose()
   @IsNotEmpty()
   @IsString()
   cardKey: string;
 
+  @Expose()
   @IsNotEmpty()
   @IsArray()
   @IsString({ each: true })
@@ -23,15 +42,15 @@ export class CreateVehicleDto {
   @IsString()
   @Length(17, 17)
   @Matches(/^[A-HJ-NPR-Z0-9]{17}$/, {
-    message: 'VIN must contain only valid characters (A-H, J-N, P, R-Z, 0-9) and no lowercase letters',
+    message:
+      'VIN must contain only valid characters (A-H, J-N, P, R-Z, 0-9) and no lowercase letters',
   })
   vin: string;
 
   @IsNotEmpty()
   @IsString()
   @Matches(/^[۰-۹]{2}[آابپتثجچحخدذرزسشصضطظعغفقکگلمنوهی][۰-۹]{3}[۰-۹]{2}$/, {
-    message:
-      `License plate must follow the Iranian format: two Persian digits,
+    message: `License plate must follow the Iranian format: two Persian digits,
       one Persian letter (from private vehicle set), three Persian digits, two Persian digits`,
   })
   licensePlate: string;
@@ -62,7 +81,9 @@ export class CreateVehicleDto {
   manufactureYear: number;
 
   @IsNotEmpty()
-  @IsAlpha('fa-IR', { message: 'color should be a string only contain persian letters' })
+  @IsAlpha('fa-IR', {
+    message: 'color should be a string only contain persian letters',
+  })
   color: string;
 
   @IsNotEmpty()

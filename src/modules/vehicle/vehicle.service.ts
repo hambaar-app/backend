@@ -98,6 +98,24 @@ export class VehicleService {
     });
   }
 
+  async getAllVehicles(userId: string) {    
+    return this.prisma.vehicle.findMany({
+      where: {
+        owner: {
+          userId
+        }
+      },
+      include: {
+        model: {
+          include: {
+            brand: true
+          }
+        },
+        verificationStatus: true
+      }
+    });
+  }
+
   async update(
     id: string,
     { verificationDocuments, ...vehicleDto }: UpdateVehicleDto,

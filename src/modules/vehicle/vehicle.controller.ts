@@ -10,6 +10,7 @@ import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
 import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { CurrentUser } from '../user/current-user.middleware';
 
 @Controller('vehicles')
 export class VehicleController {
@@ -68,6 +69,20 @@ export class VehicleController {
     @Query('search') search?: string
   ) {
     return this.vehicleService.getAllBrandModels(brandId, search);
+  }
+
+  @ApiOperation({
+    summary: 'Get all transporter vehicles',
+  })
+  @AuthResponses()
+  @ApiOkResponse({
+    type: [VehicleResponseDto]
+  })
+  @Serialize(VehicleResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @Get()
+  async getAllTransporterVehicles(@CurrentUser('id') id: string) {
+    return this.vehicleService.getAllVehicles(id);
   }
 
   @ApiOperation({

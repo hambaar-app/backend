@@ -24,7 +24,6 @@ export class SerializeInterceptor<T> implements NestInterceptor {
         const result = plainToInstance(this.dto, dataToSerialize, {
           excludeExtraneousValues: true,
           enableImplicitConversion: true,
-          exposeDefaultValues: true,
         });
 
         return isArray ? result : result[0];

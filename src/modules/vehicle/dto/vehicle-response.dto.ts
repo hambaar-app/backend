@@ -1,4 +1,4 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose, Transform, Type } from 'class-transformer';
 import { VehicleDocumentsDto } from './create-vehicle.dto';
 import { VerificationStatusDto } from 'src/modules/auth/dto/verification-status.dto';
 
@@ -26,6 +26,14 @@ export class VehicleResponseDto {
 
   @Expose()
   modelId: string;
+
+  @Expose()
+  @Transform(({ obj }) => obj.model?.brand?.name)
+  brand?: string;
+
+  @Transform(({ obj }) => obj.model?.model)
+  @Expose()
+  model?: string;
 
   @Expose()
   manufactureYear: number;
