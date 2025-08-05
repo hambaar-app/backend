@@ -7,12 +7,15 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseArrayPipe,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
@@ -26,15 +29,15 @@ import { RecipientResponseDto } from './dto/recipient-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { CreatePackageDto } from './dto/create-package.dto';
 import {
-  PackageCompactPlusResponseDto,
   PackageCompactResponseDto,
   PackageResponseDto,
 } from './dto/package-response.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
-import { ApiQueryPagination, ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
+import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 
 @Controller('packages')
 export class PackageController {
@@ -108,20 +111,18 @@ export class PackageController {
   @ApiOperation({
     summary: 'Retrieves all user packages',
   })
-  @ApiCreatedResponse({
-    type: PackageCompactPlusResponseDto,
+  @ApiOkResponse({
+    type: PackageResponseDto,
   })
   @AuthResponses()
-  @ApiQueryPagination()
-  @Serialize(PackageCompactPlusResponseDto)
+  @Serialize(PackageResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get()
   async getAllPackages(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+    @Query() query: PackageFilterQueryDto,
     @CurrentUser('id') id: string,
   ) {
-    return this.packageService.getAll(id, page, limit);
+    return this.packageService.getAll(id, query.status, query.page, query.limit);
   }
 
   @ApiOperation({

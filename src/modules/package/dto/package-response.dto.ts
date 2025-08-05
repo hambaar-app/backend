@@ -52,14 +52,15 @@ export class PackageCompactResponseDto {
   deletedAt: Date;
 }
 
-export class PackageCompactPlusResponseDto extends PackageCompactResponseDto {
-  @Expose()
-  @Type(() => RecipientResponseDto)
-  recipient: RecipientResponseDto;
-}
-
-export class PackageResponseDto extends PackageCompactPlusResponseDto {
+export class PackageResponseDto extends PackageCompactResponseDto {
   @Expose()
   @Type(() => AddressResponseDto)
   originAddress: AddressResponseDto;
+
+  @Expose()
+  @Type(() => RecipientResponseDto)
+  recipient: RecipientResponseDto;
+
+  @Expose()
+  matchedRequest: any;
 }

@@ -113,6 +113,9 @@ export class VehicleService {
         },
         verificationStatus: true
       }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 

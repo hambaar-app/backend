@@ -176,24 +176,6 @@ export class PackageService {
     });
   }
 
-  async getAll(userId: string, page = 1, limit = 10) {
-    const skip = (page - 1) * limit;
-    return this.prisma.package.findMany({
-      where: {
-        senderId: userId,
-        deletedAt: null
-      },
-      include: {
-        recipient: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      skip,
-      take: limit
-    });
-  }
-
   async getById(id: string) {
     return this.prisma.package.findFirstOrThrow({
       where: {
@@ -206,8 +188,49 @@ export class PackageService {
           include: {
             address: true
           }
-        }
+        },
+        matchedRequest: true
       }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
+  async getAll(
+    userId: string,
+    status: PackageStatusEnum[] = [
+      PackageStatusEnum.created,
+      PackageStatusEnum.searching_transporter,
+      PackageStatusEnum.matched,
+      PackageStatusEnum.picked_up,
+      PackageStatusEnum.in_transit,
+    ],
+    page = 1, limit = 10
+  ) {
+    const skip = (page - 1) * limit;
+    return this.prisma.package.findMany({
+      where: {
+        senderId: userId,
+        shippingStatus: {
+          in: status
+        },
+        deletedAt: null
+      },
+      include: {
+        originAddress: true,
+        recipient: {
+          include: {
+            address: true
+          }
+        },
+        matchedRequest: true,
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      skip,
+      take: limit
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
