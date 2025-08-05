@@ -32,7 +32,7 @@ import {
 } from './dto/package-response.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
-import { ApiQueryPagination, AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { ApiQueryPagination, ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 
@@ -69,12 +69,16 @@ export class PackageController {
   @ApiOkResponse({
     type: [RecipientResponseDto],
   })
+  @ApiQuerySearch()
   @AuthResponses()
   @Serialize(RecipientResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get('recipients')
-  async getAllRecipients(@CurrentUser('id') id: string) {
-    return this.packageService.getAllRecipients(id);
+  async getAllRecipients(
+    @CurrentUser('id') id: string,
+    @Query('search') search?: string
+  ) {
+    return this.packageService.getAllRecipients(id, search);
   }
 
   @ApiOperation({

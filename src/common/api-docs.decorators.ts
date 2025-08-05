@@ -27,6 +27,18 @@ export function ApiQueryPagination() {
   );
 }
 
+export function ApiQuerySearch(required = false) {
+  return applyDecorators(
+    ApiQuery({
+      name: 'search',
+      required,
+      type: String,
+      description: 'Search term to filter cities by name (Persian or English).',
+      example: 'Ali',
+    })
+  );
+}
+
 export function AuthResponses() {
   return applyDecorators(
     ApiBadRequestResponse({

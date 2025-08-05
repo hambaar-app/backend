@@ -58,13 +58,29 @@ export class PackageService {
     });
   }
 
-  async getAllRecipients(userId: string, isHighlighted = true) {
+  async getAllRecipients(userId: string, search?: string, isHighlighted = true) {
     return this.prisma.packageRecipient.findMany({
       where: {
         address: {
           userId
         },
-        isHighlighted
+        isHighlighted,
+        OR: [
+          {
+            fullName: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+          {
+            address: {
+              title: {
+                contains: search,
+                mode: 'insensitive'
+              }
+            }
+          }
+        ]
       },
       include: {
         address: true

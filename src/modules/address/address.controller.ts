@@ -26,6 +26,7 @@ import { CheckOwnership } from '../auth/auth.decorators';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { CurrentUser } from '../user/current-user.middleware';
+import { ApiQuerySearch } from 'src/common/api-docs.decorators';
 
 @Controller('addresses')
 export class AddressController {
@@ -55,13 +56,7 @@ export class AddressController {
     description: `Searches for cities across all provinces based on the provided search query.
       The search parameter is required.`,
   })
-  @ApiQuery({
-    name: 'search',
-    required: true,
-    type: String,
-    description: 'Search term to filter cities by name (Persian or English).',
-    example: 'Ali',
-  })
+  @ApiQuerySearch(true)
   @Get('cities')
   async searchCitiesByName(@Query('search') search: string) {
     return this.addressService.searchCitiesByName(search);
@@ -92,11 +87,15 @@ export class AddressController {
   @ApiCreatedResponse({
     type: [AddressResponseDto],
   })
+  @ApiQuerySearch()
   @Serialize(AddressResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get()
-  async getAllAddresses(@CurrentUser('id') id: string) {
-    return this.addressService.getAll(id);
+  async getAllAddresses(
+    @CurrentUser('id') id: string,
+    @Query('search') search?: string
+  ) {
+    return this.addressService.getAll(id, search);
   }
 
   @ApiOperation({
