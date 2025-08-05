@@ -72,6 +72,21 @@ export class VehicleController {
   }
 
   @ApiOperation({
+    summary: 'Get a vehicle by its id',
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiOkResponse({
+    type: VehicleResponseDto
+  })
+  @Serialize(VehicleResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @Get(':id')
+  async getVehicleById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.vehicleService.getById(id);
+  }
+
+  @ApiOperation({
     summary: 'Get all transporter vehicles',
   })
   @AuthResponses()
