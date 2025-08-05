@@ -1,7 +1,7 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import { ForbiddenException, Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from "src/modules/user/user.service";
-
+import { AuthMessages } from './enums/messages.enum';
 
 @Injectable()
 export class CurrentUserMiddleware implements NestMiddleware {
@@ -12,7 +12,8 @@ export class CurrentUserMiddleware implements NestMiddleware {
     
     if (id) {
       const user = await this.userService.get({ id });
-      req.user = user ?? undefined;
+      if (!user) throw new ForbiddenException(AuthMessages.AccessDenied);
+      req.user = user;
     }
 
     next();

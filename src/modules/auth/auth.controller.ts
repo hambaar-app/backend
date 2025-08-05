@@ -278,9 +278,18 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response
   ): Promise<true> {
-    const userId = req.user?.id;    
-    await this.authService.submitDocuments(userId!, body);
+    const { id, phoneNumber } = req.user!;  
+    const { accessToken } = await this.authService.submitDocuments(id!, phoneNumber!, body);
+
+    session.accessToken = accessToken;
+    res.cookie(CookieNames.AccessToken, accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: this.cookieMaxAge,
+    });
     res.clearCookie(CookieNames.ProgressToken);
+
     return true;
   }
 
