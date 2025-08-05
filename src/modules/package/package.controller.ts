@@ -111,8 +111,9 @@ export class PackageController {
   @ApiOperation({
     summary: 'Retrieves all user packages',
   })
+  @AuthResponses()
   @ApiOkResponse({
-    type: PackageResponseDto,
+    type: [PackageResponseDto],
   })
   @AuthResponses()
   @Serialize(PackageResponseDto)

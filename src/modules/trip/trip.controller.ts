@@ -16,7 +16,7 @@ import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { ApiInternalServerErrorResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { IntermediateCityDto } from './dto/intermediate-city.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
@@ -24,6 +24,8 @@ import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
 import { CurrentUser } from '../user/current-user.middleware';
 import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { TripFilterQueryDto } from './dto/trip-filter-query.dto';
+import { TripCompactResponseDto } from './dto/trip-response.dto';
 
 @Controller('trips')
 export class TripController {
@@ -39,9 +41,13 @@ export class TripController {
       The \`departureTime\` must be a tuple of two valid DateTime values [start, end],
       where the end time is after the start time.`,
   })
+  @ApiCreatedResponse({
+    type: TripCompactResponseDto
+  })
   @AuthResponses()
   @ValidationResponses()
   @CrudResponses()
+  @Serialize(TripCompactResponseDto)
   @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post()
@@ -50,14 +56,36 @@ export class TripController {
   }
 
   @ApiOperation({
+    summary: 'Retrieves all user trips',
+  })
+  @AuthResponses()
+  @ApiOkResponse({
+    type: [TripCompactResponseDto],
+  })
+  @AuthResponses()
+  @Serialize(TripCompactResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @Get()
+  async getAllPackages(
+    @Query() query: TripFilterQueryDto,
+    @CurrentUser('id') id: string,
+  ) {
+    return this.tripService.getAll(id, query.status);
+  }
+
+  @ApiOperation({
     summary: 'Update a trip by its ID',
     description: `This endpoint allows a transporter to update a trip with the specified id,
     but only if its status is \`scheduled\` (from TripStatusEnum).
     \`waypoints\` will be overridden. Addresses can be updated separately via \`PATCH /addresses/:id\`.`,
   })
+  @ApiCreatedResponse({
+    type: TripCompactResponseDto
+  })
   @AuthResponses()
   @ValidationResponses()
   @CrudResponses()
+  @Serialize(TripCompactResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
@@ -75,8 +103,12 @@ export class TripController {
     description: `This endpoint allows a transporter to delete a trip with the specified id,
     but only if its status is \`scheduled\` (from TripStatusEnum).`,
   })
+  @ApiCreatedResponse({
+    type: TripCompactResponseDto
+  })
   @AuthResponses()
   @CrudResponses()
+  @Serialize(TripCompactResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
@@ -92,6 +124,10 @@ export class TripController {
       (e.g., origin and destination latitude/longitude), which can be used to define waypoints
       during trip creation via \`POST /trips\`.`,
   })
+  @ApiOkResponse({
+    type: [IntermediateCityDto]
+  })
+  @Serialize(IntermediateCityDto)
   @AuthResponses()
   @ApiInternalServerErrorResponse({
     description: 'Failed to get intermediate cities.'
