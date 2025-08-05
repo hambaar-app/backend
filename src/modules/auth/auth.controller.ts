@@ -25,7 +25,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { CheckOtpDto, CheckOtpResponseDto } from './dto/check-otp.dto';
 import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
@@ -43,6 +43,7 @@ import { VehicleResponseDto } from '../vehicle/dto/vehicle-response.dto';
 import { StateDto } from './dto/state-response.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { User } from 'generated/prisma';
+import { AuthResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 
 @Controller('auth')
 export class AuthController {
@@ -153,6 +154,7 @@ export class AuthController {
   @ApiCreatedResponse({
     type: UserResponseDto
   })
+  @ValidationResponses()
   @Serialize(UserResponseDto)
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -201,6 +203,8 @@ export class AuthController {
   @ApiCreatedResponse({
     type: SignupTransporterResponseDto
   })
+  @AuthResponses()
+  @ValidationResponses()
   @Serialize(SignupTransporterResponseDto)
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -248,6 +252,8 @@ export class AuthController {
   @ApiCreatedResponse({
     type: VehicleResponseDto
   })
+  @AuthResponses()
+  @ValidationResponses()
   @Serialize(VehicleResponseDto)
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -268,6 +274,7 @@ export class AuthController {
     After successful submission of vehicle information, the user submits keys for required uploaded 
     (with our s3 service) documents. And generates an access token and sets it as an cookie.`,
   })
+  @AuthResponses()
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.OK)
   @Post('transporter/submit-docs')
@@ -295,6 +302,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Retrieves user state for not-authorized transporters',
   })
+  @AuthResponses()
   @ApiOkResponse({
     type: StateDto
   })

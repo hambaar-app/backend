@@ -8,7 +8,8 @@ import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { VehicleResponseDto } from './dto/vehicle-response.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
-import { CheckOwnership } from '../auth/ownership.decorator';
+import { CheckOwnership } from '../auth/auth.decorators';
+import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 
 @Controller('vehicles')
 export class VehicleController {
@@ -72,6 +73,9 @@ export class VehicleController {
   @ApiOperation({
     summary: 'Updates a vehicle by its id',
   })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
   @ApiOkResponse({
     type: VehicleResponseDto
   })

@@ -8,6 +8,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { TransporterCompactDto } from './dto/transporter-response.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CurrentUser } from './current-user.middleware';
+import { AuthResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 
 @Controller('users')
 export class UserController {
@@ -20,6 +21,8 @@ export class UserController {
   @ApiOkResponse({
     type: UserResponseDto
   })
+  @AuthResponses()
+  @ValidationResponses()
   @Serialize(UserResponseDto)
   @UseGuards(AccessTokenGuard)
   @Patch()
@@ -37,6 +40,8 @@ export class UserController {
   @ApiOkResponse({
     type: TransporterCompactDto
   })
+  @AuthResponses()
+  @ValidationResponses()
   @Serialize(TransporterCompactDto)
   @UseGuards(AccessTokenGuard)
   @Patch('transporters')

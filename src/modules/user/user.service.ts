@@ -4,7 +4,6 @@ import { Prisma, User } from 'generated/prisma';
 import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { formatPrismaError } from 'src/common/utilities';
-import { TransporterResponseDto } from './dto/transporter-response.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
@@ -88,10 +87,10 @@ export class UserService {
         userId
       },
       data: updatedData,
-    include: {
-      nationalIdStatus: true,
-      licenseStatus: true
-    }
+      include: {
+        nationalIdStatus: true,
+        licenseStatus: true
+      }
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;

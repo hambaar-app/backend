@@ -31,8 +31,8 @@ import {
   PackageResponseDto,
 } from './dto/package-response.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
-import { CheckOwnership } from '../auth/ownership.decorator';
-import { ApiQueryPagination } from 'src/common/query.decorator';
+import { CheckOwnership } from '../auth/auth.decorators';
+import { ApiQueryPagination, AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 
@@ -49,6 +49,9 @@ export class PackageController {
   @ApiCreatedResponse({
     type: RecipientResponseDto,
   })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
   @Serialize(RecipientResponseDto)
   @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -66,6 +69,7 @@ export class PackageController {
   @ApiOkResponse({
     type: [RecipientResponseDto],
   })
+  @AuthResponses()
   @Serialize(RecipientResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get('recipients')
@@ -83,6 +87,9 @@ export class PackageController {
   @ApiOkResponse({
     type: [PackageResponseDto],
   })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
   @Serialize(PackageResponseDto)
   @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -100,6 +107,7 @@ export class PackageController {
   @ApiCreatedResponse({
     type: PackageCompactPlusResponseDto,
   })
+  @AuthResponses()
   @ApiQueryPagination()
   @Serialize(PackageCompactPlusResponseDto)
   @UseGuards(AccessTokenGuard)
@@ -118,6 +126,8 @@ export class PackageController {
   @ApiCreatedResponse({
     type: PackageResponseDto,
   })
+  @AuthResponses()
+  @CrudResponses()
   @Serialize(PackageResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -136,6 +146,9 @@ export class PackageController {
   @ApiCreatedResponse({
     type: PackageCompactResponseDto,
   })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
   @Serialize(PackageCompactResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -156,6 +169,8 @@ export class PackageController {
   @ApiCreatedResponse({
     type: PackageCompactResponseDto,
   })
+  @AuthResponses()
+  @CrudResponses()
   @Serialize(PackageCompactResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({

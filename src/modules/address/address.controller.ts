@@ -22,7 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { AddressResponseDto } from './dto/address-response.dto';
-import { CheckOwnership } from '../auth/ownership.decorator';
+import { CheckOwnership } from '../auth/auth.decorators';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { CurrentUser } from '../user/current-user.middleware';

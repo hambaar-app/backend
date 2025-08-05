@@ -16,13 +16,14 @@ import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiInternalServerErrorResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { IntermediateCityDto } from './dto/intermediate-city.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
-import { CheckOwnership } from '../auth/ownership.decorator';
+import { CheckOwnership } from '../auth/auth.decorators';
 import { CurrentUser } from '../user/current-user.middleware';
+import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 
 @Controller('trips')
 export class TripController {
@@ -38,6 +39,9 @@ export class TripController {
       The \`departureTime\` must be a tuple of two valid DateTime values [start, end],
       where the end time is after the start time.`,
   })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post()
@@ -51,6 +55,9 @@ export class TripController {
     but only if its status is \`scheduled\` (from TripStatusEnum).
     \`waypoints\` will be overridden. Addresses can be updated separately via \`PATCH /addresses/:id\`.`,
   })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
@@ -68,6 +75,8 @@ export class TripController {
     description: `This endpoint allows a transporter to delete a trip with the specified id,
     but only if its status is \`scheduled\` (from TripStatusEnum).`,
   })
+  @AuthResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
@@ -83,8 +92,12 @@ export class TripController {
       (e.g., origin and destination latitude/longitude), which can be used to define waypoints
       during trip creation via \`POST /trips\`.`,
   })
+  @AuthResponses()
+  @ApiInternalServerErrorResponse({
+    description: 'Failed to get intermediate cities.'
+  })
   @Serialize(IntermediateCityDto)
-  // @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard)
   @Get('intermediate-cities')
   async getIntermediateCities(@Query() query: CoordinatesQueryDto) {
     return this.tripService.getIntermediateCities(query);
