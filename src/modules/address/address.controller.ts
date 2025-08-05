@@ -1,9 +1,25 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AddressService } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';
-import { Request } from 'express';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { AddressResponseDto } from './dto/address-response.dto';
 import { CheckOwnership } from '../auth/ownership.decorator';
@@ -17,7 +33,7 @@ export class AddressController {
 
   @ApiOperation({
     summary: 'Get all provinces',
-    description: 'Retrieves a list of all Iran\'s provinces in the database.',
+    description: "Retrieves a list of all Iran's provinces in the database.",
   })
   @Get('provinces')
   async getProvinces() {
@@ -26,12 +42,11 @@ export class AddressController {
 
   @ApiOperation({
     summary: 'Get cities by province Id',
-    description: 'Retrieves a list of all cities belonging to the specified province.',
+    description:
+      'Retrieves a list of all cities belonging to the specified province.',
   })
   @Get('provinces/:id/cities')
-  async getCitiesByProvince(
-    @Param('id', ParseUUIDPipe) id: string
-  ) {
+  async getCitiesByProvince(@Param('id', ParseUUIDPipe) id: string) {
     return this.addressService.getAllProvinceCities(id);
   }
 
@@ -48,19 +63,17 @@ export class AddressController {
     example: 'Ali',
   })
   @Get('cities')
-  async searchCitiesByName(
-    @Query('search') search: string
-  ) {
+  async searchCitiesByName(@Query('search') search: string) {
     return this.addressService.searchCitiesByName(search);
   }
 
   @ApiOperation({
     summary: 'Create a new address',
     description: `This endpoint is used for creating addresses in package, packageRecipient, and trip creation.
-      If \`isHighlighted\` is set to \`true\`, the address will be displayed in the response of the \`GET /addresses\` endpoint.`
+      If \`isHighlighted\` is set to \`true\`, the address will be displayed in the response of the \`GET /addresses\` endpoint.`,
   })
   @ApiCreatedResponse({
-    type: AddressResponseDto
+    type: AddressResponseDto,
   })
   @Serialize(AddressResponseDto)
   @UseGuards(AccessTokenGuard)
@@ -77,7 +90,7 @@ export class AddressController {
     summary: 'Retrieves all highlighted addresses',
   })
   @ApiCreatedResponse({
-    type: [AddressResponseDto]
+    type: [AddressResponseDto],
   })
   @Serialize(AddressResponseDto)
   @UseGuards(AccessTokenGuard)
@@ -89,15 +102,15 @@ export class AddressController {
   @ApiOperation({
     summary: 'Update a address by its id',
     description: `This endpoint updates an existing address.
-      Note that addresses cannot be deleted; they can only be unhighlighted by setting \`isHighlighted\` to \`false\`.`
+      Note that addresses cannot be deleted; they can only be unhighlighted by setting \`isHighlighted\` to \`false\`.`,
   })
   @ApiOkResponse({
-    type: AddressResponseDto
+    type: AddressResponseDto,
   })
   @Serialize(AddressResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
-    entity: 'address'
+    entity: 'address',
   })
   @Patch(':id')
   async updateAddress(

@@ -6,7 +6,6 @@ import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { UserResponseDto } from './dto/user-response.dto';
 import { TransporterCompactDto } from './dto/transporter-response.dto';
-import { Request } from 'express';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CurrentUser } from './current-user.middleware';
 
