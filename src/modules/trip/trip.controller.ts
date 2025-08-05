@@ -10,6 +10,7 @@ import { IntermediateCityDto } from './dto/intermediate-city.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/ownership.decorator';
+import { CurrentUser } from '../user/current-user.middleware';
 
 @Controller('trips')
 export class TripController {
@@ -30,10 +31,9 @@ export class TripController {
   @Post()
   async createTrip(
     @Body() body: CreateTripDto,
-    @Req() req: Request
+    @CurrentUser('id') id: string,
   ) {
-    const id = req.user?.id;
-    return this.tripService.create(id!, body);
+    return this.tripService.create(id, body);
   }
 
   @ApiOperation({

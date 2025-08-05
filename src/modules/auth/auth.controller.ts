@@ -42,6 +42,8 @@ import { UserResponseDto } from '../user/dto/user-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { VehicleResponseDto } from '../vehicle/dto/vehicle-response.dto';
 import { StateDto } from './dto/state-response.dto';
+import { CurrentUser } from '../user/current-user.middleware';
+import { User } from 'generated/prisma';
 
 @Controller('auth')
 export class AuthController {
@@ -254,11 +256,9 @@ export class AuthController {
   async registerTransporterVehicle(
     @Body() body: CreateVehicleDto,
     @Session() session: SessionData,
-    @Req() req: Request,
+    @CurrentUser('id') id: string,
   ) {
-    const ownerId = req.user?.id;
-    const vehicle = await this.vehicleService.create(ownerId!, body);
-
+    const vehicle = await this.vehicleService.create(id, body);
     session.userState = UserStatesEnum.VehicleInfoSubmitted;
     return vehicle;
   }
@@ -275,10 +275,10 @@ export class AuthController {
   async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
     @Session() session: SessionData,
-    @Req() req: Request,
+    @CurrentUser() user: User,
     @Res({ passthrough: true }) res: Response
   ): Promise<true> {
-    const { id, phoneNumber } = req.user!;  
+    const { id, phoneNumber } = user;  
     const { accessToken } = await this.authService.submitDocuments(id!, phoneNumber!, body);
 
     session.accessToken = accessToken;

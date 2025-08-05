@@ -9,6 +9,7 @@ import { AddressResponseDto } from './dto/address-response.dto';
 import { CheckOwnership } from '../auth/ownership.decorator';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { UpdateAddressDto } from './dto/update-address.dto';
+import { CurrentUser } from '../user/current-user.middleware';
 
 @Controller('addresses')
 export class AddressController {
@@ -67,10 +68,9 @@ export class AddressController {
   @Post()
   async createAddress(
     @Body() body: CreateAddressDto,
-    @Req() req: Request
+    @CurrentUser('id') id: string,
   ) {
-    const userId = req.user?.id;
-    return this.addressService.create(userId!, body);
+    return this.addressService.create(id, body);
   }
 
   @ApiOperation({
@@ -82,9 +82,8 @@ export class AddressController {
   @Serialize(AddressResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get()
-  async getAllAddresses(@Req() req: Request) {
-    const userId = req.user?.id;
-    return this.addressService.getAll(userId!);
+  async getAllAddresses(@CurrentUser('id') id: string) {
+    return this.addressService.getAll(id);
   }
 
   @ApiOperation({

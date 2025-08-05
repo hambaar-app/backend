@@ -8,6 +8,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { TransporterCompactDto } from './dto/transporter-response.dto';
 import { Request } from 'express';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
+import { CurrentUser } from './current-user.middleware';
 
 @Controller('users')
 export class UserController {
@@ -25,10 +26,9 @@ export class UserController {
   @Patch()
   async updateUser(
     @Body() body: UpdateUserDto,
-    @Req() req: Request
+    @CurrentUser('id') id: string
   ) {
-    const id = req.user?.id;
-    return this.userService.update(id!, body);
+    return this.userService.update(id, body);
   }
 
   @ApiOperation({
@@ -43,9 +43,8 @@ export class UserController {
   @Patch('transporters')
   async updateTransporter(
     @Body() body: UpdateTransporterDto,
-    @Req() req: Request
+    @CurrentUser('id') id: string,
   ) {
-    const id = req.user?.id;
-    return this.userService.updateTransporter(id!, body);
+    return this.userService.updateTransporter(id, body);
   }
 }

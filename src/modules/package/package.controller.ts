@@ -12,6 +12,7 @@ import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/ownership.decorator';
 import { ApiQueryPagination } from 'src/common/query.decorator';
 import { UpdatePackageDto } from './dto/update.package.dto';
+import { CurrentUser } from '../user/current-user.middleware';
 
 @Controller('packages')
 export class PackageController {
@@ -32,10 +33,9 @@ export class PackageController {
   @Post('recipients')
   async createPackageRecipient(
     @Body() body: CreateRecipientDto,
-    @Req() req: Request
+    @CurrentUser('id') id: string,
   ) {
-    const userId = req.user?.id;
-    return this.packageService.createRecipient(userId!, body);
+    return this.packageService.createRecipient(id, body);
   }
 
   @ApiOperation({
@@ -47,9 +47,8 @@ export class PackageController {
   @Serialize(RecipientResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get('recipients')
-  async getAllRecipients(@Req() req: Request) {
-    const userId = req.user?.id;
-    return this.packageService.getAllRecipients(userId!);
+  async getAllRecipients(@CurrentUser('id') id: string,) {
+    return this.packageService.getAllRecipients(id);
   }
 
   @ApiOperation({
@@ -68,10 +67,9 @@ export class PackageController {
   @Post()
   async createPackage(
     @Body() body: CreatePackageDto,
-    @Req() req: Request
+    @CurrentUser('id') id: string,
   ) {
-    const userId = req.user?.id;
-    return this.packageService.create(userId!, body);
+    return this.packageService.create(id, body);
   }
 
   @ApiOperation({
@@ -87,10 +85,9 @@ export class PackageController {
   async getAllPackages(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
-    @Req() req: Request
+    @CurrentUser('id') id: string,
   ) {
-    const userId = req.user?.id;
-    return this.packageService.getAll(userId!, page, limit);
+    return this.packageService.getAll(id, page, limit);
   }
 
   @ApiOperation({
