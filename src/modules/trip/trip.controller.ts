@@ -25,7 +25,7 @@ import { CheckOwnership } from '../auth/auth.decorators';
 import { CurrentUser } from '../user/current-user.middleware';
 import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 import { TripFilterQueryDto } from './dto/trip-filter-query.dto';
-import { TripCompactResponseDto } from './dto/trip-response.dto';
+import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto';
 
 @Controller('trips')
 export class TripController {
@@ -53,6 +53,26 @@ export class TripController {
   @Post()
   async createTrip(@Body() body: CreateTripDto, @CurrentUser('id') id: string) {
     return this.tripService.create(id, body);
+  }
+
+  @ApiOperation({
+    summary: 'Retrieves a trip by its id',
+  })
+  @AuthResponses()
+  @ApiOkResponse({
+    type: TripResponseDto,
+  })
+  @AuthResponses()
+  @Serialize(TripResponseDto)
+  @UseGuards(AccessTokenGuard, CheckOwnership)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Get('id')
+  async getPackageById(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.tripService.getById(id);
   }
 
   @ApiOperation({

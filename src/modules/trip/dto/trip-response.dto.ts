@@ -1,41 +1,66 @@
 import { TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { AddressResponseDto } from 'src/modules/address/dto/address-response.dto';
 import { IntermediateCityDto } from './intermediate-city.dto';
+import { Expose, Type } from 'class-transformer';
+import { VehicleResponseDto } from 'src/modules/vehicle/dto/vehicle-response.dto';
 
 export class TripCompactResponseDto {
+  @Expose()
   id: string;
 
+  @Expose()
+  @Type(() => AddressResponseDto)
   origin: AddressResponseDto;
 
+  @Expose()
+  @Type(() => AddressResponseDto)
   destination: AddressResponseDto;
 
+  @Expose()
+  @Type(() => IntermediateCityDto)
   waypoints: IntermediateCityDto[];
 
+  @Expose()
   tripType: TripTypeEnum;
 
+  @Expose()
   vehicleId: string;
 
+  @Expose()
   maxPackageWeightGr: number;
 
+  @Expose()
   availableCapacityKg: number;
 
+  @Expose()
   restrictedItems?: string[];
 
+  @Expose()
   departureTime: [Date, Date];
 
+  @Expose()
   tripStatus: TripStatusEnum;
 
+  @Expose()
   description?: string;
 
+  @Expose()
   createdAt: Date;
 
+  @Expose()
   updatedAt: Date;
 
+  @Expose()
   deletedAt: Date;
+}
+
+export class TripResponseDto {
+  @Expose()
+  @Type(() => VehicleResponseDto)
+  vehicle: VehicleResponseDto;
 }
 
 /**
   deliveryRequests
   matchedRequests
-  vehicle
  */

@@ -62,6 +62,21 @@ export class TripService {
     });
   }
 
+  async getById(id: string) {
+    return this.prisma.trip.findUniqueOrThrow({
+      where: { id },
+      include: {
+        origin: true,
+        destination: true,
+        waypoints: true,
+        vehicle: true
+      },
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });;
+  }
+
   async getAll(
     userId: string,
     status: TripStatusEnum[] = [
