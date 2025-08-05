@@ -189,7 +189,13 @@ export class PackageService {
             address: true
           }
         },
-        matchedRequest: true
+        deliveryRequests: true,
+        matchedRequest: {
+          include: {
+            transporter: true,
+            trackingUpdates: true
+          }
+        }
       }
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -224,7 +230,7 @@ export class PackageService {
             address: true
           }
         },
-        matchedRequest: true,
+        matchedRequest: true, // TODO: Improve it later
       },
       orderBy: {
         createdAt: 'desc'

@@ -453,7 +453,7 @@ model MatchedRequest {
   cancelledBy        RolesEnum?        @map("cancelled_by")
 
   // Relations
-  request         DeliveryRequest  @relation(fields: [requestId], references: [id])
+  request         DeliveryRequest  @relation(fields: [requestId], references: [id]) // TODO
   package         Package          @relation(fields: [packageId], references: [id])
   trip            Trip             @relation(fields: [tripId], references: [id])
   sender          User             @relation("SenderMatches", fields: [senderId], references: [id])

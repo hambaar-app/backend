@@ -61,6 +61,9 @@ export class PackageResponseDto extends PackageCompactResponseDto {
   @Type(() => RecipientResponseDto)
   recipient: RecipientResponseDto;
 
-  @Expose()
-  matchedRequest: any;
+  // @Expose()
+  // deliveryRequests: any; // TODO
+  
+  // @Expose()
+  // matchedRequest: any; // TODO
 }
