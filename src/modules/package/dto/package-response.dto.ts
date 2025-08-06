@@ -43,6 +43,19 @@ export class PackageCompactResponseDto {
   preferredDeliveryTime: [Date, Date];
 
   @Expose()
+  @Type((options) => {
+    const data = options?.object.data;
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+      return String;
+    }
+    return PackagePicturesResponse;
+  })
+  picturesKey: string[] | PackagePicturesResponse;
+
+  @Expose()
+  pictures: string[];
+
+  @Expose()
   createdAt: Date;
 
   @Expose()
@@ -50,6 +63,14 @@ export class PackageCompactResponseDto {
 
   @Expose()
   deletedAt: Date;
+}
+
+class PackagePicturesResponse {
+  @Expose()
+  keys: string[];
+
+  @Expose()
+  presignedUrls: string[];
 }
 
 export class PackageResponseDto extends PackageCompactResponseDto {

@@ -348,6 +348,7 @@ model Package {
   deliveryAtDestination Boolean?          @map("delivery_at_destination")
   preferredPickupTime   Json?             @map("preferred_pickup_time") @db.JsonB
   preferredDeliveryTime Json?             @map("preferred_delivery_time") @db.JsonB
+  picturesKey           Json?             @map("pictures_key") @db.JsonB
 
   // Relations
   deliveryRequests DeliveryRequest[] @relation("SenderRequests")
