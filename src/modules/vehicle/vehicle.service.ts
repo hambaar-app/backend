@@ -105,11 +105,11 @@ export class VehicleService {
 
       const singleKeys = ['greenSheetKey', 'cardKey'] as const;
       await Promise.all(
-        singleKeys.map(async ([key, s3Key]) => {
+        singleKeys.map(async (key) => {
           const newKey = key.replace('Key', '');
           try {
-            if (s3Key) {
-              presignedUrls[newKey] = this.s3Service.generateGetPresignedUrl(s3Key);
+            if (documents[key]) {
+              presignedUrls[newKey] = this.s3Service.generateGetPresignedUrl(documents[key]);
             }
           } catch (urlError) {
             console.error(`Failed to generate presigned URL for ${key}:`, urlError);
@@ -141,7 +141,7 @@ export class VehicleService {
   }
 
   async getAllVehicles(userId: string) {    
-    return this.prisma.vehicle.findMany({
+    const vehicles = await this.prisma.vehicle.findMany({
       where: {
         owner: {
           userId
@@ -159,6 +159,54 @@ export class VehicleService {
       formatPrismaError(error);
       throw error;
     });
+
+    const vehiclesWithUrls = await Promise.all(
+      vehicles.map(async (vehicle) => {
+        if (vehicle.verificationDocuments && typeof vehicle.verificationDocuments === 'object') {
+          const documents = plainToInstance(VehicleDocumentsDto, vehicle.verificationDocuments);;
+          const presignedUrls: VehicleDocumentUrlsDto = {};
+
+          const singleKeys = ['greenSheetKey', 'cardKey'] as const;
+          await Promise.all(
+            singleKeys.map(async (key) => {
+              const newKey = key.replace('Key', '');
+              if (documents[key]) {
+                try {
+                  presignedUrls[newKey] = await this.s3Service.generateGetPresignedUrl(documents[key]!);
+                } catch (urlError) {
+                  console.error(`Failed to generate presigned URL for ${key}:`, urlError);
+                  presignedUrls[newKey] = '';
+                }
+              }
+            })
+          );
+
+          if (documents.vehiclePicsKey && Array.isArray(documents.vehiclePicsKey)) {
+            presignedUrls.vehiclePics = await Promise.all(
+              documents.vehiclePicsKey.map(async (s3Key, index) => {
+                try {
+                  return await this.s3Service.generateGetPresignedUrl(s3Key);
+                } catch (urlError) {
+                  console.error(`Failed to generate presigned URL for vehiclePicsKey[${index}]:`, urlError);
+                  return '';
+                }
+              })
+            );
+          }
+
+          return {
+            ...vehicle,
+            verificationDocuments: {
+              ...documents,
+              presignedUrls
+            }
+          };
+        }
+        return vehicle;
+      })
+    );
+
+    return vehiclesWithUrls;
   }
 
   async update(
