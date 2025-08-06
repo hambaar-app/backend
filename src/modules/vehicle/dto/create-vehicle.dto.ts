@@ -19,6 +19,17 @@ import {
 } from 'class-validator';
 import { VehicleTypeEnum } from 'generated/prisma';
 
+export class VehicleDocumentUrlsDto {
+  @Expose()
+  greenSheet?: string;
+
+  @Expose()
+  card?: string;
+
+  @Expose()
+  vehiclePics?: string[];
+}
+
 export class VehicleDocumentsDto {
   @Expose()
   @IsNotEmpty()
@@ -35,6 +46,10 @@ export class VehicleDocumentsDto {
   @IsArray()
   @IsString({ each: true })
   vehiclePicsKey: string[];
+
+  @Expose()
+  @Type(() => VehicleDocumentUrlsDto)
+  presignedUrls?: VehicleDocumentUrlsDto;
 }
 
 export class CreateVehicleDto {

@@ -3,17 +3,19 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { formatPrismaError } from 'src/common/utilities';
 import { CreateModelDto } from './dto/create-model.dto';
-import { CreateVehicleDto, VehicleDocumentsDto } from './dto/create-vehicle.dto';
+import { CreateVehicleDto, VehicleDocumentsDto, VehicleDocumentUrlsDto } from './dto/create-vehicle.dto';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { UserService } from '../user/user.service';
+import { S3Service } from '../s3/s3.service';
 
 @Injectable()
 export class VehicleService {
   constructor(
     private prisma: PrismaService,
-    private userService: UserService
+    private userService: UserService,
+    private s3Service: S3Service
   ) {}
 
   async createBrand({ name }: CreateBrandDto) {
@@ -90,12 +92,52 @@ export class VehicleService {
     id: string,
     tx: PrismaService | PrismaTransaction = this.prisma
   ) {
-    return tx.vehicle.findUniqueOrThrow({
+    const vehicle = await tx.vehicle.findUniqueOrThrow({
       where: { id }
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
     });
+
+    if (vehicle.verificationDocuments) {
+      const documents = plainToInstance(VehicleDocumentsDto, vehicle.verificationDocuments);
+      const presignedUrls: VehicleDocumentUrlsDto = {};
+
+      const singleKeys = ['greenSheetKey', 'cardKey'] as const;
+      await Promise.all(
+        singleKeys.map(async ([key, s3Key]) => {
+          const newKey = key.replace('Key', '');
+          try {
+            if (s3Key) {
+              presignedUrls[newKey] = this.s3Service.generateGetPresignedUrl(s3Key);
+            }
+          } catch (urlError) {
+            console.error(`Failed to generate presigned URL for ${key}:`, urlError);
+            presignedUrls[newKey] = ''; // Set empty string for failed URLs
+          }
+        })
+      );
+
+      if (documents.vehiclePicsKey && Array.isArray(documents.vehiclePicsKey)) {
+        presignedUrls.vehiclePics = await Promise.all(
+          documents.vehiclePicsKey.map(async (s3Key, index) => {
+            try {
+              return this.s3Service.generateGetPresignedUrl(s3Key);
+            } catch (urlError) {
+              console.error(`Failed to generate presigned URL for vehiclePicsKey[${index}]:`, urlError);
+              return '';
+            }
+          })
+        );
+      }
+
+      vehicle.verificationDocuments = instanceToPlain({
+        ...documents,
+        presignedUrls
+      });
+    }
+
+    return vehicle;
   }
 
   async getAllVehicles(userId: string) {    
