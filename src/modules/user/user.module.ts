@@ -2,7 +2,7 @@ import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { PrismaModule } from '../prisma/prisma.module';
-import { CurrentUserMiddleware } from 'src/common/current-user.middleware';
+import { CurrentUserMiddleware } from 'src/modules/user/current-user.middleware';
 import { TokenModule } from '../token/token.module';
 
 @Module({

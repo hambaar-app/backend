@@ -8,7 +8,9 @@ import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { VehicleResponseDto } from './dto/vehicle-response.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
-import { CheckOwnership } from '../auth/ownership.decorator';
+import { CheckOwnership } from '../auth/auth.decorators';
+import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { CurrentUser } from '../user/current-user.middleware';
 
 @Controller('vehicles')
 export class VehicleController {
@@ -29,12 +31,7 @@ export class VehicleController {
   @ApiOperation({
     summary: 'Retrieves all vehicle brands'
   })
-  @ApiQuery({
-    name: 'search',
-    type: String,
-    description: 'Search term to filter results',
-    required: false,
-  })
+  @ApiQuerySearch()
   @Get('brands')
   async getAllBrands(@Query('search') search?: string) {
     return this.vehicleService.getAllBrands(search);
@@ -55,12 +52,7 @@ export class VehicleController {
   @ApiOperation({
     summary: 'Retrieves all vehicle models'
   })
-  @ApiQuery({
-    name: 'search',
-    type: String,
-    description: 'Search term to filter results',
-    required: false,
-  })
+  @ApiQuerySearch()
   @Get('models/:brandId')
   async getAllBrandModels(
     @Param('brandId', ParseUUIDPipe) brandId: string,
@@ -70,8 +62,40 @@ export class VehicleController {
   }
 
   @ApiOperation({
+    summary: 'Get a vehicle by its id',
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiOkResponse({
+    type: VehicleResponseDto
+  })
+  @Serialize(VehicleResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @Get(':id')
+  async getVehicleById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.vehicleService.getById(id);
+  }
+
+  @ApiOperation({
+    summary: 'Get all transporter vehicles',
+  })
+  @AuthResponses()
+  @ApiOkResponse({
+    type: [VehicleResponseDto]
+  })
+  @Serialize(VehicleResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @Get()
+  async getAllTransporterVehicles(@CurrentUser('id') id: string) {
+    return this.vehicleService.getAllVehicles(id);
+  }
+
+  @ApiOperation({
     summary: 'Updates a vehicle by its id',
   })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
   @ApiOkResponse({
     type: VehicleResponseDto
   })

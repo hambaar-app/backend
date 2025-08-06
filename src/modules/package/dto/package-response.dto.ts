@@ -43,6 +43,19 @@ export class PackageCompactResponseDto {
   preferredDeliveryTime: [Date, Date];
 
   @Expose()
+  @Type((options) => {
+    const data = options?.object.data;
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+      return String;
+    }
+    return PackagePicturesResponse;
+  })
+  picturesKey: string[] | PackagePicturesResponse;
+
+  @Expose()
+  pictures: string[];
+
+  @Expose()
   createdAt: Date;
 
   @Expose()
@@ -52,14 +65,26 @@ export class PackageCompactResponseDto {
   deletedAt: Date;
 }
 
-export class PackageCompactPlusResponseDto extends PackageCompactResponseDto {
+class PackagePicturesResponse {
   @Expose()
-  @Type(() => RecipientResponseDto)
-  recipient: RecipientResponseDto;
+  keys: string[];
+
+  @Expose()
+  presignedUrls: string[];
 }
 
-export class PackageResponseDto extends PackageCompactPlusResponseDto {
+export class PackageResponseDto extends PackageCompactResponseDto {
   @Expose()
   @Type(() => AddressResponseDto)
   originAddress: AddressResponseDto;
+
+  @Expose()
+  @Type(() => RecipientResponseDto)
+  recipient: RecipientResponseDto;
+
+  // @Expose()
+  // deliveryRequests: any; // TODO
+  
+  // @Expose()
+  // matchedRequest: any; // TODO
 }

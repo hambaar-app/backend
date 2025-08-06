@@ -12,7 +12,8 @@ export enum AuthMessages {
   AlreadyAuthorized = 'User is already authorized.',
   UnauthorizedPhoneNumber = 'Phone number in request does not match the authenticated user’s phone number',
   AccessDenied = 'Access Denied. You are not authorized to perform this action.',
-  EntityAccessDenied = 'Access Denied. You don\'t have permission to access this'
+  EntityAccessDenied = 'Access Denied. You don\'t have permission to access this',
+  MissingOrInvalidToken = 'Missing or invalid Progress/Access token. Please provide a valid one.',
 }
 
 export enum NotFoundMessages {

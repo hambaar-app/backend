@@ -44,8 +44,17 @@ export const formatPrismaError = (error: Error): never => {
           `A ${model} with the ${target} already exists. Please use a different value.`,
         );
       case 'P2003':
+        const constraintName = error.meta?.constraint as string;
+        let relationshipMessage = '';
+        
+        if (constraintName?.includes('_fkey')) {
+          relationshipMessage = target !== 'unknown field' 
+            ? `The specified '${target}' does not exist or is invalid.`
+            : `Referenced record does not exist.`;
+        }
+        
         throw new BadRequestException(
-          `Foreign key constraint failed on ${target} in ${model}. Ensure referenced records exist.`,
+          `Foreign key constraint violation in ${model}. ${relationshipMessage}`
         );
       case 'P2004':
         throw new BadRequestException(

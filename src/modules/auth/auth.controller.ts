@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Req,
   Res,
   Session,
   UseGuards
@@ -26,7 +25,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { CheckOtpDto, CheckOtpResponseDto } from './dto/check-otp.dto';
 import { SessionData } from 'express-session';
 import { CookieNames } from 'src/common/enums/cookies.enum';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
@@ -42,6 +41,10 @@ import { UserResponseDto } from '../user/dto/user-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { VehicleResponseDto } from '../vehicle/dto/vehicle-response.dto';
 import { StateDto } from './dto/state-response.dto';
+import { CurrentUser } from '../user/current-user.middleware';
+import { User } from 'generated/prisma';
+import { AuthResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { MultiTokenGuard } from './guard/multi-token.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -152,6 +155,7 @@ export class AuthController {
   @ApiCreatedResponse({
     type: UserResponseDto
   })
+  @ValidationResponses()
   @Serialize(UserResponseDto)
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -200,6 +204,8 @@ export class AuthController {
   @ApiCreatedResponse({
     type: SignupTransporterResponseDto
   })
+  @AuthResponses()
+  @ValidationResponses()
   @Serialize(SignupTransporterResponseDto)
   @UseGuards(TemporaryTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -247,6 +253,8 @@ export class AuthController {
   @ApiCreatedResponse({
     type: VehicleResponseDto
   })
+  @AuthResponses()
+  @ValidationResponses()
   @Serialize(VehicleResponseDto)
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -254,11 +262,9 @@ export class AuthController {
   async registerTransporterVehicle(
     @Body() body: CreateVehicleDto,
     @Session() session: SessionData,
-    @Req() req: Request,
+    @CurrentUser('id') id: string,
   ) {
-    const ownerId = req.user?.id;
-    const vehicle = await this.vehicleService.create(ownerId!, body);
-
+    const vehicle = await this.vehicleService.create(id, body);
     session.userState = UserStatesEnum.VehicleInfoSubmitted;
     return vehicle;
   }
@@ -269,29 +275,40 @@ export class AuthController {
     After successful submission of vehicle information, the user submits keys for required uploaded 
     (with our s3 service) documents. And generates an access token and sets it as an cookie.`,
   })
+  @AuthResponses()
   @UseGuards(ProgressTokenGuard)
   @HttpCode(HttpStatus.OK)
   @Post('transporter/submit-docs')
   async submitTransporterDocumentKeys(
     @Body() body: SubmitDocumentsDto,
     @Session() session: SessionData,
-    @Req() req: Request,
+    @CurrentUser() user: User,
     @Res({ passthrough: true }) res: Response
   ): Promise<true> {
-    const userId = req.user?.id;    
-    await this.authService.submitDocuments(userId!, body);
+    const { id, phoneNumber } = user;  
+    const { accessToken } = await this.authService.submitDocuments(id!, phoneNumber!, body);
+
+    session.accessToken = accessToken;
+    res.cookie(CookieNames.AccessToken, accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: this.cookieMaxAge,
+    });
     res.clearCookie(CookieNames.ProgressToken);
+
     return true;
   }
 
   @ApiOperation({
     summary: 'Retrieves user state for not-authorized transporters',
   })
+  @AuthResponses()
   @ApiOkResponse({
     type: StateDto
   })
   @Serialize(StateDto)
-  @UseGuards(DenyAuthorizedGuard, ProgressTokenGuard)
+  @UseGuards(MultiTokenGuard)
   @Get('state')
   async getUserState(@Session() session: SessionData) {
     return this.authService.getUserState(session);    

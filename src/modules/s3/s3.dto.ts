@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   registerDecorator,
   ValidationArguments,
@@ -45,21 +46,10 @@ export function IsValidFilename(
   };
 }
 
-class FileNameDto {
+export class FileNameDto {
+  @ApiProperty({ description: 'Image should be in .jpg/.jpeg/.png format.' })
   @IsNotEmpty()
   @IsString()
   @IsValidFilename(['.jpg', '.jpeg', '.png'])
   fileName: string;
-}
-
-export class TransporterPictureDto extends FileNameDto {
-  @IsNotEmpty()
-  @IsUUID()
-  transporterId: string;
-}
-
-export class VehiclePictureDto extends TransporterPictureDto {
-  @IsNotEmpty()
-  @IsUUID()
-  vehicleId: string;
 }

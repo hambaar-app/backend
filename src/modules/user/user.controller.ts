@@ -6,8 +6,9 @@ import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { UserResponseDto } from './dto/user-response.dto';
 import { TransporterCompactDto } from './dto/transporter-response.dto';
-import { Request } from 'express';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
+import { CurrentUser } from './current-user.middleware';
+import { AuthResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 
 @Controller('users')
 export class UserController {
@@ -20,15 +21,16 @@ export class UserController {
   @ApiOkResponse({
     type: UserResponseDto
   })
+  @AuthResponses()
+  @ValidationResponses()
   @Serialize(UserResponseDto)
   @UseGuards(AccessTokenGuard)
   @Patch()
   async updateUser(
     @Body() body: UpdateUserDto,
-    @Req() req: Request
+    @CurrentUser('id') id: string
   ) {
-    const id = req.user?.id;
-    return this.userService.update(id!, body);
+    return this.userService.update(id, body);
   }
 
   @ApiOperation({
@@ -38,14 +40,15 @@ export class UserController {
   @ApiOkResponse({
     type: TransporterCompactDto
   })
+  @AuthResponses()
+  @ValidationResponses()
   @Serialize(TransporterCompactDto)
   @UseGuards(AccessTokenGuard)
   @Patch('transporters')
   async updateTransporter(
     @Body() body: UpdateTransporterDto,
-    @Req() req: Request
+    @CurrentUser('id') id: string,
   ) {
-    const id = req.user?.id;
-    return this.userService.updateTransporter(id!, body);
+    return this.userService.updateTransporter(id, body);
   }
 }

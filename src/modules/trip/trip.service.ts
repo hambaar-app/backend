@@ -62,6 +62,53 @@ export class TripService {
     });
   }
 
+  async getById(id: string) {
+    return this.prisma.trip.findUniqueOrThrow({
+      where: { id },
+      include: {
+        origin: true,
+        destination: true,
+        waypoints: true,
+        vehicle: true
+      },
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
+  async getAll(
+    userId: string,
+    status: TripStatusEnum[] = [
+      TripStatusEnum.scheduled,
+      TripStatusEnum.active,
+      TripStatusEnum.delayed
+    ]
+  ) {
+    return this.prisma.trip.findMany({
+      where: {
+        transporter: {
+          userId
+        },
+        tripStatus: {
+          in: status
+        },
+        deletedAt: null
+      },
+      include: {
+        origin: true,
+        destination: true,
+        waypoints: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
   async update(
     id: string,
     {

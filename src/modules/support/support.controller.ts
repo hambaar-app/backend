@@ -2,6 +2,7 @@ import { Body, Controller, Param, ParseUUIDPipe, Patch } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { ApiOperation, ApiProperty } from '@nestjs/swagger';
 import { UpdateVerificationDto } from './dto/update-verification.dto';
+import { CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 
 @Controller('support')
 export class SupportController {
@@ -11,6 +12,8 @@ export class SupportController {
     summary: 'Update a verification status by its id',
     description: 'Just for Admin and Support users (But it hasn\'t implemented yet.)'
   })
+  @ValidationResponses()
+  @CrudResponses()
   @Patch('verification/:id')
   updateVerification(
     @Param('id', ParseUUIDPipe) id: string,
@@ -23,6 +26,8 @@ export class SupportController {
     summary: 'Update a transporter verification status by its userId',
     description: 'Just for Admin and Support users (But it hasn\'t implemented yet.)'
   })
+  @ValidationResponses()
+  @CrudResponses()
   @Patch('verification/transporters/:id')
   updateTransporterVerification(
     @Param('id', ParseUUIDPipe) id: string,

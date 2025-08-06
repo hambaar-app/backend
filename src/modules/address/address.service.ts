@@ -68,11 +68,15 @@ export class AddressService {
     });
   }
 
-  async getAll(userId: string, isHighlighted = true) {
+  async getAll(userId: string, search?: string, isHighlighted = true) {
     return this.prisma.address.findMany({
       where: {
         userId,
-        isHighlighted
+        isHighlighted,
+        title: {
+          contains: search,
+          mode: 'insensitive'
+        }
       }
     }).catch((error: Error) => {
       formatPrismaError(error);

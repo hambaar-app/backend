@@ -8,13 +8,15 @@ import { UpdatePackageDto } from './dto/update.package.dto';
 import { PackageStatusEnum } from 'generated/prisma';
 import { MapService } from '../map/map.service';
 import { PricingService } from '../pricing/pricing.service';
+import { S3Service } from '../s3/s3.service';
 
 @Injectable()
 export class PackageService {
   constructor(
     private prisma: PrismaService,
     private mapService: MapService,
-    private pricingService: PricingService
+    private pricingService: PricingService,
+    private s3Service: S3Service
   ) {}
 
   async createRecipient(
@@ -58,13 +60,29 @@ export class PackageService {
     });
   }
 
-  async getAllRecipients(userId: string, isHighlighted = true) {
+  async getAllRecipients(userId: string, search?: string, isHighlighted = true) {
     return this.prisma.packageRecipient.findMany({
       where: {
         address: {
           userId
         },
-        isHighlighted
+        isHighlighted,
+        OR: [
+          {
+            fullName: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+          {
+            address: {
+              title: {
+                contains: search,
+                mode: 'insensitive'
+              }
+            }
+          }
+        ]
       },
       include: {
         address: true
@@ -160,26 +178,8 @@ export class PackageService {
     });
   }
 
-  async getAll(userId: string, page = 1, limit = 10) {
-    const skip = (page - 1) * limit;
-    return this.prisma.package.findMany({
-      where: {
-        senderId: userId,
-        deletedAt: null
-      },
-      include: {
-        recipient: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      skip,
-      take: limit
-    });
-  }
-
   async getById(id: string) {
-    return this.prisma.package.findFirstOrThrow({
+    const packageData = await this.prisma.package.findFirstOrThrow({
       where: {
         id,
         deletedAt: null
@@ -190,12 +190,115 @@ export class PackageService {
           include: {
             address: true
           }
+        },
+        deliveryRequests: true,
+        matchedRequest: {
+          include: {
+            transporter: true,
+            trackingUpdates: true
+          }
         }
       }
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
     });
+
+    if (packageData.picturesKey && Array.isArray(packageData.picturesKey)) {
+      const keys = packageData.picturesKey;
+      const presignedUrls = await Promise.all(
+        keys.map(async (key, index) => {
+          const keyString = JSON.stringify(key);
+          try {
+            if (keyString) {
+              return this.s3Service.generateGetPresignedUrl(keyString);
+            }
+            return '';
+          } catch (urlError) {
+            console.error(`Failed to generate presigned URL for picturesKey[${index}]:`, urlError);
+            return '';
+          }
+        })
+      );
+
+      packageData.picturesKey = {
+        keys,
+        presignedUrls
+      };
+    }
+  }
+
+  async getAll(
+    userId: string,
+    status: PackageStatusEnum[] = [
+      PackageStatusEnum.created,
+      PackageStatusEnum.searching_transporter,
+      PackageStatusEnum.matched,
+      PackageStatusEnum.picked_up,
+      PackageStatusEnum.in_transit,
+    ],
+    page = 1, limit = 10
+  ) {
+    const skip = (page - 1) * limit;
+    const packages = await this.prisma.package.findMany({
+      where: {
+        senderId: userId,
+        shippingStatus: {
+          in: status
+        },
+        deletedAt: null
+      },
+      include: {
+        originAddress: true,
+        recipient: {
+          include: {
+            address: true
+          }
+        },
+        matchedRequest: true, // TODO: Improve it later
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      skip,
+      take: limit
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    const packagesWithUrls = await Promise.all(
+      packages.map(async (packageData) => {
+        const keys = packageData.picturesKey;
+
+        if (keys && Array.isArray(keys)) {
+          const presignedUrls = await Promise.all(
+            keys.map(async (key, index) => {
+              const keyString = JSON.stringify(key);
+              try {
+                if (keyString) {
+                  return this.s3Service.generateGetPresignedUrl(keyString);
+                }
+                return '';
+              } catch (urlError) {
+                console.error(`Failed to generate presigned URL for picturesKey[${index}]:`, urlError);
+                return '';
+              }
+            })
+          );
+
+          return {
+            ...packageData,
+            picturesKey: {
+              keys,
+              presignedUrls
+            }
+          };
+        }
+      })
+    );
+
+    return packagesWithUrls;
   }
 
   async update(id: string, packageDto: UpdatePackageDto) {

@@ -81,4 +81,9 @@ export class CreatePackageDto {
   @Validate(IsValidDateTimeTupleConstraint)
   @Validate(IsDeliveryAfterPickupConstraint)
   preferredDeliveryTime: [Date, Date]; // [startDateTime, endDateTime]
+
+  @ArrayNotEmpty()
+  @ArrayMinSize(1)
+  @IsString()
+  picturesKey: string[];
 }
