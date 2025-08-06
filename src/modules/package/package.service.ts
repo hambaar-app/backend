@@ -205,8 +205,9 @@ export class PackageService {
     });
 
     if (packageData.picturesKey && Array.isArray(packageData.picturesKey)) {
+      const keys = packageData.picturesKey;
       const presignedUrls = await Promise.all(
-        packageData.picturesKey.map(async (key, index) => {
+        keys.map(async (key, index) => {
           const keyString = JSON.stringify(key);
           try {
             if (keyString) {
@@ -221,7 +222,7 @@ export class PackageService {
       );
 
       packageData.picturesKey = {
-        keys: packageData.picturesKey,
+        keys,
         presignedUrls
       };
     }
@@ -239,7 +240,7 @@ export class PackageService {
     page = 1, limit = 10
   ) {
     const skip = (page - 1) * limit;
-    return this.prisma.package.findMany({
+    const packages = await this.prisma.package.findMany({
       where: {
         senderId: userId,
         shippingStatus: {
@@ -265,6 +266,39 @@ export class PackageService {
       formatPrismaError(error);
       throw error;
     });
+
+    const packagesWithUrls = await Promise.all(
+      packages.map(async (packageData) => {
+        const keys = packageData.picturesKey;
+
+        if (keys && Array.isArray(keys)) {
+          const presignedUrls = await Promise.all(
+            keys.map(async (key, index) => {
+              const keyString = JSON.stringify(key);
+              try {
+                if (keyString) {
+                  return this.s3Service.generateGetPresignedUrl(keyString);
+                }
+                return '';
+              } catch (urlError) {
+                console.error(`Failed to generate presigned URL for picturesKey[${index}]:`, urlError);
+                return '';
+              }
+            })
+          );
+
+          return {
+            ...packageData,
+            picturesKey: {
+              keys,
+              presignedUrls
+            }
+          };
+        }
+      })
+    );
+
+    return packagesWithUrls;
   }
 
   async update(id: string, packageDto: UpdatePackageDto) {
