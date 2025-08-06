@@ -74,7 +74,7 @@ export class TripService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });;
+    });
   }
 
   async getAll(

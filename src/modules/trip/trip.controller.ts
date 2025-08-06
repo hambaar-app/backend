@@ -64,7 +64,7 @@ export class TripController {
   })
   @AuthResponses()
   @Serialize(TripResponseDto)
-  @UseGuards(AccessTokenGuard, CheckOwnership)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
   })
