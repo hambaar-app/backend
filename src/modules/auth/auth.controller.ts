@@ -44,6 +44,7 @@ import { StateDto } from './dto/state-response.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { User } from 'generated/prisma';
 import { AuthResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { MultiTokenGuard } from './guard/multi-token.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -307,7 +308,7 @@ export class AuthController {
     type: StateDto
   })
   @Serialize(StateDto)
-  @UseGuards(DenyAuthorizedGuard, ProgressTokenGuard)
+  @UseGuards(MultiTokenGuard)
   @Get('state')
   async getUserState(@Session() session: SessionData) {
     return this.authService.getUserState(session);    

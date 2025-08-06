@@ -7,6 +7,7 @@ import { TokenModule } from '../token/token.module';
 import { UserModule } from '../user/user.module';
 import { MapModule } from '../map/map.module';
 import { PricingModule } from '../pricing/pricing.module';
+import { S3Module } from '../s3/s3.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PricingModule } from '../pricing/pricing.module';
     UserModule,
     MapModule,
     PricingModule,
+    S3Module,
   ],
   providers: [PackageService],
   controllers: [PackageController]
