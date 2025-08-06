@@ -1,15 +1,16 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { S3Service } from './s3.service';
 import { FileNameDto } from './s3.dto';
-import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from '../user/current-user.middleware';
 import { CheckOwnership } from '../auth/auth.decorators';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { AuthResponses } from 'src/common/api-docs.decorators';
+import { MultiTokenGuard } from '../auth/guard/multi-token.guard';
 
 // TODO: Add limit
 @Controller('s3')
+@UseGuards(MultiTokenGuard, OwnershipGuard)
 export class S3Controller {
   constructor(private s3Service: S3Service) {}
 
@@ -17,7 +18,6 @@ export class S3Controller {
     summary: 'Generate presigned URL for transporter profile picture upload',
   })
   @AuthResponses()
-  @UseGuards(AccessTokenGuard)
   @Get('/presigned/transporter/profile-pic')
   async getPresignedTransporterProfilePic(
     @Body() body: FileNameDto,
@@ -32,7 +32,6 @@ export class S3Controller {
     summary: 'Generate presigned URL for transporter national id document upload',
   })
   @AuthResponses()
-  @UseGuards(AccessTokenGuard)
   @Get('/presigned/transporter/national-id')
   async getPresignedTransporterNationalId(
     @Body() body: FileNameDto,
@@ -47,7 +46,6 @@ export class S3Controller {
     summary: 'Generate presigned URL for transporter driver’s license document upload',
   })
   @AuthResponses()
-  @UseGuards(AccessTokenGuard)
   @Get('/presigned/transporter/license')
   async getPresignedTransporterLicense(
     @Body() body: FileNameDto,
@@ -62,7 +60,6 @@ export class S3Controller {
     summary: 'Generate presigned URL for vehicle picture upload',
   })
   @AuthResponses()
-  @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'vehicle'
   })
@@ -81,7 +78,6 @@ export class S3Controller {
     summary: 'Generate presigned URL for vehicle green sheet upload',
   })
   @AuthResponses()
-  @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'vehicle'
   })
@@ -100,7 +96,6 @@ export class S3Controller {
     summary: 'Generate presigned URL for vehicle card document upload',
   })
   @AuthResponses()
-  @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'vehicle'
   })
@@ -119,7 +114,6 @@ export class S3Controller {
     summary: 'Generate presigned URL for package picture upload',
   })
   @AuthResponses()
-  @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'package'
   })
