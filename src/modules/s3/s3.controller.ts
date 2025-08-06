@@ -1,12 +1,11 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { S3Service } from './s3.service';
-import { PackagePictureDto, TransporterPictureDto, VehiclePictureDto } from './s3.dto';
+import { FileNameDto } from './s3.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from '../user/current-user.middleware';
 
 // TODO: Add limit
-@UseGuards(AccessTokenGuard)
 @Controller('s3')
 export class S3Controller {
   constructor(private s3Service: S3Service) {}
@@ -14,10 +13,13 @@ export class S3Controller {
   @ApiOperation({
     summary: 'Generate presigned URL for transporter profile picture upload',
   })
-  @HttpCode(HttpStatus.OK)
-  @Post('/presigned/transporter/profile-pic')
-  async getPresignedTransporterProfilePic(@Body() body: TransporterPictureDto) {
-    const key = `/transporter/${body.transporterId}/profile-pic-${body.fileName}`;
+  @UseGuards(AccessTokenGuard)
+  @Get('/presigned/transporter/profile-pic')
+  async getPresignedTransporterProfilePic(
+    @Body() body: FileNameDto,
+    @CurrentUser('id') userId: string
+  ) {
+    const key = `/transporter/${userId}/profile-pic-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -25,10 +27,13 @@ export class S3Controller {
   @ApiOperation({
     summary: 'Generate presigned URL for transporter national id document upload',
   })
-  @HttpCode(HttpStatus.OK)
-  @Post('/presigned/transporter/national-id')
-  async getPresignedTransporterNationalId(@Body() body: TransporterPictureDto) {
-    const key = `/transporter/${body.transporterId}/national-id-${body.fileName}`;
+  @UseGuards(AccessTokenGuard)
+  @Get('/presigned/transporter/national-id')
+  async getPresignedTransporterNationalId(
+    @Body() body: FileNameDto,
+    @CurrentUser('id') userId: string
+  ) {
+    const key = `/transporter/${userId}/national-id-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -36,10 +41,13 @@ export class S3Controller {
   @ApiOperation({
     summary: 'Generate presigned URL for transporter driver’s license document upload',
   })
-  @HttpCode(HttpStatus.OK)
-  @Post('/presigned/transporter/license')
-  async getPresignedTransporterLicense(@Body() body: TransporterPictureDto) {
-    const key = `/transporter/${body.transporterId}/license-${body.fileName}`;
+  @UseGuards(AccessTokenGuard)
+  @Get('/presigned/transporter/license')
+  async getPresignedTransporterLicense(
+    @Body() body: FileNameDto,
+    @CurrentUser('id') userId: string
+  ) {
+    const key = `/transporter/${userId}/license-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -47,10 +55,14 @@ export class S3Controller {
   @ApiOperation({
     summary: 'Generate presigned URL for vehicle picture upload',
   })
-  @HttpCode(HttpStatus.OK)
-  @Post('/presigned/transporter/vehicle/pic')
-  async getPresignedVehiclePicture(@Body() body: VehiclePictureDto) {
-    const key = `/transporter/${body.transporterId}/vehicle/pic-${body.vehicleId}/${body.fileName}`;
+  @UseGuards(AccessTokenGuard)
+  @Get('/presigned/transporter/vehicle/:id/pic')
+  async getPresignedVehiclePicture(
+    @Param('id', ParseUUIDPipe) vehicleId: string,
+    @Body() body: FileNameDto,
+    @CurrentUser('id') userId: string
+  ) {
+    const key = `/transporter/${userId}/vehicle/${vehicleId}/pic-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -58,10 +70,14 @@ export class S3Controller {
   @ApiOperation({
     summary: 'Generate presigned URL for vehicle green sheet upload',
   })
-  @HttpCode(HttpStatus.OK)
-  @Post('/presigned/transporter/vehicle/green-sheet')
-  async getPresignedVehicleGreenSheet(@Body() body: VehiclePictureDto) {
-    const key = `/transporter/${body.transporterId}/vehicle/green-sheet-${body.vehicleId}/${body.fileName}`;
+  @UseGuards(AccessTokenGuard)
+  @Get('/presigned/transporter/vehicle/:id/green-sheet')
+  async getPresignedVehicleGreenSheet(
+    @Param('id', ParseUUIDPipe) vehicleId: string,
+    @Body() body: FileNameDto,
+    @CurrentUser('id') userId: string
+  ) {
+    const key = `/transporter/${userId}/vehicle/${vehicleId}/green-sheet-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -69,10 +85,14 @@ export class S3Controller {
   @ApiOperation({
     summary: 'Generate presigned URL for vehicle card document upload',
   })
-  @HttpCode(HttpStatus.OK)
-  @Post('/presigned/transporter/vehicle/card')
-  async getPresignedVehicleCard(@Body() body: VehiclePictureDto) {
-    const key = `/transporter/${body.transporterId}/vehicle/card-${body.vehicleId}/${body.fileName}`;
+  @UseGuards(AccessTokenGuard)
+  @Get('/presigned/transporter/vehicle/:id/card')
+  async getPresignedVehicleCard(
+    @Param('id', ParseUUIDPipe) vehicleId: string,
+    @Body() body: FileNameDto,
+    @CurrentUser('id') userId: string
+  ) {
+    const key = `/transporter/${userId}/vehicle/${vehicleId}/card-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -80,13 +100,14 @@ export class S3Controller {
   @ApiOperation({
     summary: 'Generate presigned URL for package picture upload',
   })
-  @HttpCode(HttpStatus.OK)
-  @Post('/presigned/transporter/vehicle/card')
+  @UseGuards(AccessTokenGuard)
+  @Get('/presigned/sender/package/:id')
   async getPresignedPackagePicture(
-    @Body() body: PackagePictureDto,
-    @CurrentUser('id') id: string
+    @Param('id', ParseUUIDPipe) packageId: string,
+    @Body() body: FileNameDto,
+    @CurrentUser('id') userId: string
   ) {
-    const key = `/sender/${id}/package/${body.packageId}/${body.fileName}`;
+    const key = `/sender/${userId}/package/${packageId}/pic-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
