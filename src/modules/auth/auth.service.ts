@@ -134,6 +134,7 @@ export class AuthService {
     const result: CheckOtpResult = {
       isNewUser: false,
       userId: user.id,
+      role: user.role,
       token: this.tokenService['generateAccessToken'](payload),
       type: AuthTokens.Access,
     };
@@ -389,9 +390,10 @@ export class AuthService {
     session.userState = computedState;
 
     return computedState === UserStatesEnum.Authenticated 
-      ? { userState: computedState }
+      ? { userState: computedState, role: user.role }
       : {
           userState: computedState,
+          role: user.role,
           transporter: {
             ...user,
             ...transporter,
