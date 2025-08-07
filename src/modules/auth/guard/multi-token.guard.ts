@@ -11,7 +11,6 @@ export class MultiTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const session = request.session;
     const progressToken = request.cookies?.[CookieNames.ProgressToken] as string;
     const accessToken = request.cookies?.[CookieNames.AccessToken] as string;
 
@@ -19,7 +18,7 @@ export class MultiTokenGuard implements CanActivate {
     if (progressToken) {
       try {
         const payload = this.tokenService.verifyToken(progressToken, AuthTokens.Progress);
-        const isOkToken = payload.sub && payload.phoneNumber && (session.phoneNumber === payload.phoneNumber);
+        const isOkToken = payload.sub && payload.phoneNumber;
         
         if (isOkToken) {
           request.user = { id: payload.sub };
@@ -32,7 +31,7 @@ export class MultiTokenGuard implements CanActivate {
     if (accessToken) {
       try {
         const payload = this.tokenService.verifyToken(accessToken, AuthTokens.Access);
-        const isOkToken = payload.sub && payload.phoneNumber && (session.phoneNumber === payload.phoneNumber);
+        const isOkToken = payload.sub && payload.phoneNumber;
         
         if (isOkToken) {
           request.user = { id: payload.sub };

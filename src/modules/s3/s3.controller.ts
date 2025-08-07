@@ -1,4 +1,4 @@
-import { Body, Controller, Get, UseGuards } from '@nestjs/common';
+import { Query, Controller, Get, UseGuards } from '@nestjs/common';
 import { S3Service } from './s3.service';
 import { FileNameDto } from './s3.dto';
 import { ApiOperation } from '@nestjs/swagger';
@@ -18,10 +18,10 @@ export class S3Controller {
   @AuthResponses()
   @Get('/presigned/transporter/profile-pic')
   async getPresignedTransporterProfilePic(
-    @Body() body: FileNameDto,
+    @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/profile-pic-${body.fileName}`;
+    const key = `/transporter/${userId}/profile-pic-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -32,10 +32,10 @@ export class S3Controller {
   @AuthResponses()
   @Get('/presigned/transporter/national-id')
   async getPresignedTransporterNationalId(
-    @Body() body: FileNameDto,
+    @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/national-id-${body.fileName}`;
+    const key = `/transporter/${userId}/national-id-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -46,10 +46,10 @@ export class S3Controller {
   @AuthResponses()
   @Get('/presigned/transporter/license')
   async getPresignedTransporterLicense(
-    @Body() body: FileNameDto,
+    @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/license-${body.fileName}`;
+    const key = `/transporter/${userId}/license-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -60,10 +60,10 @@ export class S3Controller {
   @AuthResponses()
   @Get('/presigned/transporter/vehicle/pic')
   async getPresignedVehiclePicture(
-    @Body() body: FileNameDto,
+    @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/pic-${body.fileName}`;
+    const key = `/transporter/${userId}/vehicle/pic-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -74,10 +74,10 @@ export class S3Controller {
   @AuthResponses()
   @Get('/presigned/transporter/vehicle/green-sheet')
   async getPresignedVehicleGreenSheet(
-    @Body() body: FileNameDto,
+    @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/green-sheet-${body.fileName}`;
+    const key = `/transporter/${userId}/vehicle/green-sheet-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -88,10 +88,10 @@ export class S3Controller {
   @AuthResponses()
   @Get('/presigned/transporter/vehicle/card')
   async getPresignedVehicleCard(
-    @Body() body: FileNameDto,
+    @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/card-${body.fileName}`;
+    const key = `/transporter/${userId}/vehicle/card-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -102,10 +102,10 @@ export class S3Controller {
   @AuthResponses()
   @Get('/presigned/sender/package')
   async getPresignedPackagePicture(
-    @Body() body: FileNameDto,
+    @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/sender/${userId}/package/pic-${body.fileName}`;
+    const key = `/sender/${userId}/package/pic-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
