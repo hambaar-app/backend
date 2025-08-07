@@ -1,16 +1,14 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, UseGuards } from '@nestjs/common';
 import { S3Service } from './s3.service';
 import { FileNameDto } from './s3.dto';
 import { ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from '../user/current-user.middleware';
-import { CheckOwnership } from '../auth/auth.decorators';
-import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { AuthResponses } from 'src/common/api-docs.decorators';
 import { MultiTokenGuard } from '../auth/guard/multi-token.guard';
 
 // TODO: Add limit
 @Controller('s3')
-@UseGuards(MultiTokenGuard, OwnershipGuard)
+@UseGuards(MultiTokenGuard)
 export class S3Controller {
   constructor(private s3Service: S3Service) {}
 
@@ -60,16 +58,12 @@ export class S3Controller {
     summary: 'Generate presigned URL for vehicle picture upload',
   })
   @AuthResponses()
-  @CheckOwnership({
-    entity: 'vehicle'
-  })
-  @Get('/presigned/transporter/vehicle/:id/pic')
+  @Get('/presigned/transporter/vehicle/pic')
   async getPresignedVehiclePicture(
-    @Param('id', ParseUUIDPipe) vehicleId: string,
     @Body() body: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/${vehicleId}/pic-${body.fileName}`;
+    const key = `/transporter/${userId}/vehicle/pic-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -78,16 +72,12 @@ export class S3Controller {
     summary: 'Generate presigned URL for vehicle green sheet upload',
   })
   @AuthResponses()
-  @CheckOwnership({
-    entity: 'vehicle'
-  })
-  @Get('/presigned/transporter/vehicle/:id/green-sheet')
+  @Get('/presigned/transporter/vehicle/green-sheet')
   async getPresignedVehicleGreenSheet(
-    @Param('id', ParseUUIDPipe) vehicleId: string,
     @Body() body: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/${vehicleId}/green-sheet-${body.fileName}`;
+    const key = `/transporter/${userId}/vehicle/green-sheet-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -96,16 +86,12 @@ export class S3Controller {
     summary: 'Generate presigned URL for vehicle card document upload',
   })
   @AuthResponses()
-  @CheckOwnership({
-    entity: 'vehicle'
-  })
-  @Get('/presigned/transporter/vehicle/:id/card')
+  @Get('/presigned/transporter/vehicle/card')
   async getPresignedVehicleCard(
-    @Param('id', ParseUUIDPipe) vehicleId: string,
     @Body() body: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/${vehicleId}/card-${body.fileName}`;
+    const key = `/transporter/${userId}/vehicle/card-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -114,16 +100,12 @@ export class S3Controller {
     summary: 'Generate presigned URL for package picture upload',
   })
   @AuthResponses()
-  @CheckOwnership({
-    entity: 'package'
-  })
-  @Get('/presigned/sender/package/:id')
+  @Get('/presigned/sender/package')
   async getPresignedPackagePicture(
-    @Param('id', ParseUUIDPipe) packageId: string,
     @Body() body: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/sender/${userId}/package/${packageId}/pic-${body.fileName}`;
+    const key = `/sender/${userId}/package/pic-${body.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
