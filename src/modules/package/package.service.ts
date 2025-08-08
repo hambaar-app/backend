@@ -226,6 +226,8 @@ export class PackageService {
         presignedUrls
       };
     }
+
+    return packageData;
   }
 
   async getAll(
