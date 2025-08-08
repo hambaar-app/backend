@@ -42,8 +42,8 @@ export class MapService {
   }: CalculateDistanceInput): Promise<CalculateDistanceResult> {
     const params = new URLSearchParams();
     params.append('type', vehicleType);
-    params.append('origin', `${origin.latitude},${origin.longitude}`);
-    params.append('destination', `${destination.latitude},${destination.longitude}`);
+    params.append('origins', `${origin.latitude},${origin.longitude}`);
+    params.append('destinations', `${destination.latitude},${destination.longitude}`);
 
     const url = this.mapApiUrl + '/v1/distance-matrix' +
       (tripType === TripTypeEnum.intercity ? '/no-traffic' : '') + `?${params.toString()}`;
