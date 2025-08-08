@@ -61,4 +61,10 @@ export class UpdatePackageDto {
   @Validate(IsValidDateTimeTupleConstraint)
   @Validate(IsDeliveryAfterPickupConstraint)
   preferredDeliveryTime?: [Date, Date]; // [startDateTime, endDateTime]
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  picturesKey?: string[];
 }

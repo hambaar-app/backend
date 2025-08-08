@@ -146,8 +146,9 @@ export class PackageController {
 
   @ApiOperation({
     summary: 'Update a package by its id',
-    description: `Updates specific properties of an existing package identified by its ID. 
-    Partial updates are supported, but modifications are only allowed if the package has not been matched yet.`,
+    description: `Updates specific properties of an existing package identified by its id. 
+    Partial updates are supported, but modifications are only allowed if the package has not been matched yet.
+    Pictures key will be override, if included.`,
   })
   @ApiCreatedResponse({
     type: PackageCompactResponseDto,
