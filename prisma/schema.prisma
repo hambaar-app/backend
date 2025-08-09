@@ -77,8 +77,9 @@ enum TripTypeEnum {
 
 enum TripStatusEnum {
   scheduled
-  active
   delayed
+  active
+  in_progress
   completed
 
   @@map("trip_status_enum")

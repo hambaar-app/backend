@@ -269,15 +269,15 @@ export class MapService {
 
   // calculates the great-circle distance between two points on the Earth's surface,
   // given their latitude and longitude coordinates.
-  private haversineDistance(
+  haversineDistance(
     point1: { lat: number; lng: number },
     point2: { lat: number; lng: number }
   ): number {
     const R = 6371e3; // Earth's radius in meters
-    const φ1 = (point1.lat * Math.PI) / 180;
-    const φ2 = (point2.lat * Math.PI) / 180;
-    const Δφ = ((point2.lat - point1.lat) * Math.PI) / 180;
-    const Δλ = ((point2.lng - point1.lng) * Math.PI) / 180;
+    const φ1 = (+point1.lat * Math.PI) / 180;
+    const φ2 = (+point2.lat * Math.PI) / 180;
+    const Δφ = ((+point2.lat - +point1.lat) * Math.PI) / 180;
+    const Δλ = ((+point2.lng - +point1.lng) * Math.PI) / 180;
 
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
               Math.cos(φ1) * Math.cos(φ2) *
