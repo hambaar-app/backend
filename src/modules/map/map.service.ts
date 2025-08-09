@@ -208,7 +208,7 @@ export class MapService {
         .map(cityName => {
           const c = cities.find(c => c.name === cityName);
           return {
-            name: c!.name.replace('شهرستان ', ''),
+            city: c!.name.replace('شهرستان ', ''),
             latitude: String(c!.latitude),
             longitude: String(c!.longitude)
           };

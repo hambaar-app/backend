@@ -5,7 +5,7 @@ export class IntermediateCityDto {
   @Expose()
   @IsNotEmpty()
   @IsString()
-  name: string;
+  city: string;
   
   @Expose()
   @IsNotEmpty()
