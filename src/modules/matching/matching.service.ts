@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Package, Prisma, TripStatusEnum } from 'generated/prisma';
+import * as turf from '@turf/turf';
+import { Feature, LineString } from 'geojson';
+import { TripWithLocations } from './matching.types';
 
 @Injectable()
 export class MatchingService {
@@ -75,5 +78,17 @@ export class MatchingService {
         createdAt: 'desc',
       },
     });
+  }
+
+  private createTripRouteLine(trip: TripWithLocations): Feature<LineString> {
+    const coordinates: [number, number][] = [];
+
+    coordinates.push([+trip.origin.longitude, +trip.origin.latitude]);
+    trip.waypoints.forEach(waypoint => {
+      coordinates.push([+waypoint.longitude, +waypoint.latitude]);
+    });
+    coordinates.push([+trip.destination.longitude, +trip.destination.latitude]);
+
+    return turf.lineString(coordinates);
   }
 }
