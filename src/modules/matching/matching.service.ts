@@ -41,7 +41,6 @@ export class MatchingService {
             id: true,
             latitude: true,
             longitude: true,
-            city: true,
           },
         },
         destination: {
@@ -49,7 +48,6 @@ export class MatchingService {
             id: true,
             latitude: true,
             longitude: true,
-            city: true,
           },
         },
         waypoints: {

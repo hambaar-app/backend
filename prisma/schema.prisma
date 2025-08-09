@@ -266,19 +266,25 @@ model Province {
   id          String @id @default(uuid()) @db.Uuid
   persianName String @unique @map("persian_name")
   englishName String @unique @map("english_name")
+
+  // Relations
   cities      City[]
 
   @@map("provinces")
 }
 
 model City {
-  id          String   @id @default(uuid()) @db.Uuid
-  provinceId  String   @map("province_id") @db.Uuid
-  persianName String   @unique @map("persian_name")
-  englishName String   @unique @map("english_name")
+  id          String @id @default(uuid()) @db.Uuid
+  provinceId  String @map("province_id") @db.Uuid
+  persianName String @unique @map("persian_name")
+  englishName String @unique @map("english_name")
   latitude    String
   longitude   String
-  province    Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+
+  // Relations
+  province         Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  tripsOrigin      Trip[]   @relation("TripOrigin")
+  tripsDestination Trip[]   @relation("TripDestination")
 
   @@map("cities")
 }
@@ -301,8 +307,6 @@ model Address {
   // Relations
   user             User               @relation(fields: [userId], references: [id])
   packagesOrigin   Package[]          @relation("OriginAddress")
-  tripsOrigin      Trip[]             @relation("TripOrigin")
-  tripsDestination Trip[]             @relation("TripDestination")
   packageRecipient PackageRecipient[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
@@ -385,8 +389,8 @@ model Trip {
   deliveryRequests DeliveryRequest[] @relation("TransporterRequests")
   matchedRequests  MatchedRequest[]
   transporter      Transporter       @relation(fields: [transporterId], references: [id])
-  origin           Address           @relation("TripOrigin", fields: [originId], references: [id])
-  destination      Address           @relation("TripDestination", fields: [destinationId], references: [id])
+  origin           City              @relation("TripOrigin", fields: [originId], references: [id])
+  destination      City              @relation("TripDestination", fields: [destinationId], references: [id])
   vehicle          Vehicle           @relation(fields: [vehicleId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()

@@ -35,8 +35,8 @@ export class TripController {
     summary: 'Create a new trip',
     description: `This endpoint allows a transporter to create a new trip,
       which senders can send delivery requests for via \`POST /packages/:id/requests\`.
-      The \`originId\` and \`destinationId\` must be valid address IDs created via \`POST /addresses\`
-      or obtained from \`GET /addresses\`. The \`vehicleId\` must reference a valid vehicle owned by the transporter,
+      The \`originId\` and \`destinationId\` must be valid cities ids obtained from \`GET /addresses/cities\`.
+      The \`vehicleId\` must reference a valid vehicle owned by the transporter,
       created via \`POST /vehicles\` or obtained from \`GET /vehicles\`.
       The \`departureTime\` must be a tuple of two valid DateTime values [start, end],
       where the end time is after the start time.`,
