@@ -69,7 +69,7 @@ export class TripController {
     entity: 'trip'
   })
   @Get(':id')
-  async getPackageById(
+  async getTripById(
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.tripService.getById(id);
@@ -86,7 +86,7 @@ export class TripController {
   @Serialize(TripCompactResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get()
-  async getAllPackages(
+  async getAllTrips(
     @Query() query: TripFilterQueryDto,
     @CurrentUser('id') id: string,
   ) {
