@@ -100,6 +100,25 @@ export class MatchingService {
       return turf.distance(point, nearestPoint, { units: 'meters' });
     } catch (error) {
       console.error('Error calculating distance to route:', error);
+      return this.getDistanceToRouteSimple(point, route);
     }
+  }
+
+  // This is a backup/safety mechanism
+  // that provides a simpler distance calculation
+  private getDistanceToRouteSimple(
+    point: Feature<Point>,
+    route: Feature<LineString>
+  ): number {
+    const coordinates = route.geometry.coordinates;
+    let minDistance = Infinity;
+
+    for (let i = 0; i < coordinates.length; i++) {
+      const routePoint = turf.point(coordinates[i]);
+      const distance = turf.distance(point, routePoint, { units: 'meters' });
+      minDistance = Math.min(minDistance, distance);
+    }
+
+    return minDistance;
   }
 }
