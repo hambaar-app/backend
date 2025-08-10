@@ -299,8 +299,8 @@ model Address {
   street        String? @db.VarChar
   plate         Int?    @map("plate")
   postalCode    String? @map("postal_code") @db.VarChar
-  latitude      String?
-  longitude     String?
+  latitude      String
+  longitude     String
   details       String? @db.Text
   isHighlighted Boolean @default(false) @map("is_highlighted")
 
@@ -403,8 +403,8 @@ model TripWaypoint {
   id        String  @id @default(uuid()) @db.Uuid
   tripId    String  @map("trip_id") @db.Uuid
   city      String? @db.VarChar
-  latitude  String?
-  longitude String?
+  latitude  String
+  longitude String
 
   // Relations
   trip Trip @relation(fields: [tripId], references: [id])

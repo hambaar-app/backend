@@ -5,12 +5,54 @@ import * as turf from '@turf/turf';
 import { Feature, LineString, Point } from 'geojson';
 import { MatchResult, TripWithLocations } from './matching.types';
 import { Location } from '../map/map.types';
+import { ConfigService } from '@nestjs/config';
+import { PackageService } from '../package/package.service';
 
 @Injectable()
 export class MatchingService {
+  private corridorWidth: number;
+
   constructor(
-    private prisma: PrismaService
-  ) {}
+    config: ConfigService,
+    private prisma: PrismaService,
+    private packageService: PackageService
+  ) {
+    this.corridorWidth = config.get<number>('CORRIDOR_WIDTH', 10);
+  }
+
+  async findMatchingTrips(
+    packageId: string,
+    maxResults: number = 10
+  ): Promise<MatchResult[]> {
+    const packageData = await this.packageService.getById(packageId);
+
+    // Pre-filter trips using prisma queries
+    const candidateTrips = await this.getPreFilteredTrips(packageData);
+
+    // Analyze each trip for corridor matching
+    const matchResults: MatchResult[] = [];
+    for (const trip of candidateTrips) {
+      const matchResult = await this.analyzeTrip(
+        trip,
+        packageData.originAddress,
+        packageData.recipient.address,
+        this.corridorWidth
+      );
+
+      if (matchResult) {
+        matchResults.push(matchResult);
+      }
+    }
+
+    return matchResults
+      .sort((a, b) => {
+        if (a.isOnCorridor !== b.isOnCorridor) {
+          return b.isOnCorridor ? 1 : -1;
+        }
+        return a.originDistance - b.originDistance;
+      })
+      .slice(0, maxResults);
+  }
 
   private async getPreFilteredTrips(packageData: Package) {
     const whereClause: Prisma.TripWhereInput = {
@@ -83,7 +125,7 @@ export class MatchingService {
     trip: TripWithLocations,
     packageOrigin: Location,
     packageDestination: Location,
-    corridorWidthKm: number = 10
+    corridorWidthKm: number = this.corridorWidth
   ): Promise<MatchResult | null> {
     const tripRoute = this.createTripRoute(trip);
     
