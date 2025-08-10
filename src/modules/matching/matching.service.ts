@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Package, Prisma, TripStatusEnum } from 'generated/prisma';
 import * as turf from '@turf/turf';
-import { Feature, LineString } from 'geojson';
+import { Feature, LineString, Point } from 'geojson';
 import { TripWithLocations } from './matching.types';
 
 @Injectable()
@@ -78,9 +78,10 @@ export class MatchingService {
     });
   }
 
-  private createTripRouteLine(trip: TripWithLocations): Feature<LineString> {
+  private createTripRoute(trip: TripWithLocations): Feature<LineString> {
     const coordinates: [number, number][] = [];
 
+    // Push all waypoints and make coords number
     coordinates.push([+trip.origin.longitude, +trip.origin.latitude]);
     trip.waypoints.forEach(waypoint => {
       coordinates.push([+waypoint.longitude, +waypoint.latitude]);
@@ -88,5 +89,17 @@ export class MatchingService {
     coordinates.push([+trip.destination.longitude, +trip.destination.latitude]);
 
     return turf.lineString(coordinates);
+  }
+
+  private getDistanceToRoute(
+    point: Feature<Point>,
+    route: Feature<LineString>
+  ): number | undefined {
+    try {
+      const nearestPoint = turf.nearestPointOnLine(route, point);
+      return turf.distance(point, nearestPoint, { units: 'meters' });
+    } catch (error) {
+      console.error('Error calculating distance to route:', error);
+    }
   }
 }
