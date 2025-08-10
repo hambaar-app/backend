@@ -9,6 +9,8 @@ import { MapModule } from '../map/map.module';
 import { PricingModule } from '../pricing/pricing.module';
 import { S3Module } from '../s3/s3.module';
 import { MatchingService } from './matching.service';
+import { TurfProvider } from './turf.provider';
+
 
 @Module({
   imports: [
@@ -21,7 +23,8 @@ import { MatchingService } from './matching.service';
   ],
   providers: [
     PackageService,
-    MatchingService
+    MatchingService,
+    TurfProvider
   ],
   controllers: [PackageController]
 })

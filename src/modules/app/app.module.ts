@@ -1,10 +1,10 @@
-import { MiddlewareConsumer, Module, ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, MiddlewareConsumer, Module, ValidationPipe } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { createClient } from 'redis';
 import * as session from 'express-session';
 import * as cookieParser from 'cookie-parser';
@@ -53,8 +53,12 @@ import { TripModule } from '../trip/trip.module';
         whitelist: true,
         transform: true,
       }),
-    }
-  ],
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ClassSerializerInterceptor
+    },
+  ]
 })
 export class AppModule {
   constructor(

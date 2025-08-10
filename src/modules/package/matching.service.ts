@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Package, Prisma, TripStatusEnum } from 'generated/prisma';
-import * as turf from '@turf/turf';
 import { Feature, LineString, Point } from 'geojson';
 import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
 import { PackageService } from './package.service';
+import { Turf, TURF_TOKEN } from './turf.provider';
 
 export interface TripWithLocations {
   id: string;
@@ -30,7 +30,8 @@ export class MatchingService {
   constructor(
     config: ConfigService,
     private prisma: PrismaService,
-    private packageService: PackageService
+    private packageService: PackageService,
+    @Inject(TURF_TOKEN) private turf: Turf
   ) {
     this.corridorWidth = config.get<number>('CORRIDOR_WIDTH', 10);
   }
@@ -137,12 +138,12 @@ export class MatchingService {
   ): Promise<MatchResult | null> {
     const tripRoute = this.createTripRoute(trip);
     
-    const packageOriginPoint = turf.point([
+    const packageOriginPoint = this.turf.point([
       Number(packageOrigin.longitude),
       Number(packageOrigin.latitude)
     ]);
     
-    const packageDestinationPoint = turf.point([
+    const packageDestinationPoint = this.turf.point([
       Number(packageDestination.longitude),
       Number(packageDestination.latitude)
     ]);
@@ -196,7 +197,7 @@ export class MatchingService {
     });
     coordinates.push([+trip.destination.longitude, +trip.destination.latitude]);
 
-    return turf.lineString(coordinates);
+    return this.turf.lineString(coordinates);
   }
 
   private getDistanceToRoute(
@@ -204,8 +205,8 @@ export class MatchingService {
     route: Feature<LineString>
   ): number {
     try {
-      const nearestPoint = turf.nearestPointOnLine(route, point);
-      return turf.distance(point, nearestPoint, { units: 'meters' });
+      const nearestPoint = this.turf.nearestPointOnLine(route, point);
+      return this.turf.distance(point, nearestPoint, { units: 'meters' });
     } catch (error) {
       console.error('Error calculating distance to route:', error);
       return this.getDistanceToRouteSimple(point, route);
@@ -222,8 +223,8 @@ export class MatchingService {
     let minDistance = Infinity;
 
     for (let i = 0; i < coordinates.length; i++) {
-      const routePoint = turf.point(coordinates[i]);
-      const distance = turf.distance(point, routePoint, { units: 'meters' });
+      const routePoint = this.turf.point(coordinates[i]);
+      const distance = this.turf.distance(point, routePoint, { units: 'meters' });
       minDistance = Math.min(minDistance, distance);
     }
 
@@ -237,8 +238,8 @@ export class MatchingService {
     packageDestination: Feature<Point>
   ): boolean {
     // Find positions along the trip route
-    const originPosition = turf.nearestPointOnLine(tripRoute, packageOrigin);
-    const destinationPosition = turf.nearestPointOnLine(tripRoute, packageDestination);
+    const originPosition = this.turf.nearestPointOnLine(tripRoute, packageOrigin);
+    const destinationPosition = this.turf.nearestPointOnLine(tripRoute, packageDestination);
 
     const originIndex = originPosition.properties?.index || 0;
     const destinationIndex = destinationPosition.properties?.index || 0;
