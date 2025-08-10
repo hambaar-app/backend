@@ -11,6 +11,7 @@ export interface TripWithLocations {
 
 export interface MatchResult {
   tripId: string;
+  score: number;
   originDistance: number;
   destinationDistance: number;
   isOnCorridor: boolean;

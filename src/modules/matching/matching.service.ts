@@ -45,12 +45,7 @@ export class MatchingService {
     }
 
     return matchResults
-      .sort((a, b) => {
-        if (a.isOnCorridor !== b.isOnCorridor) {
-          return b.isOnCorridor ? 1 : -1;
-        }
-        return a.originDistance - b.originDistance;
-      })
+      .sort((a, b) => a.score - b.score)
       .slice(0, maxResults);
   }
 
@@ -152,8 +147,15 @@ export class MatchingService {
       return null;
     }
 
+    const score = this.calculateMatchingScore(
+      originDistance,
+      destinationDistance,
+      isOnCorridor
+    );
+
     return {
       tripId: trip.id,
+      score,
       originDistance,
       destinationDistance,
       isOnCorridor
@@ -202,5 +204,30 @@ export class MatchingService {
     }
 
     return minDistance;
+  }
+
+  // Note: Score lower is better.
+  // MVP version
+  private calculateMatchingScore(
+    originDistance: number,
+    destinationDistance: number,
+    isOnCorridor: boolean
+  ): number {
+    // Base score
+    let score = (originDistance + destinationDistance) / 2;
+    
+    // Lower score for packages not on corridor
+    if (!isOnCorridor) {
+      score += 100_000;
+    }
+
+    // Score for trips that start/end very close to package points
+    if (originDistance < 1000) score -= 500;
+    if (destinationDistance < 1000) score -= 500;
+
+    // TODO: Add time-based scoring (preferred times)
+    // TODO: Add transporter rating scoring
+
+    return Math.max(0, score); // Ensure non-negative score
   }
 }
