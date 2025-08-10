@@ -8,3 +8,10 @@ export interface TripWithLocations {
   waypoints: Location[];
   tripStatus: TripStatusEnum;
 }
+
+export interface MatchResult {
+  tripId: string;
+  originDistance: number;
+  destinationDistance: number;
+  isOnCorridor: boolean;
+}

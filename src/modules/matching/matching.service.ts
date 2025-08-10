@@ -3,7 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Package, Prisma, TripStatusEnum } from 'generated/prisma';
 import * as turf from '@turf/turf';
 import { Feature, LineString, Point } from 'geojson';
-import { TripWithLocations } from './matching.types';
+import { MatchResult, TripWithLocations } from './matching.types';
+import { Location } from '../map/map.types';
 
 @Injectable()
 export class MatchingService {
@@ -78,6 +79,45 @@ export class MatchingService {
     });
   }
 
+  private async analyzeTrip(
+    trip: TripWithLocations,
+    packageOrigin: Location,
+    packageDestination: Location,
+    corridorWidthKm: number = 10
+  ): Promise<MatchResult | null> {
+    const tripRoute = this.createTripRoute(trip);
+    
+    const packageOriginPoint = turf.point([
+      Number(packageOrigin.longitude),
+      Number(packageOrigin.latitude)
+    ]);
+    
+    const packageDestinationPoint = turf.point([
+      Number(packageDestination.longitude),
+      Number(packageDestination.latitude)
+    ]);
+
+    // Calculate distances from package points to trip route
+    const originDistance = this.getDistanceToRoute(packageOriginPoint, tripRoute);
+    const destinationDistance = this.getDistanceToRoute(packageDestinationPoint, tripRoute);
+
+    // Check if both points are within corridor
+    const corridorWidthMeters = corridorWidthKm * 1000;
+    const isOnCorridor = originDistance <= corridorWidthMeters && 
+                        destinationDistance <= corridorWidthMeters;
+
+    if (!isOnCorridor) {
+      return null;
+    }
+
+    return {
+      tripId: trip.id,
+      originDistance,
+      destinationDistance,
+      isOnCorridor
+    };
+  }
+
   private createTripRoute(trip: TripWithLocations): Feature<LineString> {
     const coordinates: [number, number][] = [];
 
@@ -94,7 +134,7 @@ export class MatchingService {
   private getDistanceToRoute(
     point: Feature<Point>,
     route: Feature<LineString>
-  ): number | undefined {
+  ): number {
     try {
       const nearestPoint = turf.nearestPointOnLine(route, point);
       return turf.distance(point, nearestPoint, { units: 'meters' });
