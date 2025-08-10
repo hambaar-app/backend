@@ -8,6 +8,7 @@ import { UserModule } from '../user/user.module';
 import { MapModule } from '../map/map.module';
 import { PricingModule } from '../pricing/pricing.module';
 import { S3Module } from '../s3/s3.module';
+import { MatchingService } from './matching.service';
 
 @Module({
   imports: [
@@ -18,7 +19,10 @@ import { S3Module } from '../s3/s3.module';
     PricingModule,
     S3Module,
   ],
-  providers: [PackageService],
+  providers: [
+    PackageService,
+    MatchingService
+  ],
   controllers: [PackageController]
 })
 export class PackageModule {

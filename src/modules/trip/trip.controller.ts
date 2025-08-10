@@ -32,11 +32,32 @@ export class TripController {
   constructor(private tripService: TripService) {}
 
   @ApiOperation({
+    summary: 'Get intermediate cities between two coordinates',
+    description: `This endpoint returns a list of intermediate cities between two coordinates
+      (e.g., origin and destination latitude/longitude), which can be used to define waypoints
+      during trip creation via \`POST /trips\`.`,
+  })
+  @ApiOkResponse({
+    type: [IntermediateCityDto]
+  })
+  @Serialize(IntermediateCityDto)
+  @AuthResponses()
+  @ApiInternalServerErrorResponse({
+    description: 'Failed to get intermediate cities.'
+  })
+  @Serialize(IntermediateCityDto)
+  // @UseGuards(AccessTokenGuard)
+  @Get('intermediate-cities')
+  async getIntermediateCities(@Query() query: CoordinatesQueryDto) {
+    return this.tripService.getIntermediateCities(query);
+  }
+
+  @ApiOperation({
     summary: 'Create a new trip',
     description: `This endpoint allows a transporter to create a new trip,
       which senders can send delivery requests for via \`POST /packages/:id/requests\`.
-      The \`originId\` and \`destinationId\` must be valid address IDs created via \`POST /addresses\`
-      or obtained from \`GET /addresses\`. The \`vehicleId\` must reference a valid vehicle owned by the transporter,
+      The \`originId\` and \`destinationId\` must be valid cities ids obtained from \`GET /addresses/cities\`.
+      The \`vehicleId\` must reference a valid vehicle owned by the transporter,
       created via \`POST /vehicles\` or obtained from \`GET /vehicles\`.
       The \`departureTime\` must be a tuple of two valid DateTime values [start, end],
       where the end time is after the start time.`,
@@ -68,8 +89,8 @@ export class TripController {
   @CheckOwnership({
     entity: 'trip'
   })
-  @Get('id')
-  async getPackageById(
+  @Get(':id')
+  async getTripById(
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.tripService.getById(id);
@@ -86,7 +107,7 @@ export class TripController {
   @Serialize(TripCompactResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get()
-  async getAllPackages(
+  async getAllTrips(
     @Query() query: TripFilterQueryDto,
     @CurrentUser('id') id: string,
   ) {
@@ -94,7 +115,7 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Update a trip by its ID',
+    summary: 'Update a trip by its id',
     description: `This endpoint allows a transporter to update a trip with the specified id,
     but only if its status is \`scheduled\` (from TripStatusEnum).
     \`waypoints\` will be overridden. Addresses can be updated separately via \`PATCH /addresses/:id\`.`,
@@ -106,7 +127,7 @@ export class TripController {
   @ValidationResponses()
   @CrudResponses()
   @Serialize(TripCompactResponseDto)
-  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  // @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
   })
@@ -119,7 +140,7 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Delete a trip by its ID',
+    summary: 'Delete a trip by its id',
     description: `This endpoint allows a transporter to delete a trip with the specified id,
     but only if its status is \`scheduled\` (from TripStatusEnum).`,
   })
@@ -129,33 +150,12 @@ export class TripController {
   @AuthResponses()
   @CrudResponses()
   @Serialize(TripCompactResponseDto)
-  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  // @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
   })
   @Delete(':id')
   async deleteTrip(@Param('id', ParseUUIDPipe) id: string) {
     return this.tripService.delete(id);
-  }
-
-  @ApiOperation({
-    summary: 'Get intermediate cities between two coordinates',
-    description: `This endpoint returns a list of intermediate cities between two coordinates
-      (e.g., origin and destination latitude/longitude), which can be used to define waypoints
-      during trip creation via \`POST /trips\`.`,
-  })
-  @ApiOkResponse({
-    type: [IntermediateCityDto]
-  })
-  @Serialize(IntermediateCityDto)
-  @AuthResponses()
-  @ApiInternalServerErrorResponse({
-    description: 'Failed to get intermediate cities.'
-  })
-  @Serialize(IntermediateCityDto)
-  @UseGuards(AccessTokenGuard)
-  @Get('intermediate-cities')
-  async getIntermediateCities(@Query() query: CoordinatesQueryDto) {
-    return this.tripService.getIntermediateCities(query);
   }
 }

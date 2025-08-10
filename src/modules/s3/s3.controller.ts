@@ -21,7 +21,7 @@ export class S3Controller {
     @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/profile-pic-${query.fileName}`;
+    const key = `transporter/${userId}/profile-pic-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -35,7 +35,7 @@ export class S3Controller {
     @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/national-id-${query.fileName}`;
+    const key = `transporter/${userId}/national-id-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -49,7 +49,7 @@ export class S3Controller {
     @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/license-${query.fileName}`;
+    const key = `transporter/${userId}/license-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -63,7 +63,7 @@ export class S3Controller {
     @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/pic-${query.fileName}`;
+    const key = `transporter/${userId}/vehicle/pic-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -77,7 +77,7 @@ export class S3Controller {
     @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/green-sheet-${query.fileName}`;
+    const key = `transporter/${userId}/vehicle/green-sheet-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -91,7 +91,7 @@ export class S3Controller {
     @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/transporter/${userId}/vehicle/card-${query.fileName}`;
+    const key = `transporter/${userId}/vehicle/card-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }
@@ -105,7 +105,7 @@ export class S3Controller {
     @Query() query: FileNameDto,
     @CurrentUser('id') userId: string
   ) {
-    const key = `/sender/${userId}/package/pic-${query.fileName}`;
+    const key = `sender/${userId}/package/pic-${query.fileName}`;
     const url = await this.s3Service.generatePutPresignedUrl(key);
     return { key, url };
   }

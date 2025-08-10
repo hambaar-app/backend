@@ -83,7 +83,8 @@ export class CreatePackageDto {
   preferredDeliveryTime: [Date, Date]; // [startDateTime, endDateTime]
 
   @ArrayNotEmpty()
+  @IsArray()
   @ArrayMinSize(1)
-  @IsString()
+  @IsString({ each: true })
   picturesKey: string[];
 }

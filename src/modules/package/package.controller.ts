@@ -38,10 +38,14 @@ import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } fro
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
+import { MatchingService } from './matching.service';
 
 @Controller('packages')
 export class PackageController {
-  constructor(private packageService: PackageService) {}
+  constructor(
+    private packageService: PackageService,
+    private matchingService: MatchingService
+  ) {}
 
   @ApiOperation({
     summary: 'Create a new recipient',
@@ -91,8 +95,8 @@ export class PackageController {
       Recipients can be included by providing recipient Ids created via \`POST /packages/recipients\`
       or retrieved from \`GET /packages/recipients\`.`,
   })
-  @ApiOkResponse({
-    type: [PackageResponseDto],
+  @ApiCreatedResponse({
+    type: PackageResponseDto,
   })
   @AuthResponses()
   @ValidationResponses()
@@ -129,7 +133,7 @@ export class PackageController {
   @ApiOperation({
     summary: 'Retrieves a package by its id',
   })
-  @ApiCreatedResponse({
+  @ApiOkResponse({
     type: PackageResponseDto,
   })
   @AuthResponses()
@@ -146,8 +150,9 @@ export class PackageController {
 
   @ApiOperation({
     summary: 'Update a package by its id',
-    description: `Updates specific properties of an existing package identified by its ID. 
-    Partial updates are supported, but modifications are only allowed if the package has not been matched yet.`,
+    description: `Updates specific properties of an existing package identified by its id. 
+    Partial updates are supported, but modifications are only allowed if the package has not been matched yet.
+    Pictures key will be override, if included.`,
   })
   @ApiCreatedResponse({
     type: PackageCompactResponseDto,
@@ -185,5 +190,20 @@ export class PackageController {
   @Delete(':id')
   async deletePackage(@Param('id', ParseUUIDPipe) id: string) {
     return this.packageService.delete(id);
+  }
+
+  @ApiOperation({
+    summary: 'Get package matching trips by package id',
+  })
+  @AuthResponses()
+  @CrudResponses()
+  // @Serialize(PackageResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'package',
+  })
+  @Get(':id/matching-trips')
+  async getPackageMatchingTrips(@Param('id', ParseUUIDPipe) id: string) {
+    return this.matchingService.findMatchingTrips(id);
   }
 }

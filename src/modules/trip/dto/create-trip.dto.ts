@@ -34,14 +34,9 @@ export class CreateTripDto {
   @IsUUID()
   vehicleId: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsInt()
-  maxPackageWeightGr: number;
-
-  @IsNotEmpty()
-  @Min(1)
-  @IsNumber()
-  availableCapacityKg: number;
+  maxPackageWeightGr?: number;
 
   @IsOptional()
   @IsString({ each: true })

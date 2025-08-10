@@ -42,8 +42,8 @@ export class MapService {
   }: CalculateDistanceInput): Promise<CalculateDistanceResult> {
     const params = new URLSearchParams();
     params.append('type', vehicleType);
-    params.append('origin', `${origin.latitude},${origin.longitude}`);
-    params.append('destination', `${destination.latitude},${destination.longitude}`);
+    params.append('origins', `${origin.latitude},${origin.longitude}`);
+    params.append('destinations', `${destination.latitude},${destination.longitude}`);
 
     const url = this.mapApiUrl + '/v1/distance-matrix' +
       (tripType === TripTypeEnum.intercity ? '/no-traffic' : '') + `?${params.toString()}`;
@@ -208,7 +208,7 @@ export class MapService {
         .map(cityName => {
           const c = cities.find(c => c.name === cityName);
           return {
-            name: c!.name.replace('شهرستان ', ''),
+            city: c!.name.replace('شهرستان ', ''),
             latitude: String(c!.latitude),
             longitude: String(c!.longitude)
           };
@@ -269,15 +269,15 @@ export class MapService {
 
   // calculates the great-circle distance between two points on the Earth's surface,
   // given their latitude and longitude coordinates.
-  private haversineDistance(
-    point1: { lat: number; lng: number },
-    point2: { lat: number; lng: number }
+  haversineDistance(
+    point1: { lat: number | string; lng: number | string },
+    point2: { lat: number | string; lng: number | string }
   ): number {
     const R = 6371e3; // Earth's radius in meters
-    const φ1 = (point1.lat * Math.PI) / 180;
-    const φ2 = (point2.lat * Math.PI) / 180;
-    const Δφ = ((point2.lat - point1.lat) * Math.PI) / 180;
-    const Δλ = ((point2.lng - point1.lng) * Math.PI) / 180;
+    const φ1 = (+point1.lat * Math.PI) / 180;
+    const φ2 = (+point2.lat * Math.PI) / 180;
+    const Δφ = ((+point2.lat - +point1.lat) * Math.PI) / 180;
+    const Δλ = ((+point2.lng - +point1.lng) * Math.PI) / 180;
 
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
               Math.cos(φ1) * Math.cos(φ2) *
