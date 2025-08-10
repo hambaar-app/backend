@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { PackageService } from './package.service';
 import { Turf, TURF_TOKEN } from './turf.provider';
 import { SessionData } from 'express-session';
+import { TripService } from '../trip/trip.service';
 
 export interface TripWithLocations {
   id: string;
@@ -32,7 +33,8 @@ export class MatchingService {
     config: ConfigService,
     private prisma: PrismaService,
     private packageService: PackageService,
-    @Inject(TURF_TOKEN) private turf: Turf
+    private tripService: TripService,
+    @Inject(TURF_TOKEN) private turf: Turf,
   ) {
     this.corridorWidth = config.get<number>('CORRIDOR_WIDTH', 10);
   }
@@ -82,8 +84,8 @@ export class MatchingService {
       )
       .map(result => result.value);
 
-    // Merge results
-    const updatedResults = [...sessionPackage.matchResults];
+    // Merge and sort results
+    let updatedResults = [...sessionPackage.matchResults];
     for (const newResult of newMatchResults) {
       const existingIndex = updatedResults.findIndex(mr => mr.tripId === newResult.tripId);
       if (existingIndex >= 0) {
@@ -92,14 +94,23 @@ export class MatchingService {
         updatedResults.push(newResult);
       }
     }
-    
-    // Limit stored results and update session
-    sessionPackage.lastCheckMatching = now;
-    sessionPackage.matchResults = updatedResults
+    updatedResults = updatedResults
       .sort((a, b) => a.score - b.score)
       .slice(0, maxResults);
+    
+    // Update session
+    sessionPackage.lastCheckMatching = now;
+    sessionPackage.matchResults = updatedResults;
 
-    return sessionPackage.matchResults;
+    // Fetch trips
+    const tripIds = updatedResults.map(u => u.tripId);
+    const trips = await this.tripService.getMultipleById(tripIds);
+
+    // Return trips in the same order as sorted results
+    const tripMap = new Map(trips.map(trip => [trip.id, trip]));
+    return updatedResults
+      .map(result => tripMap.get(result.tripId))
+      .filter(Boolean);
   }
 
   private async getPreFilteredTrips(
@@ -159,17 +170,7 @@ export class MatchingService {
             city: true,
           },
         },
-        vehicle: {
-          select: {
-            vehicleType: true,
-            model: {
-              include: {
-                brand: true
-              }
-            }
-          }
-        }
-        // TODO: Includes transporter?
+        // TODO: Includes transporter and vehicle?
       },
       orderBy: {
         createdAt: 'desc',

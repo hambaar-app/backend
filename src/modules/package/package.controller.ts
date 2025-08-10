@@ -41,6 +41,7 @@ import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 import { MatchingService } from './matching.service';
 import { SessionData } from 'express-session';
+import { TripResponseDto } from '../trip/dto/trip-response.dto';
 
 @Controller('packages')
 export class PackageController {
@@ -197,9 +198,12 @@ export class PackageController {
   @ApiOperation({
     summary: 'Get package matching trips by package id',
   })
+  @ApiOkResponse({
+    type: [TripResponseDto]
+  })
   @AuthResponses()
   @CrudResponses()
-  // @Serialize(PackageResponseDto)
+  @Serialize(TripResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'package',

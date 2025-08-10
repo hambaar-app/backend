@@ -10,6 +10,7 @@ import { PricingModule } from '../pricing/pricing.module';
 import { S3Module } from '../s3/s3.module';
 import { MatchingService } from './matching.service';
 import { TurfProvider } from './turf.provider';
+import { TripModule } from '../trip/trip.module';
 
 
 @Module({
@@ -20,6 +21,7 @@ import { TurfProvider } from './turf.provider';
     MapModule,
     PricingModule,
     S3Module,
+    TripModule,
   ],
   providers: [
     PackageService,
