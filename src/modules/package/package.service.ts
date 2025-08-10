@@ -208,7 +208,7 @@ export class PackageService {
       const keys = packageData.picturesKey;
       const presignedUrls = await Promise.all(
         keys.map(async (key, index) => {
-          const keyString = JSON.stringify(key);
+          const keyString = JSON.stringify(key).split('"')[1];          
           try {
             if (keyString) {
               return this.s3Service.generateGetPresignedUrl(keyString);
@@ -276,7 +276,7 @@ export class PackageService {
         if (keys && Array.isArray(keys)) {
           const presignedUrls = await Promise.all(
             keys.map(async (key, index) => {
-              const keyString = JSON.stringify(key);
+              const keyString = JSON.stringify(key).split('"')[1];
               try {
                 if (keyString) {
                   return this.s3Service.generateGetPresignedUrl(keyString);

@@ -377,7 +377,6 @@ model Trip {
   tripType            TripTypeEnum   @map("trip_type")
   vehicleId           String         @map("vehicle_id") @db.Uuid
   maxPackageWeightGr  Int?           @map("max_package_weight")
-  availableCapacityKg Float?         @map("available_capacity_kg")
   restrictedItems     Json?          @map("restricted_items") @db.JsonB
   departureTime       Json           @map("departure_time") @db.JsonB
   tripStatus          TripStatusEnum @default(scheduled) @map("trip_status")

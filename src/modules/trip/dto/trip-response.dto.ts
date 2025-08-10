@@ -13,7 +13,7 @@ export class TripCompactResponseDto {
   origin: string;
 
   @Expose()
-  @Transform(({ obj }) => obj.origin?.persianName)
+  @Transform(({ obj }) => obj.destination?.persianName)
   destination: string;
 
   @Expose()
@@ -28,9 +28,6 @@ export class TripCompactResponseDto {
 
   @Expose()
   maxPackageWeightGr: number;
-
-  @Expose()
-  availableCapacityKg: number;
 
   @Expose()
   restrictedItems?: string[];

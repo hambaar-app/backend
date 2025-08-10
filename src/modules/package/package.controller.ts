@@ -91,8 +91,8 @@ export class PackageController {
       Recipients can be included by providing recipient Ids created via \`POST /packages/recipients\`
       or retrieved from \`GET /packages/recipients\`.`,
   })
-  @ApiOkResponse({
-    type: [PackageResponseDto],
+  @ApiCreatedResponse({
+    type: PackageResponseDto,
   })
   @AuthResponses()
   @ValidationResponses()
