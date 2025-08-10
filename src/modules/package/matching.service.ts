@@ -86,49 +86,47 @@ export class MatchingService {
 
     // TODO: Filter by departure time
 
-    return this.prisma.trip.findMany({
-      where: whereClause,
-      include: {
-        origin: {
-          select: {
-            id: true,
-            latitude: true,
-            longitude: true,
-          },
+  return this.prisma.trip.findMany({
+    where: whereClause,
+    include: {
+      origin: {
+        select: {
+          id: true,
+          latitude: true,
+          longitude: true,
         },
-        destination: {
-          select: {
-            id: true,
-            latitude: true,
-            longitude: true,
-          },
+      },
+      destination: {
+        select: {
+          id: true,
+          latitude: true,
+          longitude: true,
         },
-        waypoints: {
-          select: {
-            id: true,
-            latitude: true,
-            longitude: true,
-            city: true,
-          },
+      },
+      waypoints: {
+        select: {
+          id: true,
+          latitude: true,
+          longitude: true,
+          city: true,
         },
-        vehicle: {
-          select: {
-            vehicleType: true,
-          },
-          include: {
-            model: {
-              include: {
-                brand: true
-              }
+      },
+      vehicle: {
+        select: {
+          vehicleType: true,
+          model: {
+            include: {
+              brand: true
             }
           }
         }
-        // TODO: Includes transporter?
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+      }
+      // TODO: Includes transporter?
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
   }
 
   private async analyzeTrip(
