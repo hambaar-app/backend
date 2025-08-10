@@ -147,6 +147,17 @@ export class MatchingService {
       return null;
     }
 
+    // Check package and trip are in the same direction.
+    const isDirectionCompatible = this.checkDirectionCompatibility(
+      tripRoute,
+      packageOriginPoint,
+      packageDestinationPoint
+    );
+
+    if (!isDirectionCompatible) {
+      return null;
+    }
+
     const score = this.calculateMatchingScore(
       originDistance,
       destinationDistance,
@@ -204,6 +215,22 @@ export class MatchingService {
     }
 
     return minDistance;
+  }
+
+  // Check if destination comes after origin along the route (Simple).
+  private checkDirectionCompatibility(
+    tripRoute: Feature<LineString>,
+    packageOrigin: Feature<Point>,
+    packageDestination: Feature<Point>
+  ): boolean {
+    // Find positions along the trip route
+    const originPosition = turf.nearestPointOnLine(tripRoute, packageOrigin);
+    const destinationPosition = turf.nearestPointOnLine(tripRoute, packageDestination);
+
+    const originIndex = originPosition.properties?.index || 0;
+    const destinationIndex = destinationPosition.properties?.index || 0;
+
+    return destinationIndex > originIndex;
   }
 
   // Note: Score lower is better.
