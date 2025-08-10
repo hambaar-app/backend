@@ -3,10 +3,25 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Package, Prisma, TripStatusEnum } from 'generated/prisma';
 import * as turf from '@turf/turf';
 import { Feature, LineString, Point } from 'geojson';
-import { MatchResult, TripWithLocations } from './matching.types';
 import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
-import { PackageService } from '../package/package.service';
+import { PackageService } from './package.service';
+
+export interface TripWithLocations {
+  id: string;
+  origin: Location;
+  destination: Location;
+  waypoints: Location[];
+  tripStatus: TripStatusEnum;
+}
+
+export interface MatchResult {
+  tripId: string;
+  score: number;
+  originDistance: number;
+  destinationDistance: number;
+  isOnCorridor: boolean;
+}
 
 @Injectable()
 export class MatchingService {
