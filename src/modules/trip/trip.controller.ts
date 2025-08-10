@@ -68,7 +68,7 @@ export class TripController {
   @CheckOwnership({
     entity: 'trip'
   })
-  @Get('id')
+  @Get(':id')
   async getPackageById(
     @Param('id', ParseUUIDPipe) id: string,
   ) {
