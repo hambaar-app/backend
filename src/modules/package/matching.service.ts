@@ -6,6 +6,7 @@ import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
 import { PackageService } from './package.service';
 import { Turf, TURF_TOKEN } from './turf.provider';
+import { SessionData } from 'express-session';
 
 export interface TripWithLocations {
   id: string;
@@ -38,34 +39,73 @@ export class MatchingService {
 
   async findMatchingTrips(
     packageId: string,
+    session: SessionData,
     maxResults: number = 20
   ) {
+    const now = new Date();
+
+    if (!session.packages) {
+      session.packages = [];
+    }
+
+    // Find or create session package
+    let sessionPackage = session.packages.find(p => p.id === packageId);
+    if (!sessionPackage) {
+      sessionPackage = {
+        id: packageId,
+        matchResults: []
+      };
+      session.packages.push(sessionPackage);
+    }
+
+    // Get package and Pre-filter trips
     const packageData = await this.packageService.getById(packageId);
+    const candidateTrips = await this.getPreFilteredTrips(packageData, sessionPackage.lastCheckMatching);
 
-    // Pre-filter trips using prisma queries
-    const candidateTrips = await this.getPreFilteredTrips(packageData);
-
-    // Analyze each trip for corridor matching
-    const matchResults: MatchResult[] = [];
-    for (const trip of candidateTrips) {
-      const matchResult = await this.analyzeTrip(
+    // Analyze each trip for corridor matching in parallel
+    const matchResultPromises = candidateTrips.map(trip => 
+      this.analyzeTrip(
         trip,
         packageData.originAddress,
         packageData.recipient.address,
         this.corridorWidth
-      );
+      ).catch(error => {
+        console.error(`Error analyzing trip ${trip.id}:`, error);
+        return null;
+      })
+    );
 
-      if (matchResult) {
-        matchResults.push(matchResult);
+    const results = await Promise.allSettled(matchResultPromises);
+    const newMatchResults = results
+      .filter((result): result is PromiseFulfilledResult<MatchResult> => 
+        result.status === 'fulfilled' && result.value !== null
+      )
+      .map(result => result.value);
+
+    // Merge results
+    const updatedResults = [...sessionPackage.matchResults];
+    for (const newResult of newMatchResults) {
+      const existingIndex = updatedResults.findIndex(mr => mr.tripId === newResult.tripId);
+      if (existingIndex >= 0) {
+        updatedResults[existingIndex] = newResult;
+      } else {
+        updatedResults.push(newResult);
       }
     }
-
-    return matchResults
+    
+    // Limit stored results and update session
+    sessionPackage.lastCheckMatching = now;
+    sessionPackage.matchResults = updatedResults
       .sort((a, b) => a.score - b.score)
       .slice(0, maxResults);
+
+    return sessionPackage.matchResults;
   }
 
-  private async getPreFilteredTrips(packageData: Package) {
+  private async getPreFilteredTrips(
+    packageData: Package,
+    lastCheckMatching?: Date
+  ) {
     const whereClause: Prisma.TripWhereInput = {
       isActive: true,
       status: {
@@ -76,6 +116,13 @@ export class MatchingService {
         ],
       },
     };
+
+    // Just check new trips after lastCheckMatching
+    if (lastCheckMatching) {
+      whereClause.updatedAt = {
+        gte: lastCheckMatching
+      };
+    }
 
     // Filter by weight capacity
     if (packageData.weight) {

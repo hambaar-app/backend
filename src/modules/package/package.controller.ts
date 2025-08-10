@@ -14,6 +14,7 @@ import {
   Patch,
   Post,
   Query,
+  Session,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
@@ -39,6 +40,7 @@ import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 import { MatchingService } from './matching.service';
+import { SessionData } from 'express-session';
 
 @Controller('packages')
 export class PackageController {
@@ -203,7 +205,10 @@ export class PackageController {
     entity: 'package',
   })
   @Get(':id/matching-trips')
-  async getPackageMatchingTrips(@Param('id', ParseUUIDPipe) id: string) {
-    return this.matchingService.findMatchingTrips(id);
+  async getPackageMatchingTrips(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Session() session: SessionData
+  ) {
+    return this.matchingService.findMatchingTrips(id, session);
   }
 }
