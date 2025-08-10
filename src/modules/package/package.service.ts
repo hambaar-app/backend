@@ -245,7 +245,7 @@ export class PackageService {
     const packages = await this.prisma.package.findMany({
       where: {
         senderId: userId,
-        shippingStatus: {
+        status: {
           in: status
         },
         deletedAt: null
@@ -305,21 +305,21 @@ export class PackageService {
 
   async update(id: string, packageDto: UpdatePackageDto) {
     return this.prisma.$transaction(async tx => {
-      const { shippingStatus, suggestedPrice } = await tx.package.findFirstOrThrow({
+      const { status, suggestedPrice } = await tx.package.findFirstOrThrow({
         where: {
           id,
           deletedAt: null
         },
         select: {
-          shippingStatus: true,
+          status: true,
           suggestedPrice: true
         }
       });
 
-      const isValidStatus = shippingStatus === PackageStatusEnum.created || 
-                     shippingStatus === PackageStatusEnum.searching_transporter;
+      const isValidStatus = status === PackageStatusEnum.created || 
+                     status === PackageStatusEnum.searching_transporter;
       if (!isValidStatus) {
-        throw new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${shippingStatus}.`);
+        throw new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${status}.`);
       }
 
       if (packageDto.finalPrice < suggestedPrice) {
@@ -338,15 +338,15 @@ export class PackageService {
 
   async delete(id: string) {
     return this.prisma.$transaction(async tx => {
-      const { shippingStatus } = await tx.package.findFirstOrThrow({
+      const { status } = await tx.package.findFirstOrThrow({
         where: { id },
-        select: { shippingStatus: true }
+        select: { status: true }
       });
 
-      const isValidStatus = shippingStatus === PackageStatusEnum.created || 
-                     shippingStatus === PackageStatusEnum.searching_transporter;
+      const isValidStatus = status === PackageStatusEnum.created || 
+                     status === PackageStatusEnum.searching_transporter;
       if (!isValidStatus) {
-        throw new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${shippingStatus}.`);
+        throw new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${status}.`);
       }
 
       return this.prisma.package.update({

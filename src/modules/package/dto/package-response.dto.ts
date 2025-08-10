@@ -1,6 +1,8 @@
 import { Expose, Type } from 'class-transformer';
 import { AddressResponseDto } from 'src/modules/address/dto/address-response.dto';
 import { RecipientResponseDto } from './recipient-response.dto';
+import { TripStatusEnum } from 'generated/prisma';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class PackageCompactResponseDto {
   @Expose()
@@ -17,6 +19,10 @@ export class PackageCompactResponseDto {
 
   @Expose()
   finalPrice: number;
+
+  @ApiProperty({ enum: TripStatusEnum })
+  @Expose()
+  status: TripStatusEnum;
 
   @Expose()
   packageValue?: number;

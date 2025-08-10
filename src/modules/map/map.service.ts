@@ -20,6 +20,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { IntermediateCityDto } from '../trip/dto/intermediate-city.dto';
+import * as turf from '@turf/turf';
 
 @Injectable()
 export class MapService {
@@ -246,7 +247,7 @@ export class MapService {
     });
 
     // Select points from steps with priority point types or significant instructions (Includes 'وارد')
-    let lastPoint: { lat: number; lng: number } | null = null;
+    let lastPoint: { lat: number; lng: number } | undefined;
     for (const leg of route.legs) {
       for (const step of leg.steps) {
         const currentPoint = {
@@ -270,8 +271,8 @@ export class MapService {
   // calculates the great-circle distance between two points on the Earth's surface,
   // given their latitude and longitude coordinates.
   haversineDistance(
-    point1: { lat: number | string; lng: number | string },
-    point2: { lat: number | string; lng: number | string }
+    point1: { lat: number; lng: number },
+    point2: { lat: number; lng: number }
   ): number {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (+point1.lat * Math.PI) / 180;

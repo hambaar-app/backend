@@ -15,7 +15,8 @@ import { UserModule } from '../user/user.module';
     UserModule,
   ],
   controllers: [TripController],
-  providers: [TripService]
+  providers: [TripService],
+  exports: [TripService]
 })
 export class TripModule {
   configure(consumer: MiddlewareConsumer) {

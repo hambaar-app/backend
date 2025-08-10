@@ -1,18 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Package, Prisma, TripStatusEnum } from 'generated/prisma';
-import * as turf from '@turf/turf';
 import { Feature, LineString, Point } from 'geojson';
 import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
 import { PackageService } from './package.service';
+import { Turf, TURF_TOKEN } from './turf.provider';
+import { SessionData } from 'express-session';
+import { TripService } from '../trip/trip.service';
 
 export interface TripWithLocations {
   id: string;
   origin: Location;
   destination: Location;
   waypoints: Location[];
-  tripStatus: TripStatusEnum;
+  status: TripStatusEnum;
 }
 
 export interface MatchResult {
@@ -30,44 +32,94 @@ export class MatchingService {
   constructor(
     config: ConfigService,
     private prisma: PrismaService,
-    private packageService: PackageService
+    private packageService: PackageService,
+    private tripService: TripService,
+    @Inject(TURF_TOKEN) private turf: Turf,
   ) {
     this.corridorWidth = config.get<number>('CORRIDOR_WIDTH', 10);
   }
 
   async findMatchingTrips(
     packageId: string,
-    maxResults: number = 10
-  ): Promise<MatchResult[]> {
+    session: SessionData,
+    maxResults: number = 20
+  ) {
+    const now = new Date();
+
+    if (!session.packages) {
+      session.packages = [];
+    }
+
+    // Find or create session package
+    let sessionPackage = session.packages.find(p => p.id === packageId);
+    if (!sessionPackage) {
+      sessionPackage = {
+        id: packageId,
+        matchResults: []
+      };
+      session.packages.push(sessionPackage);
+    }
+
+    // Get package and Pre-filter trips
     const packageData = await this.packageService.getById(packageId);
+    const candidateTrips = await this.getPreFilteredTrips(packageData, sessionPackage.lastCheckMatching);
 
-    // Pre-filter trips using prisma queries
-    const candidateTrips = await this.getPreFilteredTrips(packageData);
-
-    // Analyze each trip for corridor matching
-    const matchResults: MatchResult[] = [];
-    for (const trip of candidateTrips) {
-      const matchResult = await this.analyzeTrip(
+    // Analyze each trip for corridor matching in parallel
+    const matchResultPromises = candidateTrips.map(trip => 
+      this.analyzeTrip(
         trip,
         packageData.originAddress,
         packageData.recipient.address,
         this.corridorWidth
-      );
+      ).catch(error => {
+        console.error(`Error analyzing trip ${trip.id}:`, error);
+        return null;
+      })
+    );
 
-      if (matchResult) {
-        matchResults.push(matchResult);
+    const results = await Promise.allSettled(matchResultPromises);
+    const newMatchResults = results
+      .filter((result): result is PromiseFulfilledResult<MatchResult> => 
+        result.status === 'fulfilled' && result.value !== null
+      )
+      .map(result => result.value);
+
+    // Merge and sort results
+    let updatedResults = [...sessionPackage.matchResults];
+    for (const newResult of newMatchResults) {
+      const existingIndex = updatedResults.findIndex(mr => mr.tripId === newResult.tripId);
+      if (existingIndex >= 0) {
+        updatedResults[existingIndex] = newResult;
+      } else {
+        updatedResults.push(newResult);
       }
     }
-
-    return matchResults
+    updatedResults = updatedResults
       .sort((a, b) => a.score - b.score)
       .slice(0, maxResults);
+    
+    // Update session
+    sessionPackage.lastCheckMatching = now;
+    sessionPackage.matchResults = updatedResults;
+
+    // Fetch trips
+    const tripIds = updatedResults.map(u => u.tripId);
+    const trips = await this.tripService.getMultipleById(tripIds);
+
+    // Return trips in the same order as sorted results
+    const tripMap = new Map(trips.map(trip => [trip.id, trip]));
+    return updatedResults
+      .map(result => tripMap.get(result.tripId))
+      .filter(Boolean);
   }
 
-  private async getPreFilteredTrips(packageData: Package) {
+  private async getPreFilteredTrips(
+    packageData: Package,
+    lastCheckMatching?: Date
+  ) {
     const whereClause: Prisma.TripWhereInput = {
       isActive: true,
-      tripStatus: {
+      status: {
         in: [
           TripStatusEnum.scheduled,
           TripStatusEnum.delayed,
@@ -75,6 +127,13 @@ export class MatchingService {
         ],
       },
     };
+
+    // Just check new trips after lastCheckMatching
+    if (lastCheckMatching) {
+      whereClause.updatedAt = {
+        gte: lastCheckMatching
+      };
+    }
 
     // Filter by weight capacity
     if (packageData.weight) {
@@ -86,47 +145,37 @@ export class MatchingService {
 
     // TODO: Filter by departure time
 
-  return this.prisma.trip.findMany({
-    where: whereClause,
-    include: {
-      origin: {
-        select: {
-          id: true,
-          latitude: true,
-          longitude: true,
+    return this.prisma.trip.findMany({
+      where: whereClause,
+      include: {
+        origin: {
+          select: {
+            id: true,
+            latitude: true,
+            longitude: true,
+          },
         },
-      },
-      destination: {
-        select: {
-          id: true,
-          latitude: true,
-          longitude: true,
+        destination: {
+          select: {
+            id: true,
+            latitude: true,
+            longitude: true,
+          },
         },
-      },
-      waypoints: {
-        select: {
-          id: true,
-          latitude: true,
-          longitude: true,
-          city: true,
+        waypoints: {
+          select: {
+            id: true,
+            latitude: true,
+            longitude: true,
+            city: true,
+          },
         },
+        // TODO: Includes transporter and vehicle?
       },
-      vehicle: {
-        select: {
-          vehicleType: true,
-          model: {
-            include: {
-              brand: true
-            }
-          }
-        }
-      }
-      // TODO: Includes transporter?
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
   private async analyzeTrip(
@@ -137,12 +186,12 @@ export class MatchingService {
   ): Promise<MatchResult | null> {
     const tripRoute = this.createTripRoute(trip);
     
-    const packageOriginPoint = turf.point([
+    const packageOriginPoint = this.turf.point([
       Number(packageOrigin.longitude),
       Number(packageOrigin.latitude)
     ]);
     
-    const packageDestinationPoint = turf.point([
+    const packageDestinationPoint = this.turf.point([
       Number(packageDestination.longitude),
       Number(packageDestination.latitude)
     ]);
@@ -196,7 +245,7 @@ export class MatchingService {
     });
     coordinates.push([+trip.destination.longitude, +trip.destination.latitude]);
 
-    return turf.lineString(coordinates);
+    return this.turf.lineString(coordinates);
   }
 
   private getDistanceToRoute(
@@ -204,8 +253,8 @@ export class MatchingService {
     route: Feature<LineString>
   ): number {
     try {
-      const nearestPoint = turf.nearestPointOnLine(route, point);
-      return turf.distance(point, nearestPoint, { units: 'meters' });
+      const nearestPoint = this.turf.nearestPointOnLine(route, point);
+      return this.turf.distance(point, nearestPoint, { units: 'meters' });
     } catch (error) {
       console.error('Error calculating distance to route:', error);
       return this.getDistanceToRouteSimple(point, route);
@@ -222,8 +271,8 @@ export class MatchingService {
     let minDistance = Infinity;
 
     for (let i = 0; i < coordinates.length; i++) {
-      const routePoint = turf.point(coordinates[i]);
-      const distance = turf.distance(point, routePoint, { units: 'meters' });
+      const routePoint = this.turf.point(coordinates[i]);
+      const distance = this.turf.distance(point, routePoint, { units: 'meters' });
       minDistance = Math.min(minDistance, distance);
     }
 
@@ -237,8 +286,8 @@ export class MatchingService {
     packageDestination: Feature<Point>
   ): boolean {
     // Find positions along the trip route
-    const originPosition = turf.nearestPointOnLine(tripRoute, packageOrigin);
-    const destinationPosition = turf.nearestPointOnLine(tripRoute, packageDestination);
+    const originPosition = this.turf.nearestPointOnLine(tripRoute, packageOrigin);
+    const destinationPosition = this.turf.nearestPointOnLine(tripRoute, packageDestination);
 
     const originIndex = originPosition.properties?.index || 0;
     const destinationIndex = destinationPosition.properties?.index || 0;

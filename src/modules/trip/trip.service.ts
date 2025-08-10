@@ -77,6 +77,34 @@ export class TripService {
     });
   }
 
+  // TODO: Complete this
+  async getMultipleById(ids: string[]) {
+    return this.prisma.trip.findMany({
+      where: {
+        id: {
+          in: ids
+        }
+      },
+      include: {
+        origin: true,
+        destination: true,
+        waypoints: true,
+        vehicle: {
+          include: {
+            model: {
+              include: {
+                brand: true
+              }
+            }
+          }
+        }
+      },
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
   async getAll(
     userId: string,
     status: TripStatusEnum[] = [
@@ -90,7 +118,7 @@ export class TripService {
         transporter: {
           userId
         },
-        tripStatus: {
+        status: {
           in: status
         },
         deletedAt: null
@@ -117,18 +145,18 @@ export class TripService {
     }: UpdateTripDto
   ) {
     return this.prisma.$transaction(async tx => {
-      const { tripStatus } = await tx.trip.findUniqueOrThrow({
+      const { status } = await tx.trip.findUniqueOrThrow({
         where: {
           id,
           deletedAt: null
         },
         select: {
-          tripStatus: true
+          status: true
         }
       });
       
-      if (tripStatus !== TripStatusEnum.scheduled) {
-        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+      if (status !== TripStatusEnum.scheduled) {
+        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${status}.`);
       }
 
       const tripData = tripDto as Prisma.TripUpdateInput;
@@ -157,18 +185,18 @@ export class TripService {
 
   async delete(id: string) {
     return this.prisma.$transaction(async tx => {
-      const { tripStatus } = await tx.trip.findUniqueOrThrow({
+      const { status } = await tx.trip.findUniqueOrThrow({
         where: {
           id,
           deletedAt: null
         },
         select: {
-          tripStatus: true
+          status: true
         }
       });
       
-      if (tripStatus !== TripStatusEnum.scheduled) {
-        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+      if (status !== TripStatusEnum.scheduled) {
+        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${status}.`);
       }
 
       return tx.trip.update({
