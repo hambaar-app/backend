@@ -51,7 +51,7 @@ export class TripCompactResponseDto {
   deletedAt: Date;
 }
 
-export class TripResponseDto {
+export class TripResponseDto extends TripCompactResponseDto {
   @Expose()
   @Type(() => VehicleResponseDto)
   vehicle: VehicleResponseDto;
