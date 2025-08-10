@@ -77,6 +77,34 @@ export class TripService {
     });
   }
 
+  // TODO: Complete this
+  async getMultipleById(ids: string[]) {
+    return this.prisma.trip.findMany({
+      where: {
+        id: {
+          in: ids
+        }
+      },
+      include: {
+        origin: true,
+        destination: true,
+        waypoints: true,
+        vehicle: {
+          include: {
+            model: {
+              include: {
+                brand: true
+              }
+            }
+          }
+        }
+      },
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
   async getAll(
     userId: string,
     status: TripStatusEnum[] = [
