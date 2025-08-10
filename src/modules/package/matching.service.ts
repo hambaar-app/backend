@@ -12,7 +12,7 @@ export interface TripWithLocations {
   origin: Location;
   destination: Location;
   waypoints: Location[];
-  tripStatus: TripStatusEnum;
+  status: TripStatusEnum;
 }
 
 export interface MatchResult {
@@ -38,8 +38,8 @@ export class MatchingService {
 
   async findMatchingTrips(
     packageId: string,
-    maxResults: number = 10
-  ): Promise<MatchResult[]> {
+    maxResults: number = 20
+  ) {
     const packageData = await this.packageService.getById(packageId);
 
     // Pre-filter trips using prisma queries
@@ -68,7 +68,7 @@ export class MatchingService {
   private async getPreFilteredTrips(packageData: Package) {
     const whereClause: Prisma.TripWhereInput = {
       isActive: true,
-      tripStatus: {
+      status: {
         in: [
           TripStatusEnum.scheduled,
           TripStatusEnum.delayed,
@@ -87,47 +87,47 @@ export class MatchingService {
 
     // TODO: Filter by departure time
 
-  return this.prisma.trip.findMany({
-    where: whereClause,
-    include: {
-      origin: {
-        select: {
-          id: true,
-          latitude: true,
-          longitude: true,
+    return this.prisma.trip.findMany({
+      where: whereClause,
+      include: {
+        origin: {
+          select: {
+            id: true,
+            latitude: true,
+            longitude: true,
+          },
         },
-      },
-      destination: {
-        select: {
-          id: true,
-          latitude: true,
-          longitude: true,
+        destination: {
+          select: {
+            id: true,
+            latitude: true,
+            longitude: true,
+          },
         },
-      },
-      waypoints: {
-        select: {
-          id: true,
-          latitude: true,
-          longitude: true,
-          city: true,
+        waypoints: {
+          select: {
+            id: true,
+            latitude: true,
+            longitude: true,
+            city: true,
+          },
         },
-      },
-      vehicle: {
-        select: {
-          vehicleType: true,
-          model: {
-            include: {
-              brand: true
+        vehicle: {
+          select: {
+            vehicleType: true,
+            model: {
+              include: {
+                brand: true
+              }
             }
           }
         }
-      }
-      // TODO: Includes transporter?
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+        // TODO: Includes transporter?
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
   private async analyzeTrip(

@@ -268,7 +268,7 @@ model Province {
   englishName String @unique @map("english_name")
 
   // Relations
-  cities      City[]
+  cities City[]
 
   @@map("provinces")
 }
@@ -344,7 +344,7 @@ model Package {
   dimensions            String?           @db.VarChar // in cm and "LxWxH" format
   suggestedPrice        Int               @default(0) @map("suggested_price") // IRR
   finalPrice            Int               @default(0) @map("final_price") // IRR
-  shippingStatus        PackageStatusEnum @default(created) @map("shipping_status")
+  status                PackageStatusEnum @default(created) @map("status")
   packageValue          Int?              @map("package_value") // cost
   isFragile             Boolean?          @map("is_fragile")
   isPerishable          Boolean?          @map("is_perishable")
@@ -370,18 +370,18 @@ model Package {
 }
 
 model Trip {
-  id                  String         @id @default(uuid()) @db.Uuid
-  transporterId       String         @map("transporter_id") @db.Uuid
-  originId            String         @map("origin_id") @db.Uuid
-  destinationId       String         @map("destination_id") @db.Uuid
-  tripType            TripTypeEnum   @map("trip_type")
-  vehicleId           String         @map("vehicle_id") @db.Uuid
-  maxPackageWeightGr  Int?           @map("max_package_weight")
-  restrictedItems     Json?          @map("restricted_items") @db.JsonB
-  departureTime       Json           @map("departure_time") @db.JsonB
-  tripStatus          TripStatusEnum @default(scheduled) @map("trip_status")
-  description         String?        @db.Text
-  isActive            Boolean?       @default(true) @map("is_active")
+  id                 String         @id @default(uuid()) @db.Uuid
+  transporterId      String         @map("transporter_id") @db.Uuid
+  originId           String         @map("origin_id") @db.Uuid
+  destinationId      String         @map("destination_id") @db.Uuid
+  tripType           TripTypeEnum   @map("trip_type")
+  vehicleId          String         @map("vehicle_id") @db.Uuid
+  maxPackageWeightGr Int?           @map("max_package_weight")
+  restrictedItems    Json?          @map("restricted_items") @db.JsonB
+  departureTime      Json           @map("departure_time") @db.JsonB
+  status             TripStatusEnum @default(scheduled) @map("status")
+  description        String?        @db.Text
+  isActive           Boolean?       @default(true) @map("is_active")
 
   // Relations
   waypoints        TripWaypoint[]

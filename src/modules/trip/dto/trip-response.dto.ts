@@ -3,6 +3,7 @@ import { AddressResponseDto } from 'src/modules/address/dto/address-response.dto
 import { IntermediateCityDto } from './intermediate-city.dto';
 import { Expose, Transform, Type } from 'class-transformer';
 import { VehicleResponseDto } from 'src/modules/vehicle/dto/vehicle-response.dto';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class TripCompactResponseDto {
   @Expose()
@@ -20,6 +21,7 @@ export class TripCompactResponseDto {
   @Type(() => IntermediateCityDto)
   waypoints: IntermediateCityDto[];
 
+  @ApiProperty({ enum: TripTypeEnum })
   @Expose()
   tripType: TripTypeEnum;
 
@@ -35,8 +37,9 @@ export class TripCompactResponseDto {
   @Expose()
   departureTime: [Date, Date];
 
+  @ApiProperty({ enum: TripStatusEnum })
   @Expose()
-  tripStatus: TripStatusEnum;
+  status: TripStatusEnum;
 
   @Expose()
   description?: string;
