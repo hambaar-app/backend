@@ -8,22 +8,7 @@ import { PackageService } from './package.service';
 import { Turf, TURF_TOKEN } from './turf.provider';
 import { SessionData } from 'express-session';
 import { TripService } from '../trip/trip.service';
-
-export interface TripWithLocations {
-  id: string;
-  origin: Location;
-  destination: Location;
-  waypoints: Location[];
-  status: TripStatusEnum;
-}
-
-export interface MatchResult {
-  tripId: string;
-  score: number;
-  originDistance: number;
-  destinationDistance: number;
-  isOnCorridor: boolean;
-}
+import { MatchResult, TripWithLocations } from './matching.types';
 
 @Injectable()
 export class MatchingService {

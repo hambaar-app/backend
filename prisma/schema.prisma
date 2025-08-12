@@ -356,11 +356,11 @@ model Package {
   picturesKey           Json?             @map("pictures_key") @db.JsonB
 
   // Relations
-  deliveryRequests DeliveryRequest[] @relation("SenderRequests")
+  deliveryRequests TripRequest[]    @relation("SenderRequests")
   matchedRequest   MatchedRequest?
-  sender           User              @relation(fields: [senderId], references: [id])
-  originAddress    Address           @relation("OriginAddress", fields: [originAddressId], references: [id])
-  recipient        PackageRecipient  @relation(fields: [recipientId], references: [id])
+  sender           User             @relation(fields: [senderId], references: [id])
+  originAddress    Address          @relation("OriginAddress", fields: [originAddressId], references: [id])
+  recipient        PackageRecipient @relation(fields: [recipientId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -384,13 +384,13 @@ model Trip {
   isActive           Boolean?       @default(true) @map("is_active")
 
   // Relations
-  waypoints        TripWaypoint[]
-  deliveryRequests DeliveryRequest[] @relation("TransporterRequests")
-  matchedRequests  MatchedRequest[]
-  transporter      Transporter       @relation(fields: [transporterId], references: [id])
-  origin           City              @relation("TripOrigin", fields: [originId], references: [id])
-  destination      City              @relation("TripDestination", fields: [destinationId], references: [id])
-  vehicle          Vehicle           @relation(fields: [vehicleId], references: [id])
+  waypoints       TripWaypoint[]
+  requests        TripRequest[]    @relation("TransporterRequests")
+  matchedRequests MatchedRequest[]
+  transporter     Transporter      @relation(fields: [transporterId], references: [id])
+  origin          City             @relation("TripOrigin", fields: [originId], references: [id])
+  destination     City             @relation("TripDestination", fields: [destinationId], references: [id])
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -416,11 +416,11 @@ model TripWaypoint {
   @@map("trip_waypoints")
 }
 
-model DeliveryRequest {
+model TripRequest {
   id                String             @id @default(uuid()) @db.Uuid
   packageId         String             @map("package_id") @db.Uuid
   tripId            String             @map("trip_id") @db.Uuid
-  offeredPrice      Int                @default(0) @map("offered_price") // shipping_cost - commission (%)
+  offeredPrice      Int                @default(0) @map("offered_price")
   estimatedOvertime Int                @default(0) @map("estimated_overtime") // minutes
   senderNotes       String?            @map("sender_notes") @db.Text
   status            RequestStatusEnum?
@@ -434,7 +434,7 @@ model DeliveryRequest {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
-  @@map("delivery_requests")
+  @@map("trip_requests")
 }
 
 model MatchedRequest {
@@ -458,7 +458,7 @@ model MatchedRequest {
   cancelledBy        RolesEnum?        @map("cancelled_by")
 
   // Relations
-  request         DeliveryRequest  @relation(fields: [requestId], references: [id]) // TODO
+  request         TripRequest      @relation(fields: [requestId], references: [id]) // TODO
   package         Package          @relation(fields: [packageId], references: [id])
   trip            Trip             @relation(fields: [tripId], references: [id])
   sender          User             @relation("SenderMatches", fields: [senderId], references: [id])
