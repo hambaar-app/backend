@@ -95,15 +95,16 @@ export class MatchingService {
       }
     }
     updatedResults = updatedResults
-      .sort((a, b) => a.score - b.score)
-      .slice(0, maxResults);
+      .sort((a, b) => a.score - b.score);
     
     // Update session
     sessionPackage.lastCheckMatching = now;
     sessionPackage.matchResults = updatedResults;
 
     // Fetch trips
-    const tripIds = updatedResults.map(u => u.tripId);
+    const tripIds = updatedResults
+      .map(u => u.tripId)
+      .slice(0, maxResults);;
     const trips = await this.tripService.getMultipleById(tripIds);
 
     // Return trips in the same order as sorted results

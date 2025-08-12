@@ -20,7 +20,6 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { IntermediateCityDto } from '../trip/dto/intermediate-city.dto';
-import * as turf from '@turf/turf';
 
 @Injectable()
 export class MapService {
@@ -81,78 +80,6 @@ export class MapService {
         error.response?.data || error.message
       );
       throw new InternalServerErrorException('Failed to calculate distance.');
-    }
-  }
-
-  async getDirections({
-    type = 'car',
-    origin,
-    destination,
-  }: RoutingDto): Promise<RoutingResponse> {
-    try {
-      const params = new URLSearchParams();
-      params.append('type', type);
-      params.append('origin', `${origin.latitude},${origin.longitude}`);
-      params.append('destination', `${destination.latitude},${destination.longitude}`);
-
-      const url = `${this.mapApiUrl}/v4/direction`
-        + `${type === 'car' ? '/no-traffic' : ''}`
-        + `?${params.toString()}`;
-
-      const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
-        this.httpService.get<RoutingResponse>(url, {
-          headers: {
-            'Api-Key': this.mapApiKey,
-          },
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        const errorCode = error.response.status;
-        const errorBody = error.response.data;
-
-        if (errorCode === 407) {
-          throw new BadRequestException('Invalid geographic coordinates provided.');
-        }
-
-        console.error('API Error:', errorBody);
-        throw new InternalServerErrorException('Something wrong.');
-      }
-
-      console.error(
-        'Error calling Neshan directions API:',
-        error.response?.data || error.message
-      );
-      throw new InternalServerErrorException('Failed to get directions.');
-    }
-  }
-
-  async reverseGeocode(
-    {
-      latitude,
-      longitude
-    }: Location
-  ): Promise<ReverseGeocodingResponse> {
-    try {
-      const url = `${this.mapApiUrl}/v5/reverse?lat=${latitude}&lng=${longitude}`;
-
-      const response: AxiosResponse<ReverseGeocodingResponse> = await firstValueFrom(
-        this.httpService.get<ReverseGeocodingResponse>(url, {
-          headers: {
-            'Api-Key': this.mapApiKey,
-          },
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error(
-        'Error calling Neshan reverse geocoding API:',
-        error.response?.data || error.message
-      );
-      throw new InternalServerErrorException('Failed to reverse geocode.');
     }
   }
 
@@ -223,6 +150,78 @@ export class MapService {
     }
   }
 
+  private async getDirections({
+    type = 'car',
+    origin,
+    destination,
+  }: RoutingDto): Promise<RoutingResponse> {
+    try {
+      const params = new URLSearchParams();
+      params.append('type', type);
+      params.append('origin', `${origin.latitude},${origin.longitude}`);
+      params.append('destination', `${destination.latitude},${destination.longitude}`);
+
+      const url = `${this.mapApiUrl}/v4/direction`
+        + `${type === 'car' ? '/no-traffic' : ''}`
+        + `?${params.toString()}`;
+
+      const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
+        this.httpService.get<RoutingResponse>(url, {
+          headers: {
+            'Api-Key': this.mapApiKey,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        const errorCode = error.response.status;
+        const errorBody = error.response.data;
+
+        if (errorCode === 407) {
+          throw new BadRequestException('Invalid geographic coordinates provided.');
+        }
+
+        console.error('API Error:', errorBody);
+        throw new InternalServerErrorException('Something wrong.');
+      }
+
+      console.error(
+        'Error calling Neshan directions API:',
+        error.response?.data || error.message
+      );
+      throw new InternalServerErrorException('Failed to get directions.');
+    }
+  }
+
+  private async reverseGeocode(
+    {
+      latitude,
+      longitude
+    }: Location
+  ): Promise<ReverseGeocodingResponse> {
+    try {
+      const url = `${this.mapApiUrl}/v5/reverse?lat=${latitude}&lng=${longitude}`;
+
+      const response: AxiosResponse<ReverseGeocodingResponse> = await firstValueFrom(
+        this.httpService.get<ReverseGeocodingResponse>(url, {
+          headers: {
+            'Api-Key': this.mapApiKey,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error(
+        'Error calling Neshan reverse geocoding API:',
+        error.response?.data || error.message
+      );
+      throw new InternalServerErrorException('Failed to reverse geocode.');
+    }
+  }
+
   private extractSignificantPoints(route: NeshanRoute): Array<{ lat: number; lng: number }> {
     const points: Array<{ lat: number; lng: number }> = [];
     const minDistanceThreshold = 10000; // minimum distance between points
@@ -270,7 +269,7 @@ export class MapService {
 
   // calculates the great-circle distance between two points on the Earth's surface,
   // given their latitude and longitude coordinates.
-  haversineDistance(
+  private haversineDistance(
     point1: { lat: number; lng: number },
     point2: { lat: number; lng: number }
   ): number {
