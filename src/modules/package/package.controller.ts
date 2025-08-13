@@ -224,8 +224,26 @@ export class PackageController {
   @Get(':id/requests')
   async getAllPackageRequests(
     @Param('id', ParseUUIDPipe) id: string,
-    @Session() session: SessionData
   ) {
     return this.packageService.getAllPackageRequests(id);
+  }
+
+  @ApiOperation({
+    summary: 'Cancel a trip request by its id',
+    description: `Allows a sender to cancel a \`pending\` trip request.
+      No error is thrown if the request is not in \`pending\` status.`
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @Serialize(TripResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'packageRequest',
+  })
+  @Patch('requests/:id')
+  async updateTripRequest(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.packageService.updateRequest(id);
   }
 }

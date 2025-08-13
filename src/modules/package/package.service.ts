@@ -5,7 +5,7 @@ import { CreatePackageDto } from './dto/create-package.dto';
 import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
 import { formatPrismaError } from 'src/common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
-import { PackageStatusEnum } from 'generated/prisma';
+import { PackageStatusEnum, RequestStatusEnum } from 'generated/prisma';
 import { MapService } from '../map/map.service';
 import { PricingService } from '../pricing/pricing.service';
 import { S3Service } from '../s3/s3.service';
@@ -366,6 +366,18 @@ export class PackageService {
       },
       orderBy: {
         createdAt: 'desc'
+      }
+    });
+  }
+
+  async updateRequest(requestId: string) {
+    return this.prisma.tripRequest.update({
+      where: {
+        id: requestId,
+        status: RequestStatusEnum.pending
+      },
+      data: {
+        status: RequestStatusEnum.canceled
       }
     });
   }
