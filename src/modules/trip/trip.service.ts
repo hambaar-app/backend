@@ -5,10 +5,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { AuthMessages, BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
-import { PackageStatusEnum, Prisma, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
+import { PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { SessionData } from 'express-session';
+import { UpdateRequestDto } from './dto/update-request.dto';
 
 @Injectable()
 export class TripService {
@@ -362,6 +363,44 @@ export class TripService {
           senderNote
         }
       });
+    });
+  }
+
+  async updateRequest(
+    requestId: string,
+    {
+      status
+    }: UpdateRequestDto
+  ) {
+    if (status === RequestStatusEnum.rejected) {
+      return this.prisma.tripRequest.update({
+        where: { id: requestId },
+        data: { status }
+      }).catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
+    }
+
+    return this.prisma.$transaction(async tx => {
+      const request = await tx.tripRequest.update({
+        where: { id: requestId },
+        data: { status }
+      });
+
+      await tx.tripRequest.updateMany({
+        where: {
+          packageId: request.packageId
+        },
+        data: {
+          status: RequestStatusEnum.deleted
+        }
+      });
+
+      return request;
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 }
