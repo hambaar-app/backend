@@ -3,10 +3,11 @@ import { TripTypeEnum } from 'generated/prisma';
 export type VehicleTypes = 'car' | 'motorcycle';
 
 export interface CalculateDistanceInput {
-  vehicleType: VehicleTypes,
-  tripType: TripTypeEnum,
+  vehicleType?: VehicleTypes,
+  tripType?: TripTypeEnum,
   origins: Location[],
-  destinations: Location[]
+  destinations: Location[],
+  waypoints?: Location[];
 }
 
 export interface Location {

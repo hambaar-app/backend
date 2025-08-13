@@ -132,8 +132,6 @@ export class PackageService {
 
       // Calculate distance for pricing
       const { distance } = await this.mapService.calculateDistance({
-        vehicleType: 'car',
-        tripType: 'intercity',
         origins: [{
           latitude: originAddress.latitude!,
           longitude: originAddress.longitude!
