@@ -366,6 +366,18 @@ export class TripService {
     });
   }
 
+  async getAllTripRequests(tripId: string) {
+    return this.prisma.tripRequest.findMany({
+      where: {
+        tripId,
+        status: RequestStatusEnum.pending
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
+  }
+
   async updateRequest(
     requestId: string,
     {

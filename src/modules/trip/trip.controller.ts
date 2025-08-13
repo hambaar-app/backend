@@ -219,6 +219,23 @@ export class TripController {
   }
 
   @ApiOperation({
+    summary: 'Get all trip requests'
+  })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Get(':id/requests')
+  async getAllTripRequests(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.tripService.getAllTripRequests(id);
+  }
+
+  @ApiOperation({
     summary: 'Update a request status (For transporter)'
   })
   @AuthResponses()
