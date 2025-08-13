@@ -46,10 +46,10 @@ export class TripController {
     description: 'Failed to get intermediate cities.'
   })
   @Serialize(IntermediateCityDto)
-  // @UseGuards(AccessTokenGuard)
-  @Get('intermediate-cities')
-  async getIntermediateCities(@Query() query: CoordinatesQueryDto) {
-    return this.tripService.getIntermediateCities(query);
+  @UseGuards(AccessTokenGuard)
+  @Get('intermediate-cities/with-coords')
+  async getIntermediateCitiesWithCoords(@Query() query: CoordinatesQueryDto) {
+    return this.tripService.getIntermediateCitiesWithCoords(query);
   }
 
   @ApiOperation({

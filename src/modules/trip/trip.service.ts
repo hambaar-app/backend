@@ -20,6 +20,8 @@ export class TripService {
     {
       vehicleId,
       waypoints,
+      originId,
+      destinationId,
       ...tripDto
     }: CreateTripDto,
     tripType: TripTypeEnum = TripTypeEnum.intercity
@@ -38,10 +40,33 @@ export class TripService {
         throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} vehicle.`);
       }
 
+      const originCity = await tx.city.findUniqueOrThrow({
+        where: { id: originId }
+      });
+
+      const destinationCity = await tx.city.findUniqueOrThrow({
+        where: { id: destinationId }
+      });
+
+      const { distance } = await this.mapService.calculateDistance({
+        origins: [{
+          latitude: originCity.latitude,
+          longitude: originCity.longitude
+        }],
+        destinations: [{
+          latitude: destinationCity.latitude,
+          longitude: destinationCity.longitude
+        }],
+        waypoints
+      });
+
       const tripData = {
         transporterId: vehicle.ownerId,
+        originId,
+        destinationId,
         vehicleId: vehicle.id,
         tripType,
+        normalDistanceKm: distance,
         ...tripDto,
       } as Prisma.TripUncheckedCreateInput;
 
@@ -221,7 +246,7 @@ export class TripService {
     });;
   }
 
-  async getIntermediateCities(
+  async getIntermediateCitiesWithCoords(
     {
       origin,
       destination
