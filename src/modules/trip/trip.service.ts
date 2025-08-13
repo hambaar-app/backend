@@ -83,6 +83,17 @@ export class TripService {
       where: {
         id: {
           in: ids
+        },
+        status: {
+          in: [
+            TripStatusEnum.scheduled,
+            TripStatusEnum.delayed,
+        ],
+        },
+        waypoints: {
+          every: {
+            isVisible: true
+          }
         }
       },
       include: {
@@ -109,7 +120,6 @@ export class TripService {
     userId: string,
     status: TripStatusEnum[] = [
       TripStatusEnum.scheduled,
-      TripStatusEnum.active,
       TripStatusEnum.delayed
     ]
   ) {

@@ -109,7 +109,6 @@ export class MatchingService {
         in: [
           TripStatusEnum.scheduled,
           TripStatusEnum.delayed,
-          TripStatusEnum.active
         ],
       },
     };
@@ -239,6 +238,7 @@ export class MatchingService {
     route: Feature<LineString>
   ): number {
     try {
+      // TODO: Just check point about waypoints.
       const nearestPoint = this.turf.nearestPointOnLine(route, point);
       return this.turf.distance(point, nearestPoint, { units: 'meters' });
     } catch (error) {

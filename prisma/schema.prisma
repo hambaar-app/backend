@@ -78,7 +78,6 @@ enum TripTypeEnum {
 enum TripStatusEnum {
   scheduled
   delayed
-  active
   in_progress
   completed
 
@@ -405,6 +404,7 @@ model TripWaypoint {
   city      String? @db.VarChar
   latitude  String
   longitude String
+  isVisible Boolean @default(false) @map("is_visible")
 
   // Relations
   trip Trip @relation(fields: [tripId], references: [id])
