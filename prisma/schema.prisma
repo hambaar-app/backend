@@ -369,18 +369,21 @@ model Package {
 }
 
 model Trip {
-  id                 String         @id @default(uuid()) @db.Uuid
-  transporterId      String         @map("transporter_id") @db.Uuid
-  originId           String         @map("origin_id") @db.Uuid
-  destinationId      String         @map("destination_id") @db.Uuid
-  tripType           TripTypeEnum   @map("trip_type")
-  vehicleId          String         @map("vehicle_id") @db.Uuid
-  maxPackageWeightGr Int?           @map("max_package_weight")
-  restrictedItems    Json?          @map("restricted_items") @db.JsonB
-  departureTime      Json           @map("departure_time") @db.JsonB
-  status             TripStatusEnum @default(scheduled) @map("status")
-  description        String?        @db.Text
-  isActive           Boolean?       @default(true) @map("is_active")
+  id                       String         @id @default(uuid()) @db.Uuid
+  transporterId            String         @map("transporter_id") @db.Uuid
+  originId                 String         @map("origin_id") @db.Uuid
+  destinationId            String         @map("destination_id") @db.Uuid
+  tripType                 TripTypeEnum   @map("trip_type")
+  vehicleId                String         @map("vehicle_id") @db.Uuid
+  normalDistanceKm         Float?         @map("normal_distance_km") @db.DoublePrecision
+  totalDeviationDistanceKm Float?         @default(0) @map("total_deviation_distance_km") @db.DoublePrecision
+  totalDeviationTimeMin    Float?         @default(0) @map("total_deviation_time_min") @db.DoublePrecision
+  maxPackageWeightGr       Int?           @map("max_package_weight")
+  restrictedItems          Json?          @map("restricted_items") @db.JsonB
+  departureTime            Json           @map("departure_time") @db.JsonB
+  status                   TripStatusEnum @default(scheduled) @map("status")
+  description              String?        @db.Text
+  isActive                 Boolean?       @default(true) @map("is_active")
 
   // Relations
   waypoints       TripWaypoint[]
