@@ -87,6 +87,7 @@ enum TripStatusEnum {
 enum RequestStatusEnum {
   pending
   accepted
+  rejected
   canceled
   deleted
 
@@ -426,7 +427,7 @@ model TripRequest {
   offeredPrice      Int                @default(0) @map("offered_price")
   estimatedOvertime Int                @default(0) @map("estimated_overtime") // minutes
   senderNote        String?            @map("sender_note") @db.Text
-  status            RequestStatusEnum?
+  status            RequestStatusEnum? @default(pending)
 
   // Relations
   package        Package         @relation("SenderRequests", fields: [packageId], references: [id])
@@ -437,6 +438,7 @@ model TripRequest {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
+  @@unique([packageId, tripId, deletedAt])
   @@map("trip_requests")
 }
 
