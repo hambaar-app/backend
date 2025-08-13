@@ -30,6 +30,7 @@ import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto
 import { CreateRequestDto } from './dto/create-request.dto';
 import { SessionData } from 'express-session';
 import { BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
+import { UpdateRequestDto } from './dto/update-request.dto';
 
 @Controller('trips')
 export class TripController {
@@ -211,9 +212,27 @@ export class TripController {
   @Post('requests')
   async createTripRequest(
     @Body() body: CreateRequestDto,
-    @CurrentUser('id') id: string,
+    @CurrentUser('id') userId: string,
     @Session() session: SessionData
   ) {
-    return this.tripService.createRequest(id, body, session);
+    return this.tripService.createRequest(userId, body, session);
+  }
+
+  @ApiOperation({
+    summary: 'Update a request status (For transporter)'
+  })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'request'
+  })
+  @Patch('requests/:id')
+  async updateTripRequest(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateRequestDto,
+  ) {
+    return this.tripService.updateRequest(id, body);
   }
 }
