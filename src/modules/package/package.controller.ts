@@ -1,22 +1,17 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
-  ParseArrayPipe,
-  ParseEnumPipe,
-  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
   Session,
   UseGuards,
-  ValidationPipe,
 } from '@nestjs/common';
 import { PackageService } from './package.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
@@ -214,5 +209,41 @@ export class PackageController {
     @Session() session: SessionData
   ) {
     return this.matchingService.findMatchingTrips(id, session);
+  }
+
+  @ApiOperation({
+    summary: 'Get all package requests by its id',
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @Serialize(TripResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'package',
+  })
+  @Get(':id/requests')
+  async getAllPackageRequests(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.packageService.getAllPackageRequests(id);
+  }
+
+  @ApiOperation({
+    summary: 'Cancel a trip request by its id',
+    description: `Allows a sender to cancel a \`pending\` trip request.
+      No error is thrown if the request is not in \`pending\` status.`
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @Serialize(TripResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'packageRequest',
+  })
+  @Patch('requests/:id')
+  async updateTripRequest(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.packageService.updateRequest(id);
   }
 }

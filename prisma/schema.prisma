@@ -78,7 +78,6 @@ enum TripTypeEnum {
 enum TripStatusEnum {
   scheduled
   delayed
-  active
   in_progress
   completed
 
@@ -88,6 +87,7 @@ enum TripStatusEnum {
 enum RequestStatusEnum {
   pending
   accepted
+  rejected
   canceled
   deleted
 
@@ -356,11 +356,11 @@ model Package {
   picturesKey           Json?             @map("pictures_key") @db.JsonB
 
   // Relations
-  deliveryRequests DeliveryRequest[] @relation("SenderRequests")
+  deliveryRequests TripRequest[]    @relation("SenderRequests")
   matchedRequest   MatchedRequest?
-  sender           User              @relation(fields: [senderId], references: [id])
-  originAddress    Address           @relation("OriginAddress", fields: [originAddressId], references: [id])
-  recipient        PackageRecipient  @relation(fields: [recipientId], references: [id])
+  sender           User             @relation(fields: [senderId], references: [id])
+  originAddress    Address          @relation("OriginAddress", fields: [originAddressId], references: [id])
+  recipient        PackageRecipient @relation(fields: [recipientId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -370,27 +370,30 @@ model Package {
 }
 
 model Trip {
-  id                 String         @id @default(uuid()) @db.Uuid
-  transporterId      String         @map("transporter_id") @db.Uuid
-  originId           String         @map("origin_id") @db.Uuid
-  destinationId      String         @map("destination_id") @db.Uuid
-  tripType           TripTypeEnum   @map("trip_type")
-  vehicleId          String         @map("vehicle_id") @db.Uuid
-  maxPackageWeightGr Int?           @map("max_package_weight")
-  restrictedItems    Json?          @map("restricted_items") @db.JsonB
-  departureTime      Json           @map("departure_time") @db.JsonB
-  status             TripStatusEnum @default(scheduled) @map("status")
-  description        String?        @db.Text
-  isActive           Boolean?       @default(true) @map("is_active")
+  id                        String         @id @default(uuid()) @db.Uuid
+  transporterId             String         @map("transporter_id") @db.Uuid
+  originId                  String         @map("origin_id") @db.Uuid
+  destinationId             String         @map("destination_id") @db.Uuid
+  tripType                  TripTypeEnum   @map("trip_type")
+  vehicleId                 String         @map("vehicle_id") @db.Uuid
+  normalDistanceKm          Float?         @map("normal_distance_km") @db.DoublePrecision
+  totalDeviationDistanceKm  Float?         @default(0) @map("total_deviation_distance_km") @db.DoublePrecision
+  totalDeviationDurationMin Float?         @default(0) @map("total_deviation_duration_min") @db.DoublePrecision
+  maxPackageWeightGr        Int?           @map("max_package_weight")
+  restrictedItems           Json?          @map("restricted_items") @db.JsonB
+  departureTime             Json           @map("departure_time") @db.JsonB
+  status                    TripStatusEnum @default(scheduled) @map("status")
+  description               String?        @db.Text
+  isActive                  Boolean?       @default(true) @map("is_active")
 
   // Relations
-  waypoints        TripWaypoint[]
-  deliveryRequests DeliveryRequest[] @relation("TransporterRequests")
-  matchedRequests  MatchedRequest[]
-  transporter      Transporter       @relation(fields: [transporterId], references: [id])
-  origin           City              @relation("TripOrigin", fields: [originId], references: [id])
-  destination      City              @relation("TripDestination", fields: [destinationId], references: [id])
-  vehicle          Vehicle           @relation(fields: [vehicleId], references: [id])
+  waypoints       TripWaypoint[]
+  requests        TripRequest[]    @relation("TransporterRequests")
+  matchedRequests MatchedRequest[]
+  transporter     Transporter      @relation(fields: [transporterId], references: [id])
+  origin          City             @relation("TripOrigin", fields: [originId], references: [id])
+  destination     City             @relation("TripDestination", fields: [destinationId], references: [id])
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -405,6 +408,7 @@ model TripWaypoint {
   city      String? @db.VarChar
   latitude  String
   longitude String
+  isVisible Boolean @default(false) @map("is_visible")
 
   // Relations
   trip Trip @relation(fields: [tripId], references: [id])
@@ -416,14 +420,14 @@ model TripWaypoint {
   @@map("trip_waypoints")
 }
 
-model DeliveryRequest {
+model TripRequest {
   id                String             @id @default(uuid()) @db.Uuid
   packageId         String             @map("package_id") @db.Uuid
   tripId            String             @map("trip_id") @db.Uuid
-  offeredPrice      Int                @default(0) @map("offered_price") // shipping_cost - commission (%)
+  offeredPrice      Int                @default(0) @map("offered_price")
   estimatedOvertime Int                @default(0) @map("estimated_overtime") // minutes
-  senderNotes       String?            @map("sender_notes") @db.Text
-  status            RequestStatusEnum?
+  senderNote        String?            @map("sender_note") @db.Text
+  status            RequestStatusEnum? @default(pending)
 
   // Relations
   package        Package         @relation("SenderRequests", fields: [packageId], references: [id])
@@ -434,7 +438,8 @@ model DeliveryRequest {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
-  @@map("delivery_requests")
+  @@unique([packageId, tripId, deletedAt])
+  @@map("trip_requests")
 }
 
 model MatchedRequest {
@@ -458,7 +463,7 @@ model MatchedRequest {
   cancelledBy        RolesEnum?        @map("cancelled_by")
 
   // Relations
-  request         DeliveryRequest  @relation(fields: [requestId], references: [id]) // TODO
+  request         TripRequest      @relation(fields: [requestId], references: [id]) // TODO
   package         Package          @relation(fields: [packageId], references: [id])
   trip            Trip             @relation(fields: [tripId], references: [id])
   sender          User             @relation("SenderMatches", fields: [senderId], references: [id])

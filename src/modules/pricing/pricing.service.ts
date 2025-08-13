@@ -207,16 +207,3 @@ export class PricingService {
     );
   }
 }
-
-export class CalculatePriceDto {
-  distanceKm: number;
-  weightKg: number;
-  isFragile?: boolean;
-  isPerishable?: boolean;
-  additionalKm?: number;
-  additionalMinutes?: number;
-  originCity: string;
-  destinationCity: string;
-  availableTransporters?: number;
-  pendingRequests?: number;
-}

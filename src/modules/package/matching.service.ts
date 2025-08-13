@@ -8,22 +8,7 @@ import { PackageService } from './package.service';
 import { Turf, TURF_TOKEN } from './turf.provider';
 import { SessionData } from 'express-session';
 import { TripService } from '../trip/trip.service';
-
-export interface TripWithLocations {
-  id: string;
-  origin: Location;
-  destination: Location;
-  waypoints: Location[];
-  status: TripStatusEnum;
-}
-
-export interface MatchResult {
-  tripId: string;
-  score: number;
-  originDistance: number;
-  destinationDistance: number;
-  isOnCorridor: boolean;
-}
+import { MatchResult, TripWithLocations } from './matching.types';
 
 @Injectable()
 export class MatchingService {
@@ -95,15 +80,16 @@ export class MatchingService {
       }
     }
     updatedResults = updatedResults
-      .sort((a, b) => a.score - b.score)
-      .slice(0, maxResults);
+      .sort((a, b) => a.score - b.score);
     
     // Update session
     sessionPackage.lastCheckMatching = now;
     sessionPackage.matchResults = updatedResults;
 
     // Fetch trips
-    const tripIds = updatedResults.map(u => u.tripId);
+    const tripIds = updatedResults
+      .map(u => u.tripId)
+      .slice(0, maxResults);;
     const trips = await this.tripService.getMultipleById(tripIds);
 
     // Return trips in the same order as sorted results
@@ -123,7 +109,6 @@ export class MatchingService {
         in: [
           TripStatusEnum.scheduled,
           TripStatusEnum.delayed,
-          TripStatusEnum.active
         ],
       },
     };
@@ -253,6 +238,7 @@ export class MatchingService {
     route: Feature<LineString>
   ): number {
     try {
+      // TODO: Just check point about waypoints.
       const nearestPoint = this.turf.nearestPointOnLine(route, point);
       return this.turf.distance(point, nearestPoint, { units: 'meters' });
     } catch (error) {

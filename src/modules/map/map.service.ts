@@ -20,7 +20,6 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { IntermediateCityDto } from '../trip/dto/intermediate-city.dto';
-import * as turf from '@turf/turf';
 
 @Injectable()
 export class MapService {
@@ -35,16 +34,36 @@ export class MapService {
     this.mapApiUrl = config.getOrThrow<string>('MAP_API_URL');
   }
 
-  async calculateDistance({
-    vehicleType,
-    tripType,
-    origin,
-    destination,
-  }: CalculateDistanceInput): Promise<CalculateDistanceResult> {
+  async calculateDistance(
+    {
+      vehicleType = 'car',
+      tripType = 'intercity',
+      origins,
+      destinations,
+      waypoints
+    }: CalculateDistanceInput
+  ): Promise<CalculateDistanceResult> {
+    if (waypoints) {
+      return this.calculateDistanceWithWaypoints({
+        vehicleType,
+        origins,
+        destinations,
+        waypoints
+     });
+    }
+
     const params = new URLSearchParams();
     params.append('type', vehicleType);
-    params.append('origins', `${origin.latitude},${origin.longitude}`);
-    params.append('destinations', `${destination.latitude},${destination.longitude}`);
+
+    const originsString = origins
+      .map(({ latitude, longitude }) => `${latitude},${longitude}`)
+      .join('|');
+    params.append('origins', originsString);
+
+    const destinationsString = destinations
+      .map(({ latitude, longitude }) => `${latitude},${longitude}`)
+      .join('|');
+    params.append('destinations', destinationsString);
 
     const url = this.mapApiUrl + '/v1/distance-matrix' +
       (tripType === TripTypeEnum.intercity ? '/no-traffic' : '') + `?${params.toString()}`;
@@ -60,8 +79,8 @@ export class MapService {
 
       const data = response.data;
       return {
-        duration: data.rows[0].elements[0].duration.value / 60,
         distance: data.rows[0].elements[0].distance.value / 1000,
+        duration: data.rows[0].elements[0].duration.value / 60,
       };
     } catch (error) {
       if (error.response) {
@@ -84,16 +103,68 @@ export class MapService {
     }
   }
 
-  async getDirections({
-    type = 'car',
-    origin,
-    destination,
-  }: RoutingDto): Promise<RoutingResponse> {
+  private async calculateDistanceWithWaypoints(
+    {
+      vehicleType,
+      origins,
+      destinations,
+      waypoints
+    }: CalculateDistanceInput
+  ) {
+    if (!waypoints) {
+      return this.calculateDistance({
+        vehicleType,
+        origins,
+        destinations
+      });
+    }
+
+    const directions = await this.getDirections({
+      type: vehicleType,
+      origin: origins[0],
+      destination: origins[0],
+      waypoints
+    });
+    console.log(directions);
+    
+    const { distance, duration } = directions.routes[0].legs.reduce(
+      (l, p) => ({
+        distance: l.distance + p.distance.value,
+        duration: l.duration + p.duration.value
+      }),
+      {
+        distance: 0,
+        duration: 0
+      }
+    );
+
+    return {
+      distance: distance / 1000,
+      duration: duration / 60
+    };
+  }
+
+  private async getDirections(
+    {
+      type = 'car',
+      origin,
+      destination,
+      waypoints
+    }: RoutingDto
+  ): Promise<RoutingResponse> {
     try {
       const params = new URLSearchParams();
       params.append('type', type);
       params.append('origin', `${origin.latitude},${origin.longitude}`);
       params.append('destination', `${destination.latitude},${destination.longitude}`);
+
+      let waypointsString = '';
+      if (waypoints) {
+        waypointsString = waypoints
+        .map(({ latitude, longitude }) => `${latitude},${longitude}`)
+        .join('|');
+        params.append('waypoints', waypointsString);
+      }
 
       const url = `${this.mapApiUrl}/v4/direction`
         + `${type === 'car' ? '/no-traffic' : ''}`
@@ -126,33 +197,6 @@ export class MapService {
         error.response?.data || error.message
       );
       throw new InternalServerErrorException('Failed to get directions.');
-    }
-  }
-
-  async reverseGeocode(
-    {
-      latitude,
-      longitude
-    }: Location
-  ): Promise<ReverseGeocodingResponse> {
-    try {
-      const url = `${this.mapApiUrl}/v5/reverse?lat=${latitude}&lng=${longitude}`;
-
-      const response: AxiosResponse<ReverseGeocodingResponse> = await firstValueFrom(
-        this.httpService.get<ReverseGeocodingResponse>(url, {
-          headers: {
-            'Api-Key': this.mapApiKey,
-          },
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error(
-        'Error calling Neshan reverse geocoding API:',
-        error.response?.data || error.message
-      );
-      throw new InternalServerErrorException('Failed to reverse geocode.');
     }
   }
 
@@ -223,6 +267,33 @@ export class MapService {
     }
   }
 
+  private async reverseGeocode(
+    {
+      latitude,
+      longitude
+    }: Location
+  ): Promise<ReverseGeocodingResponse> {
+    try {
+      const url = `${this.mapApiUrl}/v5/reverse?lat=${latitude}&lng=${longitude}`;
+
+      const response: AxiosResponse<ReverseGeocodingResponse> = await firstValueFrom(
+        this.httpService.get<ReverseGeocodingResponse>(url, {
+          headers: {
+            'Api-Key': this.mapApiKey,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error(
+        'Error calling Neshan reverse geocoding API:',
+        error.response?.data || error.message
+      );
+      throw new InternalServerErrorException('Failed to reverse geocode.');
+    }
+  }
+
   private extractSignificantPoints(route: NeshanRoute): Array<{ lat: number; lng: number }> {
     const points: Array<{ lat: number; lng: number }> = [];
     const minDistanceThreshold = 10000; // minimum distance between points
@@ -270,7 +341,7 @@ export class MapService {
 
   // calculates the great-circle distance between two points on the Earth's surface,
   // given their latitude and longitude coordinates.
-  haversineDistance(
+  private haversineDistance(
     point1: { lat: number; lng: number },
     point2: { lat: number; lng: number }
   ): number {
