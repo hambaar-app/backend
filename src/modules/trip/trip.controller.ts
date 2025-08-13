@@ -53,6 +53,30 @@ export class TripController {
   }
 
   @ApiOperation({
+    summary: 'Get intermediate cities between two coordinates',
+    description: `This endpoint returns a list of intermediate cities between two coordinates
+      (e.g., origin and destination latitude/longitude), which can be used to define waypoints
+      during trip creation via \`POST /trips\`.`,
+  })
+  @ApiOkResponse({
+    type: [IntermediateCityDto]
+  })
+  @Serialize(IntermediateCityDto)
+  @AuthResponses()
+  @ApiInternalServerErrorResponse({
+    description: 'Failed to get intermediate cities.'
+  })
+  @Serialize(IntermediateCityDto)
+  @UseGuards(AccessTokenGuard)
+  @Get('intermediate-cities/with-ids')
+  async getIntermediateCitiesWithIds(
+    @Query('originId', ParseUUIDPipe) originId: string,
+    @Query('destinationId', ParseUUIDPipe) destinationId: string
+  ) {
+    return this.tripService.getIntermediateCitiesWithIds(originId, destinationId);
+  }
+
+  @ApiOperation({
     summary: 'Create a new trip',
     description: `This endpoint allows a transporter to create a new trip,
       which senders can send delivery requests for via \`POST /packages/:id/requests\`.

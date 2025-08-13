@@ -243,7 +243,7 @@ export class TripService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });;
+    });
   }
 
   async getIntermediateCitiesWithCoords(
@@ -262,6 +262,36 @@ export class TripService {
       {
         latitude: destLat,
         longitude: destLng,
+      },
+    );
+  }
+
+  async getIntermediateCitiesWithIds(
+    originId: string,
+    destinationId: string
+  ) {
+    const originCity = await this.prisma.city.findUniqueOrThrow({
+      where: { id: originId }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    const destinationCity = await this.prisma.city.findUniqueOrThrow({
+      where: { id: destinationId }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    return this.mapService.getIntermediateCities(
+      {
+        latitude: originCity.latitude,
+        longitude: originCity.longitude,
+      },
+      {
+        latitude: destinationCity.latitude,
+        longitude: destinationCity.longitude,
       },
     );
   }
