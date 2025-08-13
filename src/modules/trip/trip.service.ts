@@ -1,12 +1,14 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { MapService } from '../map/map.service';
 import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
-import { Prisma, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
+import { AuthMessages, BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
+import { PackageStatusEnum, Prisma, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
+import { CreateRequestDto } from './dto/create-request.dto';
+import { SessionData } from 'express-session';
 
 @Injectable()
 export class TripService {
@@ -294,5 +296,72 @@ export class TripService {
         longitude: destinationCity.longitude,
       },
     );
+  }
+
+  async createRequest(
+    userId: string,
+    {
+      packageId,
+      tripId,
+      senderNote
+    }: CreateRequestDto,
+    session: SessionData
+  ) {
+    return this.prisma.$transaction(async tx => {
+      const packageData = await tx.package.findUniqueOrThrow({
+        where: { id: packageId },
+        include: {
+          originAddress: true,
+          recipient: {
+            include: {
+              address: true
+            }
+          }
+        }
+      });
+
+      if (userId !== packageData.senderId) {
+        throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`);
+      }
+
+      if (packageData.status !== PackageStatusEnum.searching_transporter) {
+        throw new BadRequestException(BadRequestMessages.SendRequestPackage);
+      }
+
+      const tripData = await tx.trip.findUniqueOrThrow({
+        where: { id: tripId },
+        include: {
+          origin: true,
+          destination: true,
+          waypoints: true
+        }
+      });
+
+      const isValidTripStatus = tripData.status === TripStatusEnum.scheduled
+        || tripData.status === TripStatusEnum.delayed
+      if (!isValidTripStatus) {
+        throw new BadRequestException(BadRequestMessages.SendRequestTrip);
+      }
+
+      const matchedTrips = session.packages.find(p => p.id === packageId)?.matchResults;
+      if (!matchedTrips || !matchedTrips.length) {
+        throw new NotFoundException(NotFoundMessages.MatchedTrip);
+      }
+
+      const matchedTrip = matchedTrips.find(t => t.tripId === tripId);
+      if (!matchedTrip) {
+        throw new BadRequestException(BadRequestMessages.SendRequestTrip);
+      }
+
+      // TODO: Calculate deviation cost and use it for request.
+
+      return tx.tripRequest.create({
+        data: {
+          packageId,
+          tripId,
+          senderNote
+        }
+      });
+    });
   }
 }

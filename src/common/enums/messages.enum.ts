@@ -19,11 +19,14 @@ export enum AuthMessages {
 export enum NotFoundMessages {
   Vehicle = 'Vehicle not found.',
   VehicleModel = 'Vehicle model not found.',
-  User = 'User not found.'
+  User = 'User not found.',
+  MatchedTrip = 'No matched trip found for this package.'
 }
 
 export enum BadRequestMessages {
   BasePackageStatus = 'You can not update/delete a package with status ',
   InvalidPrice = 'The final price cannot be set lower than the suggested price.',
   BaseTripStatus = 'You can not update/delete a trip with status ',
+  SendRequestPackage = 'You can not send request for this package.',
+  SendRequestTrip = 'You can not send request to this trip.',
 }

@@ -10,13 +10,14 @@ import {
   Patch,
   Post,
   Query,
+  Session,
   UseGuards,
 } from '@nestjs/common';
 import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { ApiCreatedResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { IntermediateCityDto } from './dto/intermediate-city.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
@@ -26,6 +27,9 @@ import { CurrentUser } from '../user/current-user.middleware';
 import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 import { TripFilterQueryDto } from './dto/trip-filter-query.dto';
 import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto';
+import { CreateRequestDto } from './dto/create-request.dto';
+import { SessionData } from 'express-session';
+import { BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 
 @Controller('trips')
 export class TripController {
@@ -151,7 +155,7 @@ export class TripController {
   @ValidationResponses()
   @CrudResponses()
   @Serialize(TripCompactResponseDto)
-  // @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
   })
@@ -174,12 +178,42 @@ export class TripController {
   @AuthResponses()
   @CrudResponses()
   @Serialize(TripCompactResponseDto)
-  // @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
   })
   @Delete(':id')
   async deleteTrip(@Param('id', ParseUUIDPipe) id: string) {
     return this.tripService.delete(id);
+  }
+
+  @ApiOperation({
+    summary: 'Create a request for a package to a matched trip',
+    description: `The sender must first call \`GET /packages/:id/matched-trips\` 
+      to obtain a list of compatible trips for the package.
+      If the package is already matched or the trip is not in the matched trips list
+      or not in \`scheduled\` or \`delayed\` status, the request will be rejected.`,
+  })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.SendRequestTrip
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.SendRequestPackage
+  })
+  @ApiNotFoundResponse({
+    description: NotFoundMessages.MatchedTrip
+  })
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @Post('requests')
+  async createTripRequest(
+    @Body() body: CreateRequestDto,
+    @CurrentUser('id') id: string,
+    @Session() session: SessionData
+  ) {
+    return this.tripService.createRequest(id, body, session);
   }
 }
