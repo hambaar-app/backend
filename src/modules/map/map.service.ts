@@ -37,13 +37,22 @@ export class MapService {
   async calculateDistance({
     vehicleType,
     tripType,
-    origin,
-    destination,
-  }: CalculateDistanceInput): Promise<CalculateDistanceResult> {
+    origins,
+    destinations,
+  }: CalculateDistanceInput
+  ): Promise<CalculateDistanceResult> {
     const params = new URLSearchParams();
     params.append('type', vehicleType);
-    params.append('origins', `${origin.latitude},${origin.longitude}`);
-    params.append('destinations', `${destination.latitude},${destination.longitude}`);
+
+    const originsString = origins
+      .map(({ latitude, longitude }) => `${latitude},${longitude}`)
+      .join('|');
+    params.append('origins', originsString);
+
+    const destinationsString = destinations
+      .map(({ latitude, longitude }) => `${latitude},${longitude}`)
+      .join('|');
+    params.append('destinations', destinationsString);
 
     const url = this.mapApiUrl + '/v1/distance-matrix' +
       (tripType === TripTypeEnum.intercity ? '/no-traffic' : '') + `?${params.toString()}`;

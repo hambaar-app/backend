@@ -134,14 +134,14 @@ export class PackageService {
       const { distance } = await this.mapService.calculateDistance({
         vehicleType: 'car',
         tripType: 'intercity',
-        origin: {
+        origins: [{
           latitude: originAddress.latitude!,
           longitude: originAddress.longitude!
-        },
-        destination: {
+        }],
+        destinations: [{
           latitude: recipient.address.latitude!,
           longitude: recipient.address.longitude!
-        }
+        }]
       });
 
       const { suggestedPrice } = this.pricingService.calculateSuggestedPrice({

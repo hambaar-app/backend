@@ -5,8 +5,8 @@ export type VehicleTypes = 'car' | 'motorcycle';
 export interface CalculateDistanceInput {
   vehicleType: VehicleTypes,
   tripType: TripTypeEnum,
-  origin: Location,
-  destination: Location
+  origins: Location[],
+  destinations: Location[]
 }
 
 export interface Location {
