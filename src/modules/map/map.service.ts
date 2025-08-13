@@ -92,6 +92,62 @@ export class MapService {
     }
   }
 
+  async getDirections(
+    {
+      type = 'car',
+      origin,
+      destination,
+      waypoints
+    }: RoutingDto
+  ): Promise<RoutingResponse> {
+    try {
+      const params = new URLSearchParams();
+      params.append('type', type);
+      params.append('origin', `${origin.latitude},${origin.longitude}`);
+      params.append('destination', `${destination.latitude},${destination.longitude}`);
+
+      let waypointsString = '';
+      if (waypoints) {
+        waypointsString = waypoints
+        .map(({ latitude, longitude }) => `${latitude},${longitude}`)
+        .join('|');
+        params.append('waypoints', waypointsString);
+      }
+
+      const url = `${this.mapApiUrl}/v4/direction`
+        + `${type === 'car' ? '/no-traffic' : ''}`
+        + `?${params.toString()}`;
+
+      const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
+        this.httpService.get<RoutingResponse>(url, {
+          headers: {
+            'Api-Key': this.mapApiKey,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        const errorCode = error.response.status;
+        const errorBody = error.response.data;
+
+        if (errorCode === 407) {
+          throw new BadRequestException('Invalid geographic coordinates provided.');
+        }
+
+        console.error('API Error:', errorBody);
+        throw new InternalServerErrorException('Something wrong.');
+      }
+
+      console.error(
+        'Error calling Neshan directions API:',
+        error.response?.data || error.message
+      );
+      throw new InternalServerErrorException('Failed to get directions.');
+    }
+  }
+
   async getIntermediateCities(
     origin: Location,
     destination: Location,
@@ -156,51 +212,6 @@ export class MapService {
         error.response?.data || error.message
       );
       throw new InternalServerErrorException('Failed to get intermediate cities.');
-    }
-  }
-
-  private async getDirections({
-    type = 'car',
-    origin,
-    destination,
-  }: RoutingDto): Promise<RoutingResponse> {
-    try {
-      const params = new URLSearchParams();
-      params.append('type', type);
-      params.append('origin', `${origin.latitude},${origin.longitude}`);
-      params.append('destination', `${destination.latitude},${destination.longitude}`);
-
-      const url = `${this.mapApiUrl}/v4/direction`
-        + `${type === 'car' ? '/no-traffic' : ''}`
-        + `?${params.toString()}`;
-
-      const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
-        this.httpService.get<RoutingResponse>(url, {
-          headers: {
-            'Api-Key': this.mapApiKey,
-          },
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        const errorCode = error.response.status;
-        const errorBody = error.response.data;
-
-        if (errorCode === 407) {
-          throw new BadRequestException('Invalid geographic coordinates provided.');
-        }
-
-        console.error('API Error:', errorBody);
-        throw new InternalServerErrorException('Something wrong.');
-      }
-
-      console.error(
-        'Error calling Neshan directions API:',
-        error.response?.data || error.message
-      );
-      throw new InternalServerErrorException('Failed to get directions.');
     }
   }
 

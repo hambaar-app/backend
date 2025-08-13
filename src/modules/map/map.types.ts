@@ -50,6 +50,7 @@ export class RoutingDto {
   type?: VehicleTypes;
   origin: Location;
   destination: Location;
+  waypoints?: Location[];
 }
 
 export interface RoutingResponse {
