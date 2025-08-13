@@ -219,7 +219,7 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Get all trip requests'
+    summary: 'Get all trip requests by its id'
   })
   @AuthResponses()
   @ValidationResponses()

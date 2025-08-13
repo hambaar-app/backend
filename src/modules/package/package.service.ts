@@ -358,4 +358,15 @@ export class PackageService {
       throw error;
     });
   }
+
+  async getAllPackageRequests(packageId: string) {
+    return this.prisma.tripRequest.findMany({
+      where: {
+        packageId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+  }
 }

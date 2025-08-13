@@ -210,4 +210,22 @@ export class PackageController {
   ) {
     return this.matchingService.findMatchingTrips(id, session);
   }
+
+  @ApiOperation({
+    summary: 'Get all package requests by its id',
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @Serialize(TripResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'package',
+  })
+  @Get(':id/requests')
+  async getAllPackageRequests(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Session() session: SessionData
+  ) {
+    return this.packageService.getAllPackageRequests(id);
+  }
 }
