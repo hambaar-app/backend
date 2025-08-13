@@ -100,6 +100,22 @@ export class OwnershipGuard implements CanActivate {
           userId: ownerId
         },
         deletedAt: null
+      },
+      tripRequest: {
+        id: entityId,
+        trip: {
+          transporter: {
+            userId: ownerId
+          },
+        },
+        deletedAt: null
+      },
+      packageRequest: {
+        id: entityId,
+        package: {
+          senderId: ownerId,
+        },
+        deletedAt: null
       }
       // ...
     };
