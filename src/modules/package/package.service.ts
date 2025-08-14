@@ -355,6 +355,21 @@ export class PackageService {
       },
       data: {
         status
+      },
+      include: {
+        originAddress: true,
+        recipient: {
+          include: {
+            address: true
+          }
+        },
+        deliveryRequests: true,
+        matchedRequest: {
+          include: {
+            transporter: true,
+            trackingUpdates: true
+          }
+        }
       }
     });
   }
@@ -390,7 +405,7 @@ export class PackageService {
     maxResults = 20
   ) {
     return this.prisma.$transaction(async tx => {
-      const packageData = await this.getById(packageId, tx);
+      const packageData = await this.updateStatus(packageId, PackageStatusEnum.searching_transporter, tx);
   
       // Do matching
       const matchedTrips = await this.matchingService.findMatchedTrips(packageData, session, maxResults, tx);
