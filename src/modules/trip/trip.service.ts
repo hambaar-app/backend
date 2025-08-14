@@ -400,7 +400,8 @@ export class TripService {
     requestId: string,
     {
       status
-    }: UpdateRequestDto
+    }: UpdateRequestDto,
+    session: SessionData
   ) {
     if (status === RequestStatusEnum.rejected) {
       return this.prisma.tripRequest.update({
@@ -426,6 +427,30 @@ export class TripService {
           status: RequestStatusEnum.deleted
         }
       });
+
+      // TODO: MatchedRequest
+
+      // Update total deviation info in trip
+      const {
+        totalDeviationDistanceKm,
+        totalDeviationDurationMin
+      } = await tx.trip.findUniqueOrThrow({
+        where: { id: request.tripId }
+      });
+
+      const newTotalDeviationDistance = (totalDeviationDistanceKm ?? 0) + request.deviationDistanceKm;
+      const newTotalDeviationDuration = (totalDeviationDurationMin ?? 0) + request.deviationDurationMin;
+
+      await tx.trip.update({
+        where: { id: request.tripId },
+        data: {
+          totalDeviationDistanceKm: newTotalDeviationDistance,
+          totalDeviationDurationMin: newTotalDeviationDuration
+        }
+      });
+
+      // Update session
+      session.packages = session.packages.filter(p => p.id !== request.packageId);
 
       return request;
     }).catch((error: Error) => {
