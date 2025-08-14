@@ -1,5 +1,5 @@
 import { TripStatusEnum, TripTypeEnum } from 'generated/prisma';
-import { IntermediateCityDto } from './intermediate-city.dto';
+import { CityDto } from './city.dto';
 import { Expose, Transform, Type } from 'class-transformer';
 import { VehicleCompactResponseDto } from 'src/modules/vehicle/dto/vehicle-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
@@ -9,16 +9,17 @@ export class TripCompactResponseDto {
   id: string;
 
   @Expose()
-  @Transform(({ obj }) => obj.origin?.persianName)
-  origin: string;
+  @Type(() => CityDto)
+  origin: CityDto;
 
   @Expose()
-  @Transform(({ obj }) => obj.destination?.persianName)
-  destination: string;
+  @Type(() => CityDto)
+  destination: CityDto;
 
   @Expose()
-  @Type(() => IntermediateCityDto)
-  waypoints: IntermediateCityDto[];
+  @Type(() => CityDto)
+  @Transform(({ value }) => value?.filter(v => v.isVisible))
+  waypoints: CityDto[];
 
   @ApiProperty({ enum: TripTypeEnum })
   @Expose()
@@ -57,4 +58,9 @@ export class TripResponseDto extends TripCompactResponseDto {
   @Expose()
   @Type(() => VehicleCompactResponseDto)
   vehicle: VehicleCompactResponseDto;
+}
+
+export class MatchedTripResponseDto extends TripResponseDto {
+  @Expose()
+  additionalPrice: number;
 }

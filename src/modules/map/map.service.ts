@@ -19,7 +19,7 @@ import { TripTypeEnum } from 'generated/prisma';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
-import { CityDto } from '../trip/dto/intermediate-city.dto';
+import { CityDto } from '../trip/dto/city.dto';
 
 @Injectable()
 export class MapService {
