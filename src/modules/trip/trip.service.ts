@@ -51,7 +51,7 @@ export class TripService {
         where: { id: destinationId }
       });
 
-      const { distance } = await this.mapService.calculateDistance({
+      const { distance, duration } = await this.mapService.calculateDistance({
         origins: [{
           latitude: originCity.latitude,
           longitude: originCity.longitude
@@ -70,6 +70,7 @@ export class TripService {
         vehicleId: vehicle.id,
         tripType,
         normalDistanceKm: distance,
+        normalDurationMin: duration,
         ...tripDto,
       } as Prisma.TripUncheckedCreateInput;
 
@@ -133,6 +134,23 @@ export class TripService {
             model: {
               include: {
                 brand: true
+              }
+            }
+          }
+        },
+        requests: {
+          where: {
+            status: RequestStatusEnum.accepted
+          },
+          include: {
+            package: {
+              include: {
+                originAddress: true,
+                recipient: {
+                  include: {
+                    address: true
+                  }
+                }
               }
             }
           }

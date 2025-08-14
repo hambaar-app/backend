@@ -377,6 +377,7 @@ model Trip {
   tripType                  TripTypeEnum   @map("trip_type")
   vehicleId                 String         @map("vehicle_id") @db.Uuid
   normalDistanceKm          Float?         @map("normal_distance_km") @db.DoublePrecision
+  normalDurationMin         Float?         @map("normal_duration_min") @db.DoublePrecision
   totalDeviationDistanceKm  Float?         @default(0) @map("total_deviation_distance_km") @db.DoublePrecision
   totalDeviationDurationMin Float?         @default(0) @map("total_deviation_duration_min") @db.DoublePrecision
   maxPackageWeightGr        Int?           @map("max_package_weight")
