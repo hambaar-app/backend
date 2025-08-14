@@ -4,15 +4,14 @@ import {
   IsArray,
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
-  Min,
   Validate,
+  ValidateNested,
 } from 'class-validator';
 import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
-import { IntermediateCityDto } from './intermediate-city.dto';
+import { CityDto } from './city.dto';
 import { Type } from 'class-transformer';
 
 export class CreateTripDto {
@@ -27,8 +26,9 @@ export class CreateTripDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @Type(() => IntermediateCityDto)
-  waypoints?: IntermediateCityDto[];
+  @ValidateNested({ each: true })
+  @Type(() => CityDto)
+  waypoints?: CityDto[];
 
   @IsNotEmpty()
   @IsUUID()

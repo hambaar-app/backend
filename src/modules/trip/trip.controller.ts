@@ -19,7 +19,7 @@ import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
-import { IntermediateCityDto } from './dto/intermediate-city.dto';
+import { CityDto } from './dto/city.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
@@ -43,14 +43,14 @@ export class TripController {
       during trip creation via \`POST /trips\`.`,
   })
   @ApiOkResponse({
-    type: [IntermediateCityDto]
+    type: [CityDto]
   })
-  @Serialize(IntermediateCityDto)
+  @Serialize(CityDto)
   @AuthResponses()
   @ApiInternalServerErrorResponse({
     description: 'Failed to get intermediate cities.'
   })
-  @Serialize(IntermediateCityDto)
+  @Serialize(CityDto)
   @UseGuards(AccessTokenGuard)
   @Get('intermediate-cities/with-coords')
   async getIntermediateCitiesWithCoords(@Query() query: CoordinatesQueryDto) {
@@ -64,14 +64,14 @@ export class TripController {
       during trip creation via \`POST /trips\`.`,
   })
   @ApiOkResponse({
-    type: [IntermediateCityDto]
+    type: [CityDto]
   })
-  @Serialize(IntermediateCityDto)
+  @Serialize(CityDto)
   @AuthResponses()
   @ApiInternalServerErrorResponse({
     description: 'Failed to get intermediate cities.'
   })
-  @Serialize(IntermediateCityDto)
+  @Serialize(CityDto)
   @UseGuards(AccessTokenGuard)
   @Get('intermediate-cities/with-ids')
   async getIntermediateCitiesWithIds(
@@ -249,7 +249,8 @@ export class TripController {
   async updateTripRequest(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateRequestDto,
+    @Session() session: SessionData
   ) {
-    return this.tripService.updateRequest(id, body);
+    return this.tripService.updateRequest(id, body, session);
   }
 }

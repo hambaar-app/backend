@@ -17,6 +17,7 @@ import { PackageService } from './package.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import {
+  ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -34,15 +35,15 @@ import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } fro
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
-import { MatchingService } from './matching.service';
 import { SessionData } from 'express-session';
-import { TripResponseDto } from '../trip/dto/trip-response.dto';
+import { MatchedTripResponseDto, TripResponseDto } from '../trip/dto/trip-response.dto';
+import { MapService } from '../map/map.service';
+import { BadRequestMessages } from 'src/common/enums/messages.enum';
 
 @Controller('packages')
 export class PackageController {
   constructor(
     private packageService: PackageService,
-    private matchingService: MatchingService
   ) {}
 
   @ApiOperation({
@@ -191,24 +192,27 @@ export class PackageController {
   }
 
   @ApiOperation({
-    summary: 'Get package matching trips by package id',
+    summary: 'Get package matched trips by package id',
   })
   @ApiOkResponse({
-    type: [TripResponseDto]
+    type: [MatchedTripResponseDto]
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.SendRequestPackage
   })
   @AuthResponses()
   @CrudResponses()
-  @Serialize(TripResponseDto)
+  @Serialize(MatchedTripResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'package',
   })
-  @Get(':id/matching-trips')
+  @Get(':id/matched-trips')
   async getPackageMatchingTrips(
     @Param('id', ParseUUIDPipe) id: string,
     @Session() session: SessionData
   ) {
-    return this.matchingService.findMatchingTrips(id, session);
+    return this.packageService.getMatchedTrips(id, session);
   }
 
   @ApiOperation({

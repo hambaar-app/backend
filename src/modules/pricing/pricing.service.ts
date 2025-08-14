@@ -47,8 +47,8 @@ export class PricingService {
     this.smallCityFactor = this.configService.get<number>('PRICING_SMALL_CITY_FACTOR', 1.2);
 
     // Route Deviation Costs
-    this.deviationRate = this.configService.get<number>('PRICING_DEVIATION_RATE', 2000);
-    this.timeDeviationRate = this.configService.get<number>('PRICING_TIME_DEVIATION_RATE', 1500);
+    this.deviationRate = this.configService.get<number>('PRICING_DEVIATION_RATE', 15000);
+    this.timeDeviationRate = this.configService.get<number>('PRICING_TIME_DEVIATION_RATE', 5000);
 
     // Major Cities List
     const majorCitiesString = this.configService.get<string>(
@@ -102,13 +102,6 @@ export class PricingService {
     );
     subtotal *= specialMultiplier;
 
-    // Add route deviation cost (Not used for now)
-    const deviationCost = this.calculateRouteDeviationCost(
-      input.additionalKm ?? 0,
-      input.additionalMinutes ?? 0
-    );
-    subtotal += deviationCost;
-
     // Apply city premium
     const cityPremium = this.calculateCityPremium(
       input.originCity,
@@ -128,14 +121,13 @@ export class PricingService {
         distanceCost,
         weightCost,
         specialHandlingMultiplier: specialMultiplier,
-        deviationCost,
         cityPremium,
       }
     };
   }
 
   // Calculate distance-based cost using tiered pricing
-  private calculateDistanceCost(distanceKm: number): number {
+  calculateDistanceCost(distanceKm: number): number {
     let totalCost = this.fuelRate * distanceKm;
     let remainingDistance = distanceKm;
 
@@ -177,10 +169,10 @@ export class PricingService {
     return 1.0;
   }
 
-  // Calculate route deviation cost
-  private calculateRouteDeviationCost(additionalKm: number, additionalMinutes: number): number {
+  // Calculate deviation cost (Based on both distance and duration)
+  calculateDeviationCost(additionalKm: number, additionalMinutes: number): number {
     const kmCost = additionalKm * this.deviationRate;
-    const timeCost = Math.floor(additionalMinutes / 10) * this.timeDeviationRate;
+    const timeCost = additionalMinutes * this.timeDeviationRate;
     return kmCost + timeCost;
   }
 

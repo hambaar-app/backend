@@ -10,6 +10,7 @@ import { UpdateTripDto } from './dto/update-trip.dto';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { SessionData } from 'express-session';
 import { UpdateRequestDto } from './dto/update-request.dto';
+import { PrismaTransaction } from '../prisma/prisma.types';
 
 @Injectable()
 export class TripService {
@@ -51,15 +52,15 @@ export class TripService {
         where: { id: destinationId }
       });
 
-      const { distance } = await this.mapService.calculateDistance({
-        origins: [{
+      const { distance, duration } = await this.mapService.calculateDistance({
+        origin: {
           latitude: originCity.latitude,
           longitude: originCity.longitude
-        }],
-        destinations: [{
+        },
+        destination: {
           latitude: destinationCity.latitude,
           longitude: destinationCity.longitude
-        }],
+        },
         waypoints
       });
 
@@ -70,6 +71,7 @@ export class TripService {
         vehicleId: vehicle.id,
         tripType,
         normalDistanceKm: distance,
+        normalDurationMin: duration,
         ...tripDto,
       } as Prisma.TripUncheckedCreateInput;
 
@@ -106,8 +108,11 @@ export class TripService {
   }
 
   // TODO: Complete this
-  async getMultipleById(ids: string[]) {
-    return this.prisma.trip.findMany({
+  async getMultipleById(
+    ids: string[],
+    tx: PrismaTransaction = this.prisma
+  ) {
+    return tx.trip.findMany({
       where: {
         id: {
           in: ids
@@ -118,11 +123,6 @@ export class TripService {
             TripStatusEnum.delayed,
         ],
         },
-        waypoints: {
-          every: {
-            isVisible: true
-          }
-        }
       },
       include: {
         origin: true,
@@ -133,6 +133,23 @@ export class TripService {
             model: {
               include: {
                 brand: true
+              }
+            }
+          }
+        },
+        requests: {
+          where: {
+            status: RequestStatusEnum.accepted
+          },
+          include: {
+            package: {
+              include: {
+                originAddress: true,
+                recipient: {
+                  include: {
+                    address: true
+                  }
+                }
               }
             }
           }
@@ -311,14 +328,6 @@ export class TripService {
     return this.prisma.$transaction(async tx => {
       const packageData = await tx.package.findUniqueOrThrow({
         where: { id: packageId },
-        include: {
-          originAddress: true,
-          recipient: {
-            include: {
-              address: true
-            }
-          }
-        }
       });
 
       if (userId !== packageData.senderId) {
@@ -354,15 +363,31 @@ export class TripService {
         throw new BadRequestException(BadRequestMessages.SendRequestTrip);
       }
 
-      // TODO: Calculate deviation cost and use it for request.
+      // Update package status
+      await tx.package.update({
+        where: { id: packageId },
+        data: {
+          status: PackageStatusEnum.matched
+        }
+      });
+
+      const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
+      const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
+      const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
 
       return tx.tripRequest.create({
         data: {
           packageId,
           tripId,
+          deviationDistanceKm: deviationDistance,
+          deviationDurationMin: deviationDuration,
+          offeredPrice,
           senderNote
         }
       });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 
@@ -382,7 +407,8 @@ export class TripService {
     requestId: string,
     {
       status
-    }: UpdateRequestDto
+    }: UpdateRequestDto,
+    session: SessionData
   ) {
     if (status === RequestStatusEnum.rejected) {
       return this.prisma.tripRequest.update({
@@ -393,7 +419,6 @@ export class TripService {
         throw error;
       });
     }
-
     return this.prisma.$transaction(async tx => {
       const request = await tx.tripRequest.update({
         where: { id: requestId },
@@ -408,6 +433,30 @@ export class TripService {
           status: RequestStatusEnum.deleted
         }
       });
+
+      // TODO: MatchedRequest
+
+      // Update total deviation info in trip
+      const {
+        totalDeviationDistanceKm,
+        totalDeviationDurationMin
+      } = await tx.trip.findUniqueOrThrow({
+        where: { id: request.tripId }
+      });
+
+      const newTotalDeviationDistance = (totalDeviationDistanceKm ?? 0) + request.deviationDistanceKm;
+      const newTotalDeviationDuration = (totalDeviationDurationMin ?? 0) + request.deviationDurationMin;
+
+      await tx.trip.update({
+        where: { id: request.tripId },
+        data: {
+          totalDeviationDistanceKm: newTotalDeviationDistance,
+          totalDeviationDurationMin: newTotalDeviationDuration
+        }
+      });
+
+      // Update session
+      session.packages = session.packages.filter(p => p.id !== request.packageId);
 
       return request;
     }).catch((error: Error) => {

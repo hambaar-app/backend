@@ -1,11 +1,11 @@
 import { Expose, Transform } from 'class-transformer';
-import { IsLatitude, IsLongitude, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class IntermediateCityDto {
+export class CityDto {
   @Expose()
   @IsNotEmpty()
   @IsString()
-  city: string;
+  name: string;
   
   @Expose()
   @IsNotEmpty()
@@ -18,4 +18,9 @@ export class IntermediateCityDto {
   @Transform(({ value }) => String(value))
   @IsLongitude()
   longitude: string;
+
+  @Expose()
+  @IsOptional()
+  @IsBoolean()
+  isVisible?: boolean;
 }

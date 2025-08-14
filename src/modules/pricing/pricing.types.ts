@@ -18,7 +18,7 @@ export interface PricingResult {
     distanceCost: number;
     weightCost: number;
     specialHandlingMultiplier: number;
-    deviationCost: number;
+    deviationCost?: number;
     cityPremium: number;
   };
 }

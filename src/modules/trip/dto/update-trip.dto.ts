@@ -9,7 +9,7 @@ import {
   Min,
   Validate,
 } from 'class-validator';
-import { IntermediateCityDto } from './intermediate-city.dto';
+import { CityDto } from './city.dto';
 import { Type } from 'class-transformer';
 import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
 
@@ -17,8 +17,8 @@ export class UpdateTripDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @Type(() => IntermediateCityDto)
-  waypoints?: IntermediateCityDto[];
+  @Type(() => CityDto)
+  waypoints?: CityDto[];
 
   @IsOptional()
   @IsInt()
