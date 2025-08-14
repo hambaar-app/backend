@@ -34,15 +34,14 @@ import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } fro
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
-import { MatchingService } from './matching.service';
 import { SessionData } from 'express-session';
-import { TripResponseDto } from '../trip/dto/trip-response.dto';
+import { MatchedTripResponseDto, TripResponseDto } from '../trip/dto/trip-response.dto';
+import { MapService } from '../map/map.service';
 
 @Controller('packages')
 export class PackageController {
   constructor(
     private packageService: PackageService,
-    private matchingService: MatchingService
   ) {}
 
   @ApiOperation({
@@ -190,26 +189,26 @@ export class PackageController {
     return this.packageService.delete(id);
   }
 
-  // @ApiOperation({
-  //   summary: 'Get package matching trips by package id',
-  // })
-  // @ApiOkResponse({
-  //   type: [TripResponseDto]
-  // })
-  // @AuthResponses()
-  // @CrudResponses()
-  // @Serialize(TripResponseDto)
-  // @UseGuards(AccessTokenGuard, OwnershipGuard)
-  // @CheckOwnership({
-  //   entity: 'package',
-  // })
-  // @Get(':id/matching-trips')
-  // async getPackageMatchingTrips(
-  //   @Param('id', ParseUUIDPipe) id: string,
-  //   @Session() session: SessionData
-  // ) {
-  //   // return this.matchingService.findMatchingTrips(id, session);
-  // }
+  @ApiOperation({
+    summary: 'Get package matched trips by package id',
+  })
+  @ApiOkResponse({
+    type: [MatchedTripResponseDto]
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @Serialize(MatchedTripResponseDto)
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'package',
+  })
+  @Get(':id/matched-trips')
+  async getPackageMatchingTrips(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Session() session: SessionData
+  ) {
+    return this.packageService.getMatchedTrips(id, session);
+  }
 
   @ApiOperation({
     summary: 'Get all package requests by its id',
