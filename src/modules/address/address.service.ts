@@ -23,7 +23,7 @@ export class AddressService {
       where: {
         OR: [
           {
-            persianName: {
+            name: {
               contains: search,
               mode: 'insensitive'
             }
@@ -58,8 +58,8 @@ export class AddressService {
         data: {
           userId,
           ...addressDto,
-          province: city.province.persianName,
-          city: city.persianName,
+          province: city.province.name,
+          city: city.name,
         }
       });
     }).catch((error: Error) => {

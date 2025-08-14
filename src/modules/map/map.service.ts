@@ -19,7 +19,7 @@ import { TripTypeEnum } from 'generated/prisma';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
-import { IntermediateCityDto } from '../trip/dto/intermediate-city.dto';
+import { CityDto } from '../trip/dto/intermediate-city.dto';
 
 @Injectable()
 export class MapService {
@@ -204,7 +204,7 @@ export class MapService {
     origin: Location,
     destination: Location,
     vehicleType: VehicleTypes = 'car',
-  ): Promise<IntermediateCityDto[]> {
+  ): Promise<CityDto[]> {
     try {
       // Get the route
       const routeResponse = await this.getDirections({
@@ -253,7 +253,7 @@ export class MapService {
         .map(cityName => {
           const c = cities.find(c => c.name === cityName);
           return {
-            city: c!.name.replace('شهرستان ', ''),
+            name: c!.name.replace('شهرستان ', ''),
             latitude: String(c!.latitude),
             longitude: String(c!.longitude)
           };

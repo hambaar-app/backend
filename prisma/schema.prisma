@@ -264,7 +264,7 @@ model VehicleModel {
 
 model Province {
   id          String @id @default(uuid()) @db.Uuid
-  persianName String @unique @map("persian_name")
+  name        String @unique @map("name")
   englishName String @unique @map("english_name")
 
   // Relations
@@ -276,7 +276,7 @@ model Province {
 model City {
   id          String @id @default(uuid()) @db.Uuid
   provinceId  String @map("province_id") @db.Uuid
-  persianName String @unique @map("persian_name")
+  name        String @unique @map("name")
   englishName String @unique @map("english_name")
   latitude    String
   longitude   String
