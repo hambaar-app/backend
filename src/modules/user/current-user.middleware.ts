@@ -12,6 +12,8 @@ import { AuthMessages } from '../../common/enums/messages.enum';
 export const CurrentUser = createParamDecorator(
   (key: string, context: ExecutionContext) => {
     const request = context.switchToHttp().getRequest() as Request;
+    console.log(request.user);
+    
     return key ? request.user?.[key] : request.user;
   },
 );
@@ -21,10 +23,11 @@ export class CurrentUserMiddleware implements NestMiddleware {
   constructor(private userService: UserService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    const id = req.user?.id;
+    const { userId } = req.session;
+    const phoneNumber = req.user?.phoneNumber;
 
-    if (id) {
-      const user = await this.userService.get({ id });
+    if (userId && !phoneNumber) {            
+      const user = await this.userService.get({ id: userId });      
       if (!user) throw new ForbiddenException(AuthMessages.AccessDenied);
       req.user = user;
     }

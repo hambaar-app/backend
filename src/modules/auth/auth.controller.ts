@@ -285,8 +285,8 @@ export class AuthController {
     @CurrentUser() user: User,
     @Res({ passthrough: true }) res: Response
   ): Promise<true> {
-    const { id, phoneNumber } = user;  
-    const { accessToken } = await this.authService.submitDocuments(id!, phoneNumber!, body);
+    const { id, phoneNumber } = user;    
+    const { accessToken } = await this.authService.submitDocuments(id, phoneNumber, body);
 
     session.accessToken = accessToken;
     res.cookie(CookieNames.AccessToken, accessToken, {

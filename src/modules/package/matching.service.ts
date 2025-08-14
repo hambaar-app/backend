@@ -24,7 +24,7 @@ export class MatchingService {
     packageData: PackageWithLocations,
     session: SessionData,
     maxResults: number = 20
-  ) {
+  ): Promise<MatchResult[]> {
     const now = new Date();
 
     if (!session.packages) {
@@ -81,7 +81,7 @@ export class MatchingService {
     sessionPackage.lastCheckMatching = now;
     sessionPackage.matchResults = updatedResults;
 
-    return updatedResults
+    return sessionPackage.matchResults
       .slice(0, maxResults);
   }
 

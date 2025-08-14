@@ -119,11 +119,6 @@ export class TripService {
             TripStatusEnum.delayed,
         ],
         },
-        waypoints: {
-          every: {
-            isVisible: true
-          }
-        }
       },
       include: {
         origin: true,

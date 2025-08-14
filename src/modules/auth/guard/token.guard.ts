@@ -48,7 +48,8 @@ export class ProgressTokenGuard implements CanActivate {
     }
 
     request.user = {
-      id: payload.sub
+      id: payload.sub,
+      ...request.user
     };
 
     return true;
@@ -76,7 +77,8 @@ export class AccessTokenGuard implements CanActivate {
     }
 
     request.user = {
-      id: payload.sub
+      id: payload.sub,
+      ...request.user
     };
 
     return true;
