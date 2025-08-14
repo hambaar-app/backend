@@ -20,7 +20,7 @@ export class MatchingService {
     this.corridorWidth = config.get<number>('CORRIDOR_WIDTH', 10);
   }
 
-  async findMatchingTrips(
+  async findMatchedTrips(
     packageData: PackageWithLocations,
     session: SessionData,
     maxResults: number = 20
