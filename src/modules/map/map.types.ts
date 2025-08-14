@@ -5,8 +5,8 @@ export type VehicleTypes = 'car' | 'motorcycle';
 export interface CalculateDistanceInput {
   vehicleType?: VehicleTypes,
   tripType?: TripTypeEnum,
-  origins: Location[],
-  destinations: Location[],
+  origin: Location,
+  destination: Location,
   waypoints?: Location[];
 }
 
@@ -48,7 +48,8 @@ export interface CalculateDistanceResult {
 }
 
 export class RoutingDto {
-  type?: VehicleTypes;
+  vehicleType?: VehicleTypes;
+  tripType?: TripTypeEnum;
   origin: Location;
   destination: Location;
   waypoints?: Location[];

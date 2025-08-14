@@ -52,14 +52,14 @@ export class TripService {
       });
 
       const { distance, duration } = await this.mapService.calculateDistance({
-        origins: [{
+        origin: {
           latitude: originCity.latitude,
           longitude: originCity.longitude
-        }],
-        destinations: [{
+        },
+        destination: {
           latitude: destinationCity.latitude,
           longitude: destinationCity.longitude
-        }],
+        },
         waypoints
       });
 

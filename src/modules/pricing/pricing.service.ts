@@ -135,7 +135,7 @@ export class PricingService {
   }
 
   // Calculate distance-based cost using tiered pricing
-  private calculateDistanceCost(distanceKm: number): number {
+  calculateDistanceCost(distanceKm: number): number {
     let totalCost = this.fuelRate * distanceKm;
     let remainingDistance = distanceKm;
 

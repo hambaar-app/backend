@@ -11,9 +11,7 @@ import { AuthMessages } from '../../common/enums/messages.enum';
 
 export const CurrentUser = createParamDecorator(
   (key: string, context: ExecutionContext) => {
-    const request = context.switchToHttp().getRequest() as Request;
-    console.log(request.user);
-    
+    const request = context.switchToHttp().getRequest() as Request;    
     return key ? request.user?.[key] : request.user;
   },
 );

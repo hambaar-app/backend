@@ -5,8 +5,6 @@ import {
 } from '@nestjs/common';
 import {
   CalculateDistanceInput,
-  CalculateDistanceResult,
-  DistanceMatrixResponse,
   RoutingResponse,
   RoutingDto,
   Location,
@@ -38,94 +36,19 @@ export class MapService {
     {
       vehicleType = 'car',
       tripType = 'intercity',
-      origins,
-      destinations,
-      waypoints
-    }: CalculateDistanceInput
-  ): Promise<CalculateDistanceResult> {
-    if (waypoints) {
-      return this.calculateDistanceWithWaypoints({
-        vehicleType,
-        origins,
-        destinations,
-        waypoints
-     });
-    }
-
-    const params = new URLSearchParams();
-    params.append('type', vehicleType);
-
-    const originsString = origins
-      .map(({ latitude, longitude }) => `${latitude},${longitude}`)
-      .join('|');
-    params.append('origins', originsString);
-
-    const destinationsString = destinations
-      .map(({ latitude, longitude }) => `${latitude},${longitude}`)
-      .join('|');
-    params.append('destinations', destinationsString);
-
-    const url = this.mapApiUrl + '/v1/distance-matrix' +
-      (tripType === TripTypeEnum.intercity ? '/no-traffic' : '') + `?${params.toString()}`;
-
-    try {
-      const response: AxiosResponse<DistanceMatrixResponse> = await firstValueFrom(
-        this.httpService.get<DistanceMatrixResponse>(url, {
-          headers: {
-            'Api-Key': this.mapApiKey,
-          },
-        }),
-      );
-
-      const data = response.data;
-      return {
-        distance: data.rows[0].elements[0].distance.value / 1000,
-        duration: data.rows[0].elements[0].duration.value / 60,
-      };
-    } catch (error) {
-      if (error.response) {
-        const errorCode = error.response.status;
-        const errorBody = error.response.data;
-
-        if (errorCode === 407) {
-          throw new BadRequestException('Invalid geographic coordinates provided.');
-        }
-
-        console.error('API Error:', errorBody);
-        throw new InternalServerErrorException('Something wrong.');
-      }
-
-      console.error(
-        'Error calling Neshan distance matrix API:',
-        error.response?.data || error.message
-      );
-      throw new InternalServerErrorException('Failed to calculate distance.');
-    }
-  }
-
-  private async calculateDistanceWithWaypoints(
-    {
-      vehicleType,
-      origins,
-      destinations,
+      origin,
+      destination,
       waypoints
     }: CalculateDistanceInput
   ) {
-    if (!waypoints) {
-      return this.calculateDistance({
-        vehicleType,
-        origins,
-        destinations
-      });
-    }
-
     const directions = await this.getDirections({
-      type: vehicleType,
-      origin: origins[0],
-      destination: origins[0],
+      vehicleType,
+      tripType,
+      origin,
+      destination,
       waypoints
     });
-    
+
     const { distance, duration } = directions.routes[0].legs.reduce(
       (l, p) => ({
         distance: l.distance + p.distance.value,
@@ -136,16 +59,17 @@ export class MapService {
         duration: 0
       }
     );
-
+    
     return {
-      distance: distance / 1000,
-      duration: duration / 60
+      distance: Number((distance / 1000).toFixed(2)),
+      duration: Number((duration / 60).toFixed(0))
     };
   }
 
   private async getDirections(
     {
-      type = 'car',
+      vehicleType = 'car',
+      tripType = 'intercity',
       origin,
       destination,
       waypoints
@@ -153,7 +77,7 @@ export class MapService {
   ): Promise<RoutingResponse> {
     try {
       const params = new URLSearchParams();
-      params.append('type', type);
+      params.append('type', vehicleType);
       params.append('origin', `${origin.latitude},${origin.longitude}`);
       params.append('destination', `${destination.latitude},${destination.longitude}`);
 
@@ -161,14 +85,12 @@ export class MapService {
       if (waypoints && waypoints.length > 0) {
         waypointsString = waypoints
         .map(({ latitude, longitude }) => `${latitude},${longitude}`)
-        .join('|');
-        console.log(waypoints, waypointsString);
-        
+        .join('|');        
         params.append('waypoints', waypointsString);
       }
 
       const url = `${this.mapApiUrl}/v4/direction`
-        + `${type === 'car' ? '/no-traffic' : ''}`
+        + `${tripType === 'intercity' ? '/no-traffic' : ''}`
         + `?${params.toString()}`;
 
       const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
@@ -209,7 +131,7 @@ export class MapService {
     try {
       // Get the route
       const routeResponse = await this.getDirections({
-        type: vehicleType,
+        vehicleType,
         origin,
         destination,
       });
