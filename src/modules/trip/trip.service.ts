@@ -367,12 +367,17 @@ export class TripService {
         throw new BadRequestException(BadRequestMessages.SendRequestTrip);
       }
 
-      // TODO: Calculate deviation cost and use it for request.
+      const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
+      const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
+      const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
 
       return tx.tripRequest.create({
         data: {
           packageId,
           tripId,
+          deviationDistanceKm: deviationDistance,
+          deviationDurationMin: deviationDuration,
+          offeredPrice,
           senderNote
         }
       });

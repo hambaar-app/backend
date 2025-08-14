@@ -422,13 +422,14 @@ model TripWaypoint {
 }
 
 model TripRequest {
-  id                String             @id @default(uuid()) @db.Uuid
-  packageId         String             @map("package_id") @db.Uuid
-  tripId            String             @map("trip_id") @db.Uuid
-  offeredPrice      Int                @default(0) @map("offered_price")
-  estimatedOvertime Int                @default(0) @map("estimated_overtime") // minutes
-  senderNote        String?            @map("sender_note") @db.Text
-  status            RequestStatusEnum? @default(pending)
+  id                   String             @id @default(uuid()) @db.Uuid
+  packageId            String             @map("package_id") @db.Uuid
+  tripId               String             @map("trip_id") @db.Uuid
+  offeredPrice         Int                @default(0) @map("offered_price")
+  deviationDistanceKm  Float              @default(0) @map("deviation_distance_km")
+  deviationDurationMin Int                @default(0) @map("deviation_duration_min")
+  senderNote           String?            @map("sender_note") @db.Text
+  status               RequestStatusEnum? @default(pending)
 
   // Relations
   package        Package         @relation("SenderRequests", fields: [packageId], references: [id])
