@@ -125,7 +125,6 @@ export class MapService {
       destination: origins[0],
       waypoints
     });
-    console.log(directions);
     
     const { distance, duration } = directions.routes[0].legs.reduce(
       (l, p) => ({
@@ -159,10 +158,12 @@ export class MapService {
       params.append('destination', `${destination.latitude},${destination.longitude}`);
 
       let waypointsString = '';
-      if (waypoints) {
+      if (waypoints && waypoints.length > 0) {
         waypointsString = waypoints
         .map(({ latitude, longitude }) => `${latitude},${longitude}`)
         .join('|');
+        console.log(waypoints, waypointsString);
+        
         params.append('waypoints', waypointsString);
       }
 

@@ -406,7 +406,7 @@ model Trip {
 model TripWaypoint {
   id        String  @id @default(uuid()) @db.Uuid
   tripId    String  @map("trip_id") @db.Uuid
-  city      String? @db.VarChar
+  name      String? @db.VarChar
   latitude  String
   longitude String
   isVisible Boolean @default(false) @map("is_visible")

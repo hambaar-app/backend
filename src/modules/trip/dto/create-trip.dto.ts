@@ -8,6 +8,7 @@ import {
   IsString,
   IsUUID,
   Validate,
+  ValidateNested,
 } from 'class-validator';
 import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
 import { CityDto } from './city.dto';
@@ -25,6 +26,7 @@ export class CreateTripDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
+  @ValidateNested({ each: true })
   @Type(() => CityDto)
   waypoints?: CityDto[];
 

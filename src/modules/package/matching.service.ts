@@ -138,7 +138,7 @@ export class MatchingService {
             id: true,
             latitude: true,
             longitude: true,
-            city: true,
+            name: true,
           },
         },
         // TODO: Includes transporter and vehicle?

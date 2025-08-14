@@ -8,14 +8,17 @@ export class TripCompactResponseDto {
   @Expose()
   id: string;
 
+  @ApiProperty({ type: CityDto })
   @Expose()
   @Type(() => CityDto)
   origin: CityDto;
 
+  @ApiProperty({ type: CityDto })
   @Expose()
   @Type(() => CityDto)
   destination: CityDto;
 
+  @ApiProperty({ type: [CityDto] })
   @Expose()
   @Type(() => CityDto)
   @Transform(({ value }) => value?.filter(v => v.isVisible))
