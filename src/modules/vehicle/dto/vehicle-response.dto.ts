@@ -2,24 +2,9 @@ import { Expose, Transform, Type } from 'class-transformer';
 import { VehicleDocumentsDto } from './create-vehicle.dto';
 import { VerificationStatusDto } from 'src/modules/auth/dto/verification-status.dto';
 
-export class VehicleResponseDto {
+export class VehicleCompactResponseDto {
   @Expose()
   id: string;
-
-  @Expose()
-  ownerId: string;
-
-  @Expose()
-  vin: string;
-
-  @Expose()
-  licensePlate: string;
-
-  @Expose()
-  barcode: string;
-
-  @Expose()
-  greenSheetNumber: string;
 
   @Expose()
   vehicleType: string;
@@ -40,6 +25,23 @@ export class VehicleResponseDto {
 
   @Expose()
   color: string;
+}
+
+export class VehicleResponseDto extends VehicleCompactResponseDto {
+  @Expose()
+  ownerId: string;
+
+  @Expose()
+  vin: string;
+
+  @Expose()
+  licensePlate: string;
+
+  @Expose()
+  barcode: string;
+
+  @Expose()
+  greenSheetNumber: string;
 
   @Expose()
   technicalInspectionDate: Date;
