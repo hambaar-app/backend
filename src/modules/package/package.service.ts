@@ -343,6 +343,22 @@ export class PackageService {
     });;
   }
 
+  private async updateStatus(
+    id: string,
+    status: PackageStatusEnum,
+    tx: PrismaTransaction = this.prisma
+  ) {
+    return tx.package.update({
+      where: {
+        id,
+        deletedAt: null
+      },
+      data: {
+        status
+      }
+    });
+  }
+
   async delete(id: string) {
     return this.prisma.$transaction(async tx => {
       const { status } = await tx.package.findFirstOrThrow({
