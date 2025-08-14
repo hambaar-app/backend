@@ -422,15 +422,18 @@ export class PackageService {
         waypoints
       });
    
-      const deviationDistance = Math.min(
+      const deviationDistance = Math.max(
         0,
         distance - ((trip.normalDistanceKm ?? 0) + (trip.totalDeviationDurationMin ?? 0))
       );
-      const deviationDuration = Math.min(
+      const deviationDuration = Math.max(
         0,
         duration - ((trip.normalDurationMin ?? 0) + (trip.totalDeviationDurationMin ?? 0))
       );
-      const additionalPrice = this.pricingService.calculateDistanceCost(deviationDistance);
+      console.log(deviationDistance, deviationDuration);
+      console.log(distance, duration);
+      
+      const additionalPrice = this.pricingService.calculateDeviationCost(deviationDistance, deviationDuration);
       matchedTrip.deviationInfo = {
         distance: deviationDistance,
         duration: deviationDuration,
