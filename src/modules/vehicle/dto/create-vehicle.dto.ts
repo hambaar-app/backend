@@ -64,9 +64,10 @@ export class CreateVehicleDto {
 
   @IsNotEmpty()
   @IsString()
-  @Matches(/^[۰-۹]{2}[آابپتثجچحخدذرزسشصضطظعغفقکگلمنوهی][۰-۹]{3}[۰-۹]{2}$/, {
+  @Matches(/^[۰-۹]{2}-[آابپتثجچحخدذرزسشصضطظعغفقکگلمنوهی]-[۰-۹]{3}-[۰-۹]{2}$/, {
     message: `License plate must follow the Iranian format: two Persian digits,
-      one Persian letter (from private vehicle set), three Persian digits, two Persian digits`,
+      one Persian letter (from private vehicle set), three Persian digits, two Persian digits.
+      Also set dash between each part.`,
   })
   licensePlate: string;
 
