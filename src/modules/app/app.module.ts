@@ -54,10 +54,6 @@ import { TripModule } from '../trip/trip.module';
         transform: true,
       }),
     },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ClassSerializerInterceptor
-    },
   ]
 })
 export class AppModule {

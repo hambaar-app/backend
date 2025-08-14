@@ -3,7 +3,7 @@ import { Prisma } from 'generated/prisma';
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
+  HttpException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -22,8 +22,7 @@ export const formatPrismaError = (error: Error): never => {
   if (process.env.NODE_ENV === 'development')
     console.error(error);
 
-  if (error instanceof ForbiddenException
-    || error instanceof BadRequestException) {
+  if (error instanceof HttpException) {
     throw error;
   }
 

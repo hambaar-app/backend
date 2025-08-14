@@ -328,14 +328,6 @@ export class TripService {
     return this.prisma.$transaction(async tx => {
       const packageData = await tx.package.findUniqueOrThrow({
         where: { id: packageId },
-        include: {
-          originAddress: true,
-          recipient: {
-            include: {
-              address: true
-            }
-          }
-        }
       });
 
       if (userId !== packageData.senderId) {
@@ -371,6 +363,14 @@ export class TripService {
         throw new BadRequestException(BadRequestMessages.SendRequestTrip);
       }
 
+      // Update package status
+      await tx.package.update({
+        where: { id: packageId },
+        data: {
+          status: PackageStatusEnum.matched
+        }
+      });
+
       const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
       const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
       const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
@@ -385,6 +385,9 @@ export class TripService {
           senderNote
         }
       });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 
@@ -416,7 +419,6 @@ export class TripService {
         throw error;
       });
     }
-
     return this.prisma.$transaction(async tx => {
       const request = await tx.tripRequest.update({
         where: { id: requestId },

@@ -249,7 +249,8 @@ export class TripController {
   async updateTripRequest(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateRequestDto,
+    @Session() session: SessionData
   ) {
-    return this.tripService.updateRequest(id, body);
+    return this.tripService.updateRequest(id, body, session);
   }
 }
