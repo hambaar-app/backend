@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { Turf, TURF_TOKEN } from './turf.provider';
 import { SessionData } from 'express-session';
 import { MatchResult, PackageWithLocations, TripWithLocations } from './matching.types';
+import { PrismaTransaction } from '../prisma/prisma.types';
 
 @Injectable()
 export class MatchingService {
@@ -23,7 +24,8 @@ export class MatchingService {
   async findMatchedTrips(
     packageData: PackageWithLocations,
     session: SessionData,
-    maxResults: number = 20
+    maxResults: number = 20,
+    tx: PrismaTransaction = this.prisma
   ): Promise<MatchResult[]> {
     const now = new Date();
 
@@ -87,7 +89,8 @@ export class MatchingService {
 
   private async getPreFilteredTrips(
     packageData: PackageWithLocations,
-    lastCheckMatching?: Date
+    lastCheckMatching?: Date,
+    tx: PrismaTransaction = this.prisma
   ) {
     const whereClause: Prisma.TripWhereInput = {
       isActive: true,
@@ -116,7 +119,7 @@ export class MatchingService {
 
     // TODO: Filter by departure time
 
-    return this.prisma.trip.findMany({
+    return tx.trip.findMany({
       where: whereClause,
       include: {
         origin: {

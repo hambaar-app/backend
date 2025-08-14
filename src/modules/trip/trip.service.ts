@@ -10,6 +10,7 @@ import { UpdateTripDto } from './dto/update-trip.dto';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { SessionData } from 'express-session';
 import { UpdateRequestDto } from './dto/update-request.dto';
+import { PrismaTransaction } from '../prisma/prisma.types';
 
 @Injectable()
 export class TripService {
@@ -107,8 +108,11 @@ export class TripService {
   }
 
   // TODO: Complete this
-  async getMultipleById(ids: string[]) {
-    return this.prisma.trip.findMany({
+  async getMultipleById(
+    ids: string[],
+    tx: PrismaTransaction = this.prisma
+  ) {
+    return tx.trip.findMany({
       where: {
         id: {
           in: ids

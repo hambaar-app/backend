@@ -12,6 +12,7 @@ import { S3Service } from '../s3/s3.service';
 import { SessionData } from 'express-session';
 import { MatchingService } from './matching.service';
 import { TripService } from '../trip/trip.service';
+import { PrismaTransaction } from '../prisma/prisma.types';
 
 @Injectable()
 export class PackageService {
@@ -181,8 +182,11 @@ export class PackageService {
     });
   }
 
-  async getById(id: string) {
-    const packageData = await this.prisma.package.findFirstOrThrow({
+  async getById(
+    id: string,
+    tx: PrismaTransaction = this.prisma
+  ) {
+    const packageData = await tx.package.findFirstOrThrow({
       where: {
         id,
         deletedAt: null
@@ -369,84 +373,84 @@ export class PackageService {
     session: SessionData,
     maxResults = 20
   ) {
-    const packageData = await this.getById(packageId);
-
-    // Do matching
-    const matchedTrips = await this.matchingService.findMatchedTrips(packageData, session);
-    
-    // Fetch trips
-    const tripIds = matchedTrips
-      .map(m => m.tripId)
-      .slice(0, maxResults);
-    const trips = await this.tripService.getMultipleById(tripIds);
-    const tripMap = new Map(trips.map(trip => [trip.id, trip]));
-
-    // Calculate deviation info
-    const matchingResult = await Promise.all(matchedTrips.map(async (matchedTrip) => {
-      const trip = tripMap.get(matchedTrip.tripId);
-      if (!trip) return;
+    return this.prisma.$transaction(async tx => {
+      const packageData = await this.getById(packageId, tx);
+  
+      // Do matching
+      const matchedTrips = await this.matchingService.findMatchedTrips(packageData, session, maxResults, tx);
       
-      const waypoints = trip.requests.flatMap(r => [
-        r.package.pickupAtOrigin ? {
-          latitude: r.package.originAddress.latitude,
-          longitude: r.package.originAddress.longitude
-        } : undefined,
-        r.package.deliveryAtDestination ? {
-          latitude: r.package.recipient.address.latitude,
-          longitude: r.package.recipient.address.longitude
-        } : undefined
-      ]).filter(v => v !== undefined);
-
-      waypoints.push(
-        ...[
-          packageData.pickupAtOrigin ? {
-            latitude: packageData.originAddress.latitude,
-            longitude: packageData.originAddress.longitude
+      // Fetch trips
+      const tripIds = matchedTrips
+        .map(m => m.tripId)
+        .slice(0, maxResults);
+      const trips = await this.tripService.getMultipleById(tripIds, tx);
+      const tripMap = new Map(trips.map(trip => [trip.id, trip]));
+  
+      // Calculate deviation info
+      const matchingResult = await Promise.all(matchedTrips.map(async (matchedTrip) => {
+        const trip = tripMap.get(matchedTrip.tripId);
+        if (!trip) return;
+        
+        const waypoints = trip.requests.flatMap(r => [
+          r.package.pickupAtOrigin ? {
+            latitude: r.package.originAddress.latitude,
+            longitude: r.package.originAddress.longitude
           } : undefined,
-          packageData.deliveryAtDestination ? {
-            latitude: packageData.recipient.address.latitude,
-            longitude: packageData.recipient.address.longitude
+          r.package.deliveryAtDestination ? {
+            latitude: r.package.recipient.address.latitude,
+            longitude: r.package.recipient.address.longitude
           } : undefined
-        ].filter(v => v !== undefined)
-      );
-
-      const { distance, duration } = await this.mapService.calculateDistance({
-        origin: {
-          latitude: trip.origin.latitude,
-          longitude: trip.origin.longitude
-        },
-        destination: {
-          latitude: trip.destination.latitude,
-          longitude: trip.destination.longitude
-        },
-        waypoints
-      });
-   
-      const deviationDistance = Math.max(
-        0,
-        distance - ((trip.normalDistanceKm ?? 0) + (trip.totalDeviationDurationMin ?? 0))
-      );
-      const deviationDuration = Math.max(
-        0,
-        duration - ((trip.normalDurationMin ?? 0) + (trip.totalDeviationDurationMin ?? 0))
-      );
-      console.log(deviationDistance, deviationDuration);
-      console.log(distance, duration);
-      
-      const additionalPrice = this.pricingService.calculateDeviationCost(deviationDistance, deviationDuration);
-      matchedTrip.deviationInfo = {
-        distance: deviationDistance,
-        duration: deviationDuration,
-        additionalPrice
-      };
-
-      return {
-        ...trip,
-        additionalPrice
-      };
-    }).filter(Boolean));
-
-    return matchingResult;
+        ]).filter(v => v !== undefined);
+  
+        waypoints.push(
+          ...[
+            packageData.pickupAtOrigin ? {
+              latitude: packageData.originAddress.latitude,
+              longitude: packageData.originAddress.longitude
+            } : undefined,
+            packageData.deliveryAtDestination ? {
+              latitude: packageData.recipient.address.latitude,
+              longitude: packageData.recipient.address.longitude
+            } : undefined
+          ].filter(v => v !== undefined)
+        );
+  
+        const { distance, duration } = await this.mapService.calculateDistance({
+          origin: {
+            latitude: trip.origin.latitude,
+            longitude: trip.origin.longitude
+          },
+          destination: {
+            latitude: trip.destination.latitude,
+            longitude: trip.destination.longitude
+          },
+          waypoints
+        });
+     
+        const deviationDistance = Math.max(
+          0,
+          distance - ((trip.normalDistanceKm ?? 0) + (trip.totalDeviationDurationMin ?? 0))
+        );
+        const deviationDuration = Math.max(
+          0,
+          duration - ((trip.normalDurationMin ?? 0) + (trip.totalDeviationDurationMin ?? 0))
+        );
+        
+        const additionalPrice = this.pricingService.calculateDeviationCost(deviationDistance, deviationDuration);
+        matchedTrip.deviationInfo = {
+          distance: deviationDistance,
+          duration: deviationDuration,
+          additionalPrice
+        };
+  
+        return {
+          ...trip,
+          additionalPrice
+        };
+      }).filter(Boolean));
+  
+      return matchingResult;
+    });
   }
 
   async getAllPackageRequests(packageId: string) {
