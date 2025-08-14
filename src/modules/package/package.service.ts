@@ -405,7 +405,17 @@ export class PackageService {
     maxResults = 20
   ) {
     return this.prisma.$transaction(async tx => {
-      const packageData = await this.updateStatus(packageId, PackageStatusEnum.searching_transporter, tx);
+      const packageData = await this.getById(packageId, tx);
+ 
+      const idValidPackageStatus = packageData.status === PackageStatusEnum.created
+        || packageData.status === PackageStatusEnum.searching_transporter
+        || packageData.status === PackageStatusEnum.cancelled;
+      if (!idValidPackageStatus) {
+        throw new BadRequestException(BadRequestMessages.SendRequestPackage);
+      }
+      
+      // Update package status
+      await this.updateStatus(packageId, PackageStatusEnum.searching_transporter, tx);
   
       // Do matching
       const matchedTrips = await this.matchingService.findMatchedTrips(packageData, session, maxResults, tx);

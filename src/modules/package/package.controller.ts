@@ -17,6 +17,7 @@ import { PackageService } from './package.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import {
+  ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -37,6 +38,7 @@ import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 import { SessionData } from 'express-session';
 import { MatchedTripResponseDto, TripResponseDto } from '../trip/dto/trip-response.dto';
 import { MapService } from '../map/map.service';
+import { BadRequestMessages } from 'src/common/enums/messages.enum';
 
 @Controller('packages')
 export class PackageController {
@@ -194,6 +196,9 @@ export class PackageController {
   })
   @ApiOkResponse({
     type: [MatchedTripResponseDto]
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.SendRequestPackage
   })
   @AuthResponses()
   @CrudResponses()
