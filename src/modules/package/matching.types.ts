@@ -18,7 +18,8 @@ export interface TripWithLocations {
 
 export interface DeviationInfo {
   distance?: number;
-  time?: number;
+  duration?: number;
+  additionalPrice: number;
 }
 
 export interface MatchResult {
