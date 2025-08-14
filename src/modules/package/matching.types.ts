@@ -1,5 +1,12 @@
-import { TripStatusEnum } from 'generated/prisma';
+import { Package, TripStatusEnum } from 'generated/prisma';
 import { Location } from '../map/map.types';
+
+export interface PackageWithLocations extends Package {
+  originAddress: Location;
+  recipient: {
+    address: Location;
+  }
+}
 
 export interface TripWithLocations {
   id: string;

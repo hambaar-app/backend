@@ -1,14 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Package, Prisma, TripStatusEnum } from 'generated/prisma';
+import { Prisma, TripStatusEnum } from 'generated/prisma';
 import { Feature, LineString, Point } from 'geojson';
 import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
-import { PackageService } from './package.service';
 import { Turf, TURF_TOKEN } from './turf.provider';
 import { SessionData } from 'express-session';
-import { TripService } from '../trip/trip.service';
-import { MatchResult, TripWithLocations } from './matching.types';
+import { MatchResult, PackageWithLocations, TripWithLocations } from './matching.types';
 
 @Injectable()
 export class MatchingService {
@@ -17,15 +15,13 @@ export class MatchingService {
   constructor(
     config: ConfigService,
     private prisma: PrismaService,
-    private packageService: PackageService,
-    private tripService: TripService,
     @Inject(TURF_TOKEN) private turf: Turf,
   ) {
     this.corridorWidth = config.get<number>('CORRIDOR_WIDTH', 10);
   }
 
   async findMatchingTrips(
-    packageId: string,
+    packageData: PackageWithLocations,
     session: SessionData,
     maxResults: number = 20
   ) {
@@ -36,17 +32,16 @@ export class MatchingService {
     }
 
     // Find or create session package
-    let sessionPackage = session.packages.find(p => p.id === packageId);
+    let sessionPackage = session.packages.find(p => p.id === packageData.id);
     if (!sessionPackage) {
       sessionPackage = {
-        id: packageId,
+        id: packageData.id,
         matchResults: []
       };
       session.packages.push(sessionPackage);
     }
 
-    // Get package and Pre-filter trips
-    const packageData = await this.packageService.getById(packageId);
+    // Pre-filter trips
     const candidateTrips = await this.getPreFilteredTrips(packageData, sessionPackage.lastCheckMatching);
 
     // Analyze each trip for corridor matching in parallel
@@ -86,21 +81,12 @@ export class MatchingService {
     sessionPackage.lastCheckMatching = now;
     sessionPackage.matchResults = updatedResults;
 
-    // Fetch trips
-    const tripIds = updatedResults
-      .map(u => u.tripId)
-      .slice(0, maxResults);;
-    const trips = await this.tripService.getMultipleById(tripIds);
-
-    // Return trips in the same order as sorted results
-    const tripMap = new Map(trips.map(trip => [trip.id, trip]));
     return updatedResults
-      .map(result => tripMap.get(result.tripId))
-      .filter(Boolean);
+      .slice(0, maxResults);
   }
 
   private async getPreFilteredTrips(
-    packageData: Package,
+    packageData: PackageWithLocations,
     lastCheckMatching?: Date
   ) {
     const whereClause: Prisma.TripWhereInput = {

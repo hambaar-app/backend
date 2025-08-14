@@ -190,26 +190,26 @@ export class PackageController {
     return this.packageService.delete(id);
   }
 
-  @ApiOperation({
-    summary: 'Get package matching trips by package id',
-  })
-  @ApiOkResponse({
-    type: [TripResponseDto]
-  })
-  @AuthResponses()
-  @CrudResponses()
-  @Serialize(TripResponseDto)
-  @UseGuards(AccessTokenGuard, OwnershipGuard)
-  @CheckOwnership({
-    entity: 'package',
-  })
-  @Get(':id/matching-trips')
-  async getPackageMatchingTrips(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Session() session: SessionData
-  ) {
-    return this.matchingService.findMatchingTrips(id, session);
-  }
+  // @ApiOperation({
+  //   summary: 'Get package matching trips by package id',
+  // })
+  // @ApiOkResponse({
+  //   type: [TripResponseDto]
+  // })
+  // @AuthResponses()
+  // @CrudResponses()
+  // @Serialize(TripResponseDto)
+  // @UseGuards(AccessTokenGuard, OwnershipGuard)
+  // @CheckOwnership({
+  //   entity: 'package',
+  // })
+  // @Get(':id/matching-trips')
+  // async getPackageMatchingTrips(
+  //   @Param('id', ParseUUIDPipe) id: string,
+  //   @Session() session: SessionData
+  // ) {
+  //   // return this.matchingService.findMatchingTrips(id, session);
+  // }
 
   @ApiOperation({
     summary: 'Get all package requests by its id',
