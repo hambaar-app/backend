@@ -99,7 +99,18 @@ export class TripService {
         origin: true,
         destination: true,
         waypoints: true,
-        vehicle: true
+        vehicle: {
+          select: {
+            vehicleType: true,
+            model: {
+              include: {
+                brand: true
+              }
+            },
+            manufactureYear: true,
+            color: true
+          },
+        }
       },
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -430,7 +441,10 @@ export class TripService {
       // Delete other sent requests for this package
       await tx.tripRequest.updateMany({
         where: {
-          packageId: request.packageId
+          packageId: request.packageId,
+          NOT: {
+            id: request.id
+          }
         },
         data: {
           status: RequestStatusEnum.deleted
