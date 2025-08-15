@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { MapService } from '../map/map.service';
 import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatPrismaError } from 'src/common/utilities';
+import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { AuthMessages, BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 import { PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
@@ -406,7 +406,8 @@ export class TripService {
   async updateRequest(
     requestId: string,
     {
-      status
+      status,
+      transporterNote
     }: UpdateRequestDto,
     session: SessionData
   ) {
@@ -419,12 +420,14 @@ export class TripService {
         throw error;
       });
     }
+
     return this.prisma.$transaction(async tx => {
       const request = await tx.tripRequest.update({
         where: { id: requestId },
         data: { status }
       });
 
+      // Delete other sent requests for this package
       await tx.tripRequest.updateMany({
         where: {
           packageId: request.packageId
@@ -434,7 +437,19 @@ export class TripService {
         }
       });
 
-      // TODO: MatchedRequest
+      // Create MatchedRequest instance
+      const trackingCode = generateUniqueCode();
+      const receiptCode = generateCode().toString();
+      await tx.matchedRequest.create({
+        data: {
+          requestId: request.id,
+          packageId: request.packageId,
+          tripId: request.tripId,
+          trackingCode,
+          receiptCode,
+          transporterNote,
+        }
+      });
 
       // Update total deviation info in trip
       const {

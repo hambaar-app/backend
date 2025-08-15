@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 enum RequestStatusEnum {
   Accepted = 'accepted',
@@ -9,4 +9,8 @@ export class UpdateRequestDto {
   @IsNotEmpty()
   @IsEnum(RequestStatusEnum)
   status: RequestStatusEnum;
+
+  @IsOptional()
+  @IsString()
+  transporterNote?: string;
 }
