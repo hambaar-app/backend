@@ -14,7 +14,7 @@ import {
 } from 'class-validator';
 import { isAfter, isValid } from 'date-fns';
 
-export const generateOTP = () => {
+export const generateCode = () => {
   return crypto.randomInt(11111, 99999);
 };
 
