@@ -418,7 +418,7 @@ export class TripService {
     requestId: string,
     {
       status,
-      transporterNote
+      transporterNotes
     }: UpdateRequestDto,
     session: SessionData
   ) {
@@ -461,7 +461,7 @@ export class TripService {
           tripId: request.tripId,
           trackingCode,
           receiptCode,
-          transporterNote,
+          transporterNotes, // TODO: Improve it
         }
       });
 
@@ -526,7 +526,7 @@ export class TripService {
             picturesKey: true, // TODO: HANDLE THIS
           }
         },
-        transporterNote: true,
+        transporterNotes: true,
         pickupTime: true,
         deliveryTime: true,
         paymentStatus: true,

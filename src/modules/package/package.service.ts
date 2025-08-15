@@ -233,7 +233,7 @@ export class PackageService {
             },
             trackingCode: true,
             receiptCode: true,
-            transporterNote: true,
+            transporterNotes: true,
             comment: true,
             senderRating: true,
             isCompleted: true,

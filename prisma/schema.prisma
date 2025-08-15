@@ -448,7 +448,7 @@ model MatchedRequest {
   tripId             String            @map("trip_id") @db.Uuid
   trackingCode       String?           @map("tracking_code") @db.VarChar // 20-digits (Auto generated)
   receiptCode        String?           @map("receipt_code") @db.VarChar // 5-digits (Auto generated)
-  transporterNote    String?           @map("transporter_note") @db.Text
+  transporterNotes   Json?             @map("transporter_note") @db.JsonB
   comment            String?           @map("comment") @db.Text
   senderRating       Int?              @map("sender_rating") // 1-5
   isCompleted        Boolean           @default(false) @map("is_completed")

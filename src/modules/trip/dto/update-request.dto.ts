@@ -1,8 +1,15 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 enum RequestStatusEnum {
   Accepted = 'accepted',
-  Rejected = 'rejected'
+  Rejected = 'rejected',
 }
 
 export class UpdateRequestDto {
@@ -11,6 +18,8 @@ export class UpdateRequestDto {
   status: RequestStatusEnum;
 
   @IsOptional()
-  @IsString()
-  transporterNote?: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  transporterNotes?: string[];
 }
