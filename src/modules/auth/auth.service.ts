@@ -11,7 +11,7 @@ import { UserService } from '../user/user.service';
 import { AuthTokens } from 'src/common/enums/auth.enum';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignupSenderDto } from './dto/signup-sender.dto';
-import { formatPrismaError, generateOTP } from 'src/common/utilities';
+import { formatPrismaError, generateCode } from 'src/common/utilities';
 import { TooManyRequestsException } from 'src/common/custom.exceptions';
 import { CachedUserData, CheckOtpResult, UserAttempts } from './types/auth.types';
 import { SignupTransporterDto } from './dto/signup-transporter.dto';
@@ -61,7 +61,7 @@ export class AuthService {
     }
     
     const otp = {
-      code: generateOTP(),
+      code: generateCode(),
       expiresIn: now + this.otpExpireTime,
       createdAt: now
     };

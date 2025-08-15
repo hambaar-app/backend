@@ -36,8 +36,7 @@ import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 import { SessionData } from 'express-session';
-import { MatchedTripResponseDto, TripResponseDto } from '../trip/dto/trip-response.dto';
-import { MapService } from '../map/map.service';
+import { MatchedTripResponseDto } from '../trip/dto/trip-response.dto';
 import { BadRequestMessages } from 'src/common/enums/messages.enum';
 
 @Controller('packages')
@@ -95,12 +94,12 @@ export class PackageController {
       or retrieved from \`GET /packages/recipients\`.`,
   })
   @ApiCreatedResponse({
-    type: PackageResponseDto,
+    type: PackageCompactResponseDto,
   })
   @AuthResponses()
   @ValidationResponses()
   @CrudResponses()
-  @Serialize(PackageResponseDto)
+  @Serialize(PackageCompactResponseDto)
   @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.CREATED)
   @Post()
@@ -116,10 +115,10 @@ export class PackageController {
   })
   @AuthResponses()
   @ApiOkResponse({
-    type: [PackageResponseDto],
+    type: [PackageCompactResponseDto],
   })
   @AuthResponses()
-  @Serialize(PackageResponseDto)
+  @Serialize(PackageCompactResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get()
   async getAllPackages(
@@ -220,7 +219,7 @@ export class PackageController {
   })
   @AuthResponses()
   @CrudResponses()
-  @Serialize(TripResponseDto)
+  // TODO: Serializer
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'package',
@@ -239,7 +238,7 @@ export class PackageController {
   })
   @AuthResponses()
   @CrudResponses()
-  @Serialize(TripResponseDto)
+  // TODO: Serializer
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'packageRequest',

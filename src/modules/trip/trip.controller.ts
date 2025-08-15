@@ -219,7 +219,7 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Get all trip requests by its id'
+    summary: 'Get all trip pending requests by its id'
   })
   @AuthResponses()
   @ValidationResponses()
@@ -252,5 +252,23 @@ export class TripController {
     @Session() session: SessionData
   ) {
     return this.tripService.updateRequest(id, body, session);
+  }
+
+  @ApiOperation({
+    summary: 'Get all trip matched packages by its id'
+  })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
+  // TODO: Serialize
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Get(':id/matched-packages')
+  async getAllTripMatchedPackages(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.tripService.getAllMatchedPackages(id);
   }
 }

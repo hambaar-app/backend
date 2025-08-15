@@ -198,12 +198,49 @@ export class PackageService {
             address: true
           }
         },
-        deliveryRequests: true,
         matchedRequest: {
-          include: {
-            transporter: true,
-            trackingUpdates: true
-          }
+          select: {
+            trip: {
+              select: {
+                transporter: {
+                  select: {
+                    user: {
+                      select: {
+                        firstName: true,
+                        lastName: true,
+                        gender: true,
+                        phoneNumber: true
+                      }
+                    },
+                  },
+                },
+                vehicle: {
+                  select: {
+                    vehicleType: true,
+                    model: {
+                      select: {
+                        brand: true
+                      }
+                    },
+                    manufactureYear: true,
+                    color: true,
+                  },
+                },
+                departureTime: true,
+                status: true,
+                description: true,
+              },
+            },
+            trackingCode: true,
+            receiptCode: true,
+            transporterNotes: true,
+            comment: true,
+            senderRating: true,
+            isCompleted: true,
+            pickupTime: true,
+            deliveryTime: true,
+            paymentStatus: true
+          },
         }
       }
     }).catch((error: Error) => {
@@ -263,8 +300,7 @@ export class PackageService {
           include: {
             address: true
           }
-        },
-        matchedRequest: true, // TODO: Improve it later
+        }
       },
       orderBy: {
         createdAt: 'desc'
@@ -356,21 +392,6 @@ export class PackageService {
       data: {
         status
       },
-      include: {
-        originAddress: true,
-        recipient: {
-          include: {
-            address: true
-          }
-        },
-        deliveryRequests: true,
-        matchedRequest: {
-          include: {
-            transporter: true,
-            trackingUpdates: true
-          }
-        }
-      }
     });
   }
 

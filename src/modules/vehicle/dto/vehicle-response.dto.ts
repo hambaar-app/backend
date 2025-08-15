@@ -10,9 +10,6 @@ export class VehicleCompactResponseDto {
   vehicleType: string;
 
   @Expose()
-  modelId: string;
-
-  @Expose()
   @Transform(({ obj }) => obj.model?.brand?.name)
   brand?: string;
 
