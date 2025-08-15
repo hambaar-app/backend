@@ -493,4 +493,47 @@ export class TripService {
       throw error;
     });
   }
+
+  async getAllMatchedPackages(tripId: string) {
+    return this.prisma.matchedRequest.findFirstOrThrow({
+      where: {
+        tripId
+      },
+      select: {
+        package: {
+          select: {
+            sender: {
+              select: {
+                firstName: true,
+                lastName: true,
+                gender: true,
+                phoneNumber: true,
+              }
+            },
+            items: true,
+            originAddress: true,
+            recipient: true,
+            weight: true,
+            dimensions: true,
+            packageValue: true,
+            isFragile: true,
+            isPerishable: true,
+            description: true,
+            pickupAtOrigin: true,
+            deliveryAtDestination: true,
+            preferredPickupTime: true,
+            preferredDeliveryTime: true,
+            picturesKey: true, // TODO: HANDLE THIS
+          }
+        },
+        transporterNote: true,
+        pickupTime: true,
+        deliveryTime: true,
+        paymentStatus: true,
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
 }
