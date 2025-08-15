@@ -15,8 +15,12 @@ import {
 import { isAfter, isValid } from 'date-fns';
 
 export const generateCode = () => {
-  return crypto.randomInt(11111, 99999);
+  return crypto.randomInt(11_111, 99_999);
 };
+
+export const generateUniqueCode = () => {
+  return Date.now().toString() + crypto.randomInt(1_111_111, 9_999_999);
+}
 
 export const formatPrismaError = (error: Error): never => {
   if (process.env.NODE_ENV === 'development')
