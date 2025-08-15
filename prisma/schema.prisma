@@ -96,7 +96,6 @@ enum RequestStatusEnum {
 
 enum MatchStatusEnum {
   confirmed
-  in_progress
   completed
   cancelled_by_sender
   cancelled_by_transporter
@@ -107,7 +106,7 @@ enum MatchStatusEnum {
 }
 
 enum PaymentStatusEnum {
-  pending
+  unpaid
   escrowed
   released
 
@@ -456,7 +455,7 @@ model MatchedRequest {
   pickupTime         DateTime?         @map("pickup_time") @db.Timestamp
   deliveryTime       DateTime?         @map("delivery_time") @db.Timestamp
   matchStatus        MatchStatusEnum   @default(confirmed) @map("match_status")
-  paymentStatus      PaymentStatusEnum @default(pending) @map("payment_status")
+  paymentStatus      PaymentStatusEnum @default(unpaid) @map("payment_status")
   cancellationReason String?           @map("cancellation_reason") @db.Text
   cancelledBy        RolesEnum?        @map("cancelled_by")
 

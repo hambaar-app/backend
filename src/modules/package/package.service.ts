@@ -198,16 +198,49 @@ export class PackageService {
             address: true
           }
         },
-        deliveryRequests: true,
         matchedRequest: {
-          include: {
+          select: {
             trip: {
-              include: {
-                transporter: true
-              }
+              select: {
+                transporter: {
+                  select: {
+                    user: {
+                      select: {
+                        firstName: true,
+                        lastName: true,
+                        gender: true,
+                        phoneNumber: true
+                      }
+                    },
+                  },
+                },
+                vehicle: {
+                  select: {
+                    vehicleType: true,
+                    model: {
+                      select: {
+                        brand: true
+                      }
+                    },
+                    manufactureYear: true,
+                    color: true,
+                  },
+                },
+                departureTime: true,
+                status: true,
+                description: true,
+              },
             },
-            trackingUpdates: true
-          }
+            trackingCode: true,
+            receiptCode: true,
+            transporterNote: true,
+            comment: true,
+            senderRating: true,
+            isCompleted: true,
+            pickupTime: true,
+            deliveryTime: true,
+            paymentStatus: true
+          },
         }
       }
     }).catch((error: Error) => {
@@ -267,8 +300,7 @@ export class PackageService {
           include: {
             address: true
           }
-        },
-        matchedRequest: true, // TODO: Improve it later
+        }
       },
       orderBy: {
         createdAt: 'desc'
