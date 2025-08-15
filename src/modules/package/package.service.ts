@@ -201,7 +201,11 @@ export class PackageService {
         deliveryRequests: true,
         matchedRequest: {
           include: {
-            transporter: true,
+            trip: {
+              include: {
+                transporter: true
+              }
+            },
             trackingUpdates: true
           }
         }
@@ -356,21 +360,6 @@ export class PackageService {
       data: {
         status
       },
-      include: {
-        originAddress: true,
-        recipient: {
-          include: {
-            address: true
-          }
-        },
-        deliveryRequests: true,
-        matchedRequest: {
-          include: {
-            transporter: true,
-            trackingUpdates: true
-          }
-        }
-      }
     });
   }
 

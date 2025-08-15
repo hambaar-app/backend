@@ -135,11 +135,10 @@ model User {
   isActive        Boolean      @default(true) @map("is_active")
 
   // Relations
-  transporter     Transporter?
-  packages        Package[]
-  addresses       Address[]
-  wallet          Wallet?
-  matchedRequests MatchedRequest[] @relation("SenderMatches")
+  transporter Transporter?
+  packages    Package[]
+  addresses   Address[]
+  wallet      Wallet?
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -168,7 +167,6 @@ model Transporter {
   vehicles           Vehicle[]
   trips              Trip[]
   achievements       Achievement[]
-  matchedRequests    MatchedRequest[]    @relation("TransporterMatches")
   nationalIdStatus   VerificationStatus? @relation("NationalIdStatus", fields: [nationalIdStatusId], references: [id])
   licenseStatus      VerificationStatus? @relation("DriverLicenseStatus", fields: [licenseStatusId], references: [id])
   verificationStatus VerificationStatus? @relation("TransporterVerification", fields: [verificationStatusId], references: [id])
@@ -449,11 +447,9 @@ model MatchedRequest {
   requestId          String            @unique @map("request_id") @db.Uuid
   packageId          String            @unique @map("package_id") @db.Uuid
   tripId             String            @map("trip_id") @db.Uuid
-  senderId           String            @map("sender_id") @db.Uuid
-  transporterId      String            @map("transporter_id") @db.Uuid
   trackingCode       String?           @map("tracking_code") @db.VarChar // 20-digits (Auto generated)
-  receiptCode        String?           @map("receipt_code") @db.VarChar // 6-digits (Auto generated)
-  transporterNotes   String?           @map("transporter_notes") @db.Text
+  receiptCode        String?           @map("receipt_code") @db.VarChar // 5-digits (Auto generated)
+  transporterNote    String?           @map("transporter_note") @db.Text
   comment            String?           @map("comment") @db.Text
   senderRating       Int?              @map("sender_rating") // 1-5
   isCompleted        Boolean           @default(false) @map("is_completed")
@@ -465,11 +461,9 @@ model MatchedRequest {
   cancelledBy        RolesEnum?        @map("cancelled_by")
 
   // Relations
-  request         TripRequest      @relation(fields: [requestId], references: [id]) // TODO
+  request         TripRequest      @relation(fields: [requestId], references: [id])
   package         Package          @relation(fields: [packageId], references: [id])
   trip            Trip             @relation(fields: [tripId], references: [id])
-  sender          User             @relation("SenderMatches", fields: [senderId], references: [id])
-  transporter     Transporter      @relation("TransporterMatches", fields: [transporterId], references: [id])
   trackingUpdates TrackingUpdate[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
