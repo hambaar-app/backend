@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseEnumPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -38,6 +39,7 @@ import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 import { SessionData } from 'express-session';
 import { MatchedTripResponseDto } from '../trip/dto/trip-response.dto';
 import { BadRequestMessages } from 'src/common/enums/messages.enum';
+import { RequestStatusEnum } from 'generated/prisma';
 
 @Controller('packages')
 export class PackageController {
@@ -227,8 +229,9 @@ export class PackageController {
   @Get(':id/requests')
   async getAllPackageRequests(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query('status', new ParseEnumPipe(RequestStatusEnum)) status?: RequestStatusEnum
   ) {
-    return this.packageService.getAllPackageRequests(id);
+    return this.packageService.getAllPackageRequests(id, status ? [status] : undefined);
   }
 
   @ApiOperation({

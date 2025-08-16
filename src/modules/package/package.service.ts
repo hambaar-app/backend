@@ -515,10 +515,16 @@ export class PackageService {
     });
   }
 
-  async getAllPackageRequests(packageId: string) {
+  async getAllPackageRequests(
+    packageId: string,
+    status: RequestStatusEnum[] = Object.values(RequestStatusEnum)
+  ) {
     return this.prisma.tripRequest.findMany({
       where: {
-        packageId
+        packageId,
+        status: {
+          in: status
+        }
       },
       orderBy: {
         createdAt: 'desc'
