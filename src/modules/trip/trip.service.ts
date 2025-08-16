@@ -369,16 +369,17 @@ export class TripService {
         throw new NotFoundException(NotFoundMessages.MatchedTrip);
       }
 
-      const matchedTrip = matchedTrips.find(t => t.tripId === tripId);
-      if (!matchedTrip) {
+      const matchedTripIndex = matchedTrips.findIndex(t => t.tripId === tripId);
+      if (matchedTripIndex < 0) {
         throw new BadRequestException(BadRequestMessages.SendRequestTrip);
       }
 
+      const matchedTrip = matchedTrips[matchedTripIndex];
       const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
       const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
       const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
 
-      return tx.tripRequest.create({
+      const request = await tx.tripRequest.create({
         data: {
           packageId,
           tripId,
@@ -388,6 +389,11 @@ export class TripService {
           senderNote
         }
       });
+
+      // Update session
+      matchedTrips.splice(matchedTripIndex, 1);
+
+      return request;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
