@@ -374,14 +374,6 @@ export class TripService {
         throw new BadRequestException(BadRequestMessages.SendRequestTrip);
       }
 
-      // Update package status
-      await tx.package.update({
-        where: { id: packageId },
-        data: {
-          status: PackageStatusEnum.matched
-        }
-      });
-
       const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
       const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
       const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
@@ -481,6 +473,14 @@ export class TripService {
         data: {
           totalDeviationDistanceKm: newTotalDeviationDistance,
           totalDeviationDurationMin: newTotalDeviationDuration
+        }
+      });
+
+      // Update package status
+      await tx.package.update({
+        where: { id: request.packageId },
+        data: {
+          status: PackageStatusEnum.matched
         }
       });
 
