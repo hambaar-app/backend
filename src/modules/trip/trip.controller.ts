@@ -255,7 +255,7 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Get all trip matched packages by its id'
+    summary: 'Get all trip matched requests by its id'
   })
   @AuthResponses()
   @ValidationResponses()
@@ -265,10 +265,10 @@ export class TripController {
   @CheckOwnership({
     entity: 'trip'
   })
-  @Get(':id/matched-packages')
-  async getAllTripMatchedPackages(
+  @Get(':id/matched-requests')
+  async getAllTripMatchedRequests(
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.tripService.getAllMatchedPackages(id);
+    return this.tripService.getAllMatchedRequests(id);
   }
 }

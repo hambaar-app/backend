@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMinSize, IsArray, IsBoolean, IsInt, IsOptional, IsString, Matches, Validate } from 'class-validator';
-import { IsDeliveryAfterPickupConstraint, IsValidDateTimeTupleConstraint } from 'src/common/utilities';
+import { IsDeliveryAfterPickupConstraint, IsValidDateTimeTupleConstraint, IsValidS3Key } from 'src/common/utilities';
 
 export class UpdatePackageDto {
   @IsOptional()
@@ -65,6 +65,6 @@ export class UpdatePackageDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
+  @IsValidS3Key({ each: true })
   picturesKey?: string[];
 }

@@ -95,7 +95,7 @@ export class TripService {
   async getById(id: string) {
     return this.prisma.trip.findUniqueOrThrow({
       where: { id },
-      include: {
+      select: {
         origin: true,
         destination: true,
         waypoints: true,
@@ -118,7 +118,6 @@ export class TripService {
     });
   }
 
-  // TODO: Complete this
   async getMultipleById(
     ids: string[],
     tx: PrismaTransaction = this.prisma
@@ -369,24 +368,17 @@ export class TripService {
         throw new NotFoundException(NotFoundMessages.MatchedTrip);
       }
 
-      const matchedTrip = matchedTrips.find(t => t.tripId === tripId);
-      if (!matchedTrip) {
+      const matchedTripIndex = matchedTrips.findIndex(t => t.tripId === tripId);
+      if (matchedTripIndex < 0) {
         throw new BadRequestException(BadRequestMessages.SendRequestTrip);
       }
 
-      // Update package status
-      await tx.package.update({
-        where: { id: packageId },
-        data: {
-          status: PackageStatusEnum.matched
-        }
-      });
-
+      const matchedTrip = matchedTrips[matchedTripIndex];
       const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
       const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
       const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
 
-      return tx.tripRequest.create({
+      const request = await tx.tripRequest.create({
         data: {
           packageId,
           tripId,
@@ -396,6 +388,11 @@ export class TripService {
           senderNote
         }
       });
+
+      // Update session
+      matchedTrips.splice(matchedTripIndex, 1);
+
+      return request;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
@@ -484,6 +481,14 @@ export class TripService {
         }
       });
 
+      // Update package status
+      await tx.package.update({
+        where: { id: request.packageId },
+        data: {
+          status: PackageStatusEnum.matched
+        }
+      });
+
       // Update session
       session.packages = session.packages.filter(p => p.id !== request.packageId);
 
@@ -494,8 +499,8 @@ export class TripService {
     });
   }
 
-  async getAllMatchedPackages(tripId: string) {
-    return this.prisma.matchedRequest.findFirstOrThrow({
+  async getAllMatchedRequests(tripId: string) {
+    return this.prisma.matchedRequest.findMany({
       where: {
         tripId
       },

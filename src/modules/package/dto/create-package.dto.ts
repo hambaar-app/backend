@@ -12,7 +12,7 @@ import {
   Matches,
   Validate,
 } from 'class-validator';
-import { IsDeliveryAfterPickupConstraint, IsValidDateTimeTupleConstraint } from 'src/common/utilities';
+import { IsDeliveryAfterPickupConstraint, IsValidDateTimeTupleConstraint, IsValidS3Key } from 'src/common/utilities';
 
 export class CreatePackageDto {
   @ArrayNotEmpty()
@@ -85,6 +85,6 @@ export class CreatePackageDto {
   @ArrayNotEmpty()
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
+  @IsValidS3Key({ each: true })
   picturesKey: string[];
 }

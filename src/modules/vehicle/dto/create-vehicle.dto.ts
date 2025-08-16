@@ -18,6 +18,7 @@ import {
   Min,
 } from 'class-validator';
 import { VehicleTypeEnum } from 'generated/prisma';
+import { IsValidS3Key } from 'src/common/utilities';
 
 export class VehicleDocumentUrlsDto {
   @Expose()
@@ -33,18 +34,18 @@ export class VehicleDocumentUrlsDto {
 export class VehicleDocumentsDto {
   @Expose()
   @IsNotEmpty()
-  @IsString()
+  @IsValidS3Key()
   greenSheetKey: string;
 
   @Expose()
   @IsNotEmpty()
-  @IsString()
+  @IsValidS3Key()
   cardKey: string;
 
   @Expose()
   @IsNotEmpty()
   @IsArray()
-  @IsString({ each: true })
+  @IsValidS3Key({ each: true })
   vehiclePicsKey: string[];
 
   @Expose()

@@ -57,10 +57,24 @@ export class TripCompactResponseDto {
   deletedAt: Date;
 }
 
-export class TripResponseDto extends TripCompactResponseDto {
+class TripCompactPlusResponseDto extends TripCompactResponseDto {
   @Expose()
   @Type(() => VehicleCompactResponseDto)
   vehicle: VehicleCompactResponseDto;
+}
+
+export class TripResponseDto extends TripCompactPlusResponseDto {
+  @Expose()
+  normalDistanceKm: number;
+
+  @Expose()
+  normalDurationMin: number;
+
+  @Expose()
+  totalDeviationDistanceKm: number;
+
+  @Expose()
+  totalDeviationDurationMin: number;
 }
 
 export class MatchedTripResponseDto extends TripResponseDto {

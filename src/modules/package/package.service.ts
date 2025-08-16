@@ -13,6 +13,7 @@ import { SessionData } from 'express-session';
 import { MatchingService } from './matching.service';
 import { TripService } from '../trip/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
+import { JsonArray } from 'generated/prisma/runtime/library';
 
 @Injectable()
 export class PackageService {
@@ -250,20 +251,7 @@ export class PackageService {
 
     if (packageData.picturesKey && Array.isArray(packageData.picturesKey)) {
       const keys = packageData.picturesKey;
-      const presignedUrls = await Promise.all(
-        keys.map(async (key, index) => {
-          const keyString = JSON.stringify(key).split('"')[1];          
-          try {
-            if (keyString) {
-              return this.s3Service.generateGetPresignedUrl(keyString);
-            }
-            return '';
-          } catch (urlError) {
-            console.error(`Failed to generate presigned URL for picturesKey[${index}]:`, urlError);
-            return '';
-          }
-        })
-      );
+      const presignedUrls = await this.generatePackagePicPresignedUrl(keys);
 
       packageData.picturesKey = {
         keys,
@@ -312,26 +300,11 @@ export class PackageService {
       throw error;
     });
 
-    const packagesWithUrls = await Promise.all(
+    return Promise.all(
       packages.map(async (packageData) => {
         const keys = packageData.picturesKey;
-
         if (keys && Array.isArray(keys)) {
-          const presignedUrls = await Promise.all(
-            keys.map(async (key, index) => {
-              const keyString = JSON.stringify(key).split('"')[1];
-              try {
-                if (keyString) {
-                  return this.s3Service.generateGetPresignedUrl(keyString);
-                }
-                return '';
-              } catch (urlError) {
-                console.error(`Failed to generate presigned URL for picturesKey[${index}]:`, urlError);
-                return '';
-              }
-            })
-          );
-
+          const presignedUrls = await this.generatePackagePicPresignedUrl(keys);
           return {
             ...packageData,
             picturesKey: {
@@ -342,8 +315,6 @@ export class PackageService {
         }
       })
     );
-
-    return packagesWithUrls;
   }
 
   async update(id: string, packageDto: UpdatePackageDto) {
@@ -515,10 +486,16 @@ export class PackageService {
     });
   }
 
-  async getAllPackageRequests(packageId: string) {
+  async getAllPackageRequests(
+    packageId: string,
+    status: RequestStatusEnum[] = Object.values(RequestStatusEnum)
+  ) {
     return this.prisma.tripRequest.findMany({
       where: {
-        packageId
+        packageId,
+        status: {
+          in: status
+        }
       },
       orderBy: {
         createdAt: 'desc'
@@ -536,5 +513,22 @@ export class PackageService {
         status: RequestStatusEnum.canceled
       }
     });
+  }
+
+  async generatePackagePicPresignedUrl(keys: JsonArray) {
+    return Promise.all(
+      keys.map(async (key, index) => {
+        const keyString = JSON.stringify(key).split('"')[1];
+        try {
+          if (keyString) {
+            return this.s3Service.generateGetPresignedUrl(keyString);
+          }
+          return '';
+        } catch (urlError) {
+          console.error(`Failed to generate presigned URL for picturesKey[${index}]:`, urlError);
+          return '';
+        }
+      })
+    );
   }
 }
