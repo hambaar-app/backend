@@ -19,6 +19,14 @@ export class PackageCompactResponseDto {
   dimensions: string;
 
   @Expose()
+  @Type(() => AddressResponseDto)
+  originAddress: AddressResponseDto;
+
+  @Expose()
+  @Type(() => RecipientResponseDto)
+  recipient: RecipientResponseDto;
+  
+  @Expose()
   finalPrice: number;
 
   @ApiProperty({ enum: TripStatusEnum })
@@ -125,14 +133,6 @@ class MatchedRequestDto {
 }
 
 export class PackageResponseDto extends PackageCompactResponseDto {
-  @Expose()
-  @Type(() => AddressResponseDto)
-  originAddress: AddressResponseDto;
-
-  @Expose()
-  @Type(() => RecipientResponseDto)
-  recipient: RecipientResponseDto;
-
   @Expose()
   @Type(() => MatchedRequestDto)
   matchedRequest?: MatchedRequestDto;
