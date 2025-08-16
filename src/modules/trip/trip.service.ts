@@ -118,7 +118,6 @@ export class TripService {
     });
   }
 
-  // TODO: Complete this
   async getMultipleById(
     ids: string[],
     tx: PrismaTransaction = this.prisma
@@ -500,8 +499,8 @@ export class TripService {
     });
   }
 
-  async getAllMatchedPackages(tripId: string) {
-    return this.prisma.matchedRequest.findFirstOrThrow({
+  async getAllMatchedRequests(tripId: string) {
+    return this.prisma.matchedRequest.findMany({
       where: {
         tripId
       },
