@@ -8,7 +8,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  registerDecorator,
   ValidationArguments,
+  ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
@@ -156,4 +158,43 @@ export class IsDeliveryAfterPickupConstraint
   defaultMessage(args: ValidationArguments): string {
     return `${args.property} start time must be after preferredPickupTime end time.`;
   }
+}
+
+@ValidatorConstraint({ name: 'isValidS3Key', async: false })
+class IsValidS3KeyConstraint implements ValidatorConstraintInterface {
+  validate(key: string): boolean {
+    if (!key || typeof key !== 'string') {
+      return false;
+    }
+
+    const validPatterns = [
+      // Transporter patterns
+      /^transporter\/[a-f0-9-]{36}\/profile-pic-.+$/,
+      /^transporter\/[a-f0-9-]{36}\/national-id-.+$/,
+      /^transporter\/[a-f0-9-]{36}\/license-.+$/,
+      /^transporter\/[a-f0-9-]{36}\/vehicle\/pic-.+$/,
+      /^transporter\/[a-f0-9-]{36}\/vehicle\/green-sheet-.+$/,
+      /^transporter\/[a-f0-9-]{36}\/vehicle\/card-.+$/,
+      // Sender patterns
+      /^sender\/[a-f0-9-]{36}\/package\/pic-.+$/
+    ];
+
+    return validPatterns.some(pattern => pattern.test(key));
+  }
+
+  defaultMessage(): string {
+    return 'Key must match one of the allowed S3 key patterns for transporter or sender uploads';
+  }
+}
+
+export function IsValidS3Key(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      constraints: [],
+      validator: IsValidS3KeyConstraint,
+    });
+  };
 }
