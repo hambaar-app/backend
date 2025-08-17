@@ -95,7 +95,7 @@ export class TripService {
   async getById(id: string) {
     return this.prisma.trip.findUniqueOrThrow({
       where: { id },
-      select: {
+      include: {
         origin: true,
         destination: true,
         waypoints: true,
