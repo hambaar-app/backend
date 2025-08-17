@@ -4,11 +4,9 @@ import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
 import { PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
-import { CreateRequestDto } from './dto/create-request.dto';
-import { SessionData } from 'express-session';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 
@@ -326,78 +324,6 @@ export class TripService {
     );
   }
 
-  async createRequest(
-    userId: string,
-    {
-      packageId,
-      tripId,
-      senderNote
-    }: CreateRequestDto,
-    session: SessionData
-  ) {
-    return this.prisma.$transaction(async tx => {
-      const packageData = await tx.package.findUniqueOrThrow({
-        where: { id: packageId },
-      });
-
-      if (userId !== packageData.senderId) {
-        throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`);
-      }
-
-      if (packageData.status !== PackageStatusEnum.searching_transporter) {
-        throw new BadRequestException(BadRequestMessages.SendRequestPackage);
-      }
-
-      const tripData = await tx.trip.findUniqueOrThrow({
-        where: { id: tripId },
-        include: {
-          origin: true,
-          destination: true,
-          waypoints: true
-        }
-      });
-
-      const isValidTripStatus = tripData.status === TripStatusEnum.scheduled
-        || tripData.status === TripStatusEnum.delayed
-      if (!isValidTripStatus) {
-        throw new BadRequestException(BadRequestMessages.SendRequestTrip);
-      }
-
-      const matchedTrips = session.packages.find(p => p.id === packageId)?.matchResults;
-      if (!matchedTrips || !matchedTrips.length) {
-        throw new NotFoundException(NotFoundMessages.MatchedTrip);
-      }
-
-      const matchedTrip = matchedTrips.find(t => t.tripId === tripId);
-      if (!matchedTrip) {
-        throw new BadRequestException(BadRequestMessages.SendRequestTrip);
-      }
-
-      const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
-      const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
-      const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
-
-      const request = await tx.tripRequest.create({
-        data: {
-          packageId,
-          tripId,
-          deviationDistanceKm: deviationDistance,
-          deviationDurationMin: deviationDuration,
-          offeredPrice,
-          senderNote
-        }
-      });
-
-      // Update session
-      matchedTrip.isRequestSent = true;
-
-      return request;
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-  }
-
   async getAllTripRequests(tripId: string) {
     return this.prisma.tripRequest.findMany({
       where: {
@@ -415,8 +341,7 @@ export class TripService {
     {
       status,
       transporterNotes
-    }: UpdateRequestDto,
-    session: SessionData
+    }: UpdateRequestDto
   ) {
     if (status === RequestStatusEnum.rejected) {
       return this.prisma.tripRequest.update({

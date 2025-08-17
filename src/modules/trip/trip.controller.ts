@@ -189,36 +189,6 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Create a request for a package to a matched trip',
-    description: `The sender must first call \`GET /packages/:id/matched-trips\` 
-      to obtain a list of compatible trips for the package.
-      If the package is already matched or the trip is not in the matched trips list
-      or not in \`scheduled\` or \`delayed\` status, the request will be rejected.`,
-  })
-  @AuthResponses()
-  @ValidationResponses()
-  @CrudResponses()
-  @ApiBadRequestResponse({
-    description: BadRequestMessages.SendRequestTrip
-  })
-  @ApiBadRequestResponse({
-    description: BadRequestMessages.SendRequestPackage
-  })
-  @ApiNotFoundResponse({
-    description: NotFoundMessages.MatchedTrip
-  })
-  @UseGuards(AccessTokenGuard)
-  @HttpCode(HttpStatus.CREATED)
-  @Post('requests')
-  async createTripRequest(
-    @Body() body: CreateRequestDto,
-    @CurrentUser('id') userId: string,
-    @Session() session: SessionData
-  ) {
-    return this.tripService.createRequest(userId, body, session);
-  }
-
-  @ApiOperation({
     summary: 'Get all trip pending requests by its id'
   })
   @AuthResponses()
@@ -249,9 +219,8 @@ export class TripController {
   async updateTripRequest(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateRequestDto,
-    @Session() session: SessionData
   ) {
-    return this.tripService.updateRequest(id, body, session);
+    return this.tripService.updateRequest(id, body);
   }
 
   @ApiOperation({

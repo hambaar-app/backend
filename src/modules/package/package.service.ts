@@ -1,11 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
-import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 import { formatPrismaError } from 'src/common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
-import { PackageStatusEnum, RequestStatusEnum } from 'generated/prisma';
+import { PackageStatusEnum, RequestStatusEnum, TripStatusEnum } from 'generated/prisma';
 import { MapService } from '../map/map.service';
 import { PricingService } from '../pricing/pricing.service';
 import { S3Service } from '../s3/s3.service';
@@ -14,6 +14,7 @@ import { MatchingService } from './matching.service';
 import { TripService } from '../trip/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { JsonArray } from 'generated/prisma/runtime/library';
+import { CreateRequestDto } from '../trip/dto/create-request.dto';
 
 @Injectable()
 export class PackageService {
@@ -484,6 +485,78 @@ export class PackageService {
       }).filter(Boolean));
   
       return matchingResult;
+    });
+  }
+
+  async createRequest(
+    userId: string,
+    {
+      packageId,
+      tripId,
+      senderNote
+    }: CreateRequestDto,
+    session: SessionData
+  ) {
+    return this.prisma.$transaction(async tx => {
+      const packageData = await tx.package.findUniqueOrThrow({
+        where: { id: packageId },
+      });
+
+      if (userId !== packageData.senderId) {
+        throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`);
+      }
+
+      if (packageData.status !== PackageStatusEnum.searching_transporter) {
+        throw new BadRequestException(BadRequestMessages.SendRequestPackage);
+      }
+
+      const tripData = await tx.trip.findUniqueOrThrow({
+        where: { id: tripId },
+        include: {
+          origin: true,
+          destination: true,
+          waypoints: true
+        }
+      });
+
+      const isValidTripStatus = tripData.status === TripStatusEnum.scheduled
+        || tripData.status === TripStatusEnum.delayed
+      if (!isValidTripStatus) {
+        throw new BadRequestException(BadRequestMessages.SendRequestTrip);
+      }
+
+      const matchedTrips = session.packages.find(p => p.id === packageId)?.matchResults;
+      if (!matchedTrips || !matchedTrips.length) {
+        throw new NotFoundException(NotFoundMessages.MatchedTrip);
+      }
+
+      const matchedTrip = matchedTrips.find(t => t.tripId === tripId);
+      if (!matchedTrip) {
+        throw new BadRequestException(BadRequestMessages.SendRequestTrip);
+      }
+
+      const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
+      const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
+      const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
+
+      const request = await tx.tripRequest.create({
+        data: {
+          packageId,
+          tripId,
+          deviationDistanceKm: deviationDistance,
+          deviationDurationMin: deviationDuration,
+          offeredPrice,
+          senderNote
+        }
+      });
+
+      // Update session
+      matchedTrip.isRequestSent = true;
+
+      return request;
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 
