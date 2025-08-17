@@ -145,10 +145,7 @@ export class TripService {
             }
           }
         },
-        requests: {
-          where: {
-            status: RequestStatusEnum.accepted
-          },
+        matchedRequests: {
           include: {
             package: {
               include: {

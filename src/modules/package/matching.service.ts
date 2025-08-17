@@ -44,7 +44,7 @@ export class MatchingService {
     }
 
     // Pre-filter trips
-    const candidateTrips = await this.getPreFilteredTrips(packageData, sessionPackage.lastCheckMatching);
+    const candidateTrips = await this.getPreFilteredTrips(packageData, sessionPackage.lastCheckMatching, tx);
 
     // Analyze each trip for corridor matching in parallel
     const matchResultPromises = candidateTrips.map(trip => 

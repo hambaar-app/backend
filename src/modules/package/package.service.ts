@@ -426,7 +426,7 @@ export class PackageService {
         const trip = tripMap.get(matchedTrip.tripId);
         if (!trip) return;
         
-        const waypoints = trip.requests.flatMap(r => [
+        const waypoints = trip.matchedRequests.flatMap(r => [
           r.package.pickupAtOrigin ? {
             latitude: r.package.originAddress.latitude,
             longitude: r.package.originAddress.longitude
