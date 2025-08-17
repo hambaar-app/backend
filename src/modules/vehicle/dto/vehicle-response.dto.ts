@@ -47,6 +47,9 @@ export class VehicleResponseDto extends VehicleCompactResponseDto {
   technicalInspectionExpiryDate: Date;
 
   @Expose()
+  insuranceNumber: string;
+
+  @Expose()
   insuranceNumberDate?: Date;
 
   @Expose()

@@ -93,7 +93,18 @@ export class VehicleService {
     tx: PrismaService | PrismaTransaction = this.prisma
   ) {
     const vehicle = await tx.vehicle.findUniqueOrThrow({
-      where: { id }
+      where: {
+        id,
+        deletedAt: null
+      },
+      include: {
+        model: {
+          include: {
+            brand: true
+          }
+        },
+        verificationStatus: true
+      }
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
@@ -147,13 +158,17 @@ export class VehicleService {
           userId
         }
       },
-      include: {
+      select: {
+        id: true,
+        vehicleType: true,
         model: {
           include: {
             brand: true
           }
         },
-        verificationStatus: true
+        manufactureYear: true,
+        color: true,
+        verificationDocuments: true
       }
     }).catch((error: Error) => {
       formatPrismaError(error);
