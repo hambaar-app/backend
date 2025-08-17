@@ -414,8 +414,9 @@ export class PackageService {
       
       // Fetch trips
       const tripIds = matchedTrips
-        .map(m => m.tripId)
-        .slice(0, maxResults);
+        .filter(m => !m.isRequestSent)
+        .slice(0, maxResults)
+        .map(m => m.tripId);
       const trips = await this.tripService.getMultipleById(tripIds, tx);
       const tripMap = new Map(trips.map(trip => [trip.id, trip]));
   
@@ -503,8 +504,11 @@ export class PackageService {
     });
   }
 
-  async updateRequest(requestId: string) {
-    return this.prisma.tripRequest.update({
+  async updateRequest(
+    requestId: string,
+    session: SessionData
+  ) {
+    const request = await this.prisma.tripRequest.update({
       where: {
         id: requestId,
         status: RequestStatusEnum.pending
@@ -512,7 +516,19 @@ export class PackageService {
       data: {
         status: RequestStatusEnum.canceled
       }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
+
+    // Update session
+    const matchedTrip = session.packages
+      .find(p => p.id === request.packageId)?.matchResults
+      .find(m => m.tripId === request.tripId);
+
+    if (matchedTrip) matchedTrip.isRequestSent = false;
+
+    return request;
   }
 
   async generatePackagePicPresignedUrl(keys: JsonArray) {

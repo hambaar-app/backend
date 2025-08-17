@@ -256,7 +256,8 @@ export class PackageController {
   @Patch('requests/:id')
   async updateTripRequest(
     @Param('id', ParseUUIDPipe) id: string,
+    @Session() session: SessionData
   ) {
-    return this.packageService.updateRequest(id);
+    return this.packageService.updateRequest(id, session);
   }
 }

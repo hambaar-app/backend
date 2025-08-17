@@ -368,12 +368,11 @@ export class TripService {
         throw new NotFoundException(NotFoundMessages.MatchedTrip);
       }
 
-      const matchedTripIndex = matchedTrips.findIndex(t => t.tripId === tripId);
-      if (matchedTripIndex < 0) {
+      const matchedTrip = matchedTrips.find(t => t.tripId === tripId);
+      if (!matchedTrip) {
         throw new BadRequestException(BadRequestMessages.SendRequestTrip);
       }
 
-      const matchedTrip = matchedTrips[matchedTripIndex];
       const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
       const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
       const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
@@ -390,7 +389,7 @@ export class TripService {
       });
 
       // Update session
-      matchedTrips.splice(matchedTripIndex, 1);
+      matchedTrip.isRequestSent = true;
 
       return request;
     }).catch((error: Error) => {

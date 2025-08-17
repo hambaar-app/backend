@@ -202,6 +202,7 @@ export class MatchingService {
 
     return {
       tripId: trip.id,
+      isRequestSent: false,
       score,
       originDistance,
       destinationDistance,
