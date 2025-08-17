@@ -243,7 +243,7 @@ export class TripController {
   @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
-    entity: 'tripRequest'
+    entity: 'tripRequest',
   })
   @Patch('requests/:id')
   async updateTripRequest(

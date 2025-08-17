@@ -77,7 +77,7 @@ export class TripResponseDto extends TripCompactPlusResponseDto {
   totalDeviationDurationMin: number;
 }
 
-export class MatchedTripResponseDto extends TripResponseDto {
+export class MatchedTripResponseDto extends TripCompactPlusResponseDto {
   @Expose()
   additionalPrice: number;
 }

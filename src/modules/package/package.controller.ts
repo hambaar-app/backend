@@ -22,6 +22,7 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { RecipientResponseDto } from './dto/recipient-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
@@ -221,6 +222,11 @@ export class PackageController {
   })
   @AuthResponses()
   @CrudResponses()
+  @ApiQuery({
+    name: 'status',
+    enum: RequestStatusEnum,
+    required: false,
+  })
   // TODO: Serializer
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -229,7 +235,7 @@ export class PackageController {
   @Get(':id/requests')
   async getAllPackageRequests(
     @Param('id', ParseUUIDPipe) id: string,
-    @Query('status', new ParseEnumPipe(RequestStatusEnum)) status?: RequestStatusEnum
+    @Query('status', new ParseEnumPipe(RequestStatusEnum, { optional: true })) status?: RequestStatusEnum
   ) {
     return this.packageService.getAllPackageRequests(id, status ? [status] : undefined);
   }
@@ -244,7 +250,8 @@ export class PackageController {
   // TODO: Serializer
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
-    entity: 'packageRequest',
+    entity: 'tripRequest',
+    ownershipName: 'packageRequest'
   })
   @Patch('requests/:id')
   async updateTripRequest(

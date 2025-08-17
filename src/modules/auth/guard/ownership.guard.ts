@@ -48,8 +48,10 @@ export class OwnershipGuard implements CanActivate {
       throw new BadRequestException('Entity Id is required.');
     }
 
-    const customWhere = this.getCustomWhere(config.entity, user.id, entityId);
-
+    const ownershipName = config.ownershipName ?? config.entity;
+    const customWhere = this.getCustomWhere(ownershipName, user.id, entityId);
+    console.log(customWhere);
+    
     try {
       const record = await this.getEntityRecord(config.entity, customWhere);
 
