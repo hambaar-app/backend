@@ -488,9 +488,6 @@ export class TripService {
         }
       });
 
-      // Update session
-      session.packages = session.packages.filter(p => p.id !== request.packageId);
-
       return request;
     }).catch((error: Error) => {
       formatPrismaError(error);
