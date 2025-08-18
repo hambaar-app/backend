@@ -15,6 +15,7 @@ import { TripService } from '../trip/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { JsonArray } from 'generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
+import { instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class PackageService {
@@ -150,7 +151,7 @@ export class PackageService {
         }
       });
 
-      const { suggestedPrice } = this.pricingService.calculateSuggestedPrice({
+      const { suggestedPrice, breakdown } = this.pricingService.calculateSuggestedPrice({
           distanceKm: distance,
           weightKg: packageDto.weight,
           isFragile: packageDto.isFragile ?? false,
@@ -158,6 +159,8 @@ export class PackageService {
           originCity: originAddress.city!,
           destinationCity: recipient.address.city!
       });
+
+      const plainBreakdown = instanceToPlain(breakdown);
 
       return tx.package.create({
         data: {
@@ -167,6 +170,7 @@ export class PackageService {
           recipientId: recipient.id,
           ...packageDto,
           suggestedPrice,
+          breakdown: plainBreakdown,
           finalPrice: suggestedPrice
         },
         include: {

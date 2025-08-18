@@ -341,6 +341,7 @@ model Package {
   weight                Int? // gr
   dimensions            String?           @db.VarChar // in cm and "LxWxH" format
   suggestedPrice        Int               @default(0) @map("suggested_price") // IRR
+  breakdown             Json?             @db.JsonB
   finalPrice            Int               @default(0) @map("final_price") // IRR
   status                PackageStatusEnum @default(created) @map("status")
   packageValue          Int?              @map("package_value") // cost
