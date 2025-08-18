@@ -424,6 +424,7 @@ model TripRequest {
   id                   String             @id @default(uuid()) @db.Uuid
   packageId            String             @map("package_id") @db.Uuid
   tripId               String             @map("trip_id") @db.Uuid
+  deviationCost        Int                @default(0) @map("deviation_cost")
   offeredPrice         Int                @default(0) @map("offered_price")
   deviationDistanceKm  Float              @default(0) @map("deviation_distance_km")
   deviationDurationMin Int                @default(0) @map("deviation_duration_min")
