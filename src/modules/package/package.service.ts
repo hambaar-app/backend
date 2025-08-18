@@ -15,7 +15,8 @@ import { TripService } from '../trip/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { JsonArray } from 'generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
-import { instanceToPlain } from 'class-transformer';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { PriceBreakdown, PriceBreakdownDto } from '../pricing/pricing.types';
 
 @Injectable()
 export class PackageService {
@@ -539,7 +540,8 @@ export class PackageService {
 
       const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
       const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
-      const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
+      const { transporterEarnings } = plainToInstance(PriceBreakdownDto, packageData.breakdown);
+      const offeredPrice = transporterEarnings + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
 
       const request = await tx.tripRequest.create({
         data: {

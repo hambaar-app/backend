@@ -114,9 +114,9 @@ export class PricingService {
 
     return {
       suggestedPrice: Math.floor(finalPrice),
-      transporterEarnings: Math.floor(finalPrice * this.driverShare),
       platformCommission: Math.floor(finalPrice * this.platformCommission),
       breakdown: {
+        transporterEarnings: Math.floor(finalPrice * this.driverShare),
         basePrice,
         distanceCost,
         weightCost,

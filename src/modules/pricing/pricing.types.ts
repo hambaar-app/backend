@@ -16,11 +16,21 @@ export interface PriceBreakdown {
   specialHandlingMultiplier: number;
   deviationCost?: number;
   cityPremium: number;
+  transporterEarnings: number;
 }
 
 export interface PricingResult {
   suggestedPrice: number;
-  transporterEarnings: number;
   platformCommission: number;
   breakdown: PriceBreakdown;
+}
+
+export class PriceBreakdownDto implements PriceBreakdown {
+  basePrice: number;
+  distanceCost: number;
+  weightCost: number;
+  specialHandlingMultiplier: number;
+  deviationCost?: number;
+  cityPremium: number;
+  transporterEarnings: number;
 }
