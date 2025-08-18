@@ -13,14 +13,12 @@ export interface PriceBreakdown {
   basePrice: number;
   distanceCost: number;
   weightCost: number;
-  specialHandling: number;
+  specialHandlingCost: number;
   deviationCost?: number;
-  cityPremium: number;
-  transporterEarnings: number;
+  cityPremiumCost: number;
 }
 
 export interface PricingResult {
   suggestedPrice: number;
-  platformCommission: number;
   breakdown: PriceBreakdown;
 }

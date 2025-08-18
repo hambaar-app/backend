@@ -133,18 +133,6 @@ class MatchedRequestDto {
   isCompleted: boolean;
 }
 
-export class PackageResponseDto extends PackageCompactResponseDto {
-  @Expose()
-  @Type(() => PriceBreakdownDto)
-  breakdown: PriceBreakdownDto;
-
-  @Expose()
-  @Type(() => MatchedRequestDto)
-  matchedRequest?: MatchedRequestDto;
-
-  // TODO: trackingUpdates
-}
-
 export class PriceBreakdownDto implements PriceBreakdown {
   @Expose()
   basePrice: number;
@@ -156,13 +144,21 @@ export class PriceBreakdownDto implements PriceBreakdown {
   weightCost: number;
   
   @Expose()
-  specialHandling: number;
+  specialHandlingCost: number;
   
   @Expose()
   deviationCost?: number;
 
   @Expose()
-  cityPremium: number;
-  
-  transporterEarnings: number;
+  cityPremiumCost: number;
+}
+
+export class PackageResponseDto extends PackageCompactResponseDto {
+  @Expose()
+  @Type(() => PriceBreakdownDto)
+  breakdown: PriceBreakdownDto;
+
+  @Expose()
+  @Type(() => MatchedRequestDto)
+  matchedRequest?: MatchedRequestDto;
 }
