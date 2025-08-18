@@ -77,6 +77,7 @@ enum TripTypeEnum {
 
 enum TripStatusEnum {
   scheduled
+  closed
   delayed
   in_progress
   completed

@@ -8,8 +8,7 @@ export class TripFilterQueryDto {
     description: 'Array of status values to filter by',
     enum: TripStatusEnum,
     isArray: true,
-    required: false,
-    example: ['active', 'pending']
+    required: false
   })
   @IsOptional()
   @IsArray()

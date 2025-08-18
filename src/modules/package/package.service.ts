@@ -519,9 +519,7 @@ export class PackageService {
         }
       });
 
-      const isValidTripStatus = tripData.status === TripStatusEnum.scheduled
-        || tripData.status === TripStatusEnum.delayed
-      if (!isValidTripStatus) {
+      if (tripData.status !== TripStatusEnum.scheduled) {
         throw new BadRequestException(BadRequestMessages.SendRequestTrip);
       }
 

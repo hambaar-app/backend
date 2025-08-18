@@ -125,12 +125,7 @@ export class TripService {
         id: {
           in: ids
         },
-        status: {
-          in: [
-            TripStatusEnum.scheduled,
-            TripStatusEnum.delayed,
-        ],
-        },
+        status: TripStatusEnum.scheduled,
       },
       include: {
         origin: true,
@@ -170,7 +165,9 @@ export class TripService {
     userId: string,
     status: TripStatusEnum[] = [
       TripStatusEnum.scheduled,
-      TripStatusEnum.delayed
+      TripStatusEnum.closed,
+      TripStatusEnum.delayed,
+      TripStatusEnum.in_progress,
     ]
   ) {
     return this.prisma.trip.findMany({
@@ -229,7 +226,10 @@ export class TripService {
         };
 
         await tx.tripWaypoint.deleteMany({
-          where: { tripId: id },
+          where: {
+            tripId: id,
+            isVisible: true
+          },
         });
       }
 

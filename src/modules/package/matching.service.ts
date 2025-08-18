@@ -94,12 +94,7 @@ export class MatchingService {
   ) {
     const whereClause: Prisma.TripWhereInput = {
       isActive: true,
-      status: {
-        in: [
-          TripStatusEnum.scheduled,
-          TripStatusEnum.delayed,
-        ],
-      },
+      status: TripStatusEnum.scheduled,
     };
 
     // Just check new trips after lastCheckMatching
