@@ -9,6 +9,8 @@ import { PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeE
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { PriceBreakdownDto } from '../package/dto/package-response.dto';
 
 @Injectable()
 export class TripService {
@@ -410,11 +412,24 @@ export class TripService {
         }
       });
 
-      // Update package status
+      // Get package and Update its status and breakdown
+      const packageData = await tx.package.findFirst({
+        where: { id: request.packageId },
+        select: {
+          breakdown: true
+        }
+      });
+
+      // Update breakdown
+      const breakdown = plainToInstance(PriceBreakdownDto, packageData?.breakdown);
+      breakdown.deviationCost = request.deviationCost;;
+      const plainBreakdown = instanceToPlain(breakdown);
+
       await tx.package.update({
         where: { id: request.packageId },
         data: {
-          status: PackageStatusEnum.matched
+          status: PackageStatusEnum.matched,
+          breakdown: plainBreakdown
         }
       });
 

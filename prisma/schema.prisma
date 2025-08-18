@@ -341,6 +341,7 @@ model Package {
   weight                Int? // gr
   dimensions            String?           @db.VarChar // in cm and "LxWxH" format
   suggestedPrice        Int               @default(0) @map("suggested_price") // IRR
+  breakdown             Json?             @db.JsonB
   finalPrice            Int               @default(0) @map("final_price") // IRR
   status                PackageStatusEnum @default(created) @map("status")
   packageValue          Int?              @map("package_value") // cost
@@ -423,6 +424,7 @@ model TripRequest {
   id                   String             @id @default(uuid()) @db.Uuid
   packageId            String             @map("package_id") @db.Uuid
   tripId               String             @map("trip_id") @db.Uuid
+  deviationCost        Int                @default(0) @map("deviation_cost")
   offeredPrice         Int                @default(0) @map("offered_price")
   deviationDistanceKm  Float              @default(0) @map("deviation_distance_km")
   deviationDurationMin Int                @default(0) @map("deviation_duration_min")

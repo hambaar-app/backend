@@ -114,14 +114,13 @@ export class PricingService {
 
     return {
       suggestedPrice: Math.floor(finalPrice),
-      transporterEarnings: Math.floor(finalPrice * this.driverShare),
-      platformCommission: Math.floor(finalPrice * this.platformCommission),
       breakdown: {
         basePrice,
         distanceCost,
         weightCost,
-        specialHandlingMultiplier: specialMultiplier,
-        cityPremium,
+        deviationCost: 0,
+        specialHandlingCost: Math.max(0, specialMultiplier - 1) * finalPrice,
+        cityPremiumCost: Math.max(0, cityPremium - 1) * finalPrice,
       }
     };
   }
@@ -148,6 +147,12 @@ export class PricingService {
 
     return totalCost;
   }
+
+  calculateTransporterEarnings(finalPrice: number, deviationPrice?: number) {
+    return Math.floor((finalPrice * this.driverShare) + (deviationPrice ?? 0));
+  }
+
+  // Platform commission
 
   // Calculate weight-based additional cost
   private calculateWeightCost(weightGr: number): number {

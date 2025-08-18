@@ -9,16 +9,16 @@ export interface PricingInput {
   destinationCity: string;
 }
 
+export interface PriceBreakdown {
+  basePrice: number;
+  distanceCost: number;
+  weightCost: number;
+  specialHandlingCost: number;
+  deviationCost?: number;
+  cityPremiumCost: number;
+}
+
 export interface PricingResult {
   suggestedPrice: number;
-  transporterEarnings: number;
-  platformCommission: number;
-  breakdown: {
-    basePrice: number;
-    distanceCost: number;
-    weightCost: number;
-    specialHandlingMultiplier: number;
-    deviationCost?: number;
-    cityPremium: number;
-  };
+  breakdown: PriceBreakdown;
 }

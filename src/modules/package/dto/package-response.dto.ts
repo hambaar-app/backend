@@ -4,6 +4,7 @@ import { RecipientResponseDto } from './recipient-response.dto';
 import { PaymentStatusEnum, TripStatusEnum } from 'generated/prisma';
 import { ApiProperty } from '@nestjs/swagger';
 import { TransporterInfoResponseDto } from 'src/modules/user/dto/transporter-response.dto';
+import { PriceBreakdown } from 'src/modules/pricing/pricing.types';
 
 export class PackageCompactResponseDto {
   @Expose()
@@ -132,10 +133,32 @@ class MatchedRequestDto {
   isCompleted: boolean;
 }
 
+export class PriceBreakdownDto implements PriceBreakdown {
+  @Expose()
+  basePrice: number;
+
+  @Expose()
+  distanceCost: number;
+  
+  @Expose()
+  weightCost: number;
+  
+  @Expose()
+  specialHandlingCost: number;
+  
+  @Expose()
+  deviationCost?: number;
+
+  @Expose()
+  cityPremiumCost: number;
+}
+
 export class PackageResponseDto extends PackageCompactResponseDto {
+  @Expose()
+  @Type(() => PriceBreakdownDto)
+  breakdown: PriceBreakdownDto;
+
   @Expose()
   @Type(() => MatchedRequestDto)
   matchedRequest?: MatchedRequestDto;
-
-  // TODO: trackingUpdates
 }

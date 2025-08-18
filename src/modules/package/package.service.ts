@@ -15,6 +15,8 @@ import { TripService } from '../trip/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { JsonArray } from 'generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { PriceBreakdownDto } from './dto/package-response.dto';
 
 @Injectable()
 export class PackageService {
@@ -150,7 +152,7 @@ export class PackageService {
         }
       });
 
-      const { suggestedPrice } = this.pricingService.calculateSuggestedPrice({
+      const { suggestedPrice, breakdown } = this.pricingService.calculateSuggestedPrice({
           distanceKm: distance,
           weightKg: packageDto.weight,
           isFragile: packageDto.isFragile ?? false,
@@ -158,6 +160,8 @@ export class PackageService {
           originCity: originAddress.city!,
           destinationCity: recipient.address.city!
       });
+
+      const plainBreakdown = instanceToPlain(breakdown);
 
       return tx.package.create({
         data: {
@@ -167,6 +171,7 @@ export class PackageService {
           recipientId: recipient.id,
           ...packageDto,
           suggestedPrice,
+          breakdown: plainBreakdown,
           finalPrice: suggestedPrice
         },
         include: {
@@ -535,7 +540,10 @@ export class PackageService {
 
       const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
       const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
-      const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
+      const deviationCost = (matchedTrip.deviationInfo?.additionalPrice ?? 0);
+      const transporterEarnings =
+        this.pricingService.calculateTransporterEarnings(packageData.finalPrice, deviationCost);
+      const offeredPrice = transporterEarnings + deviationCost;
 
       const request = await tx.tripRequest.create({
         data: {
@@ -543,6 +551,7 @@ export class PackageService {
           tripId,
           deviationDistanceKm: deviationDistance,
           deviationDurationMin: deviationDuration,
+          deviationCost,
           offeredPrice,
           senderNote
         }
