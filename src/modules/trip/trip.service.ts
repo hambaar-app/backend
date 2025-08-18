@@ -470,4 +470,27 @@ export class TripService {
       data: { status }
     });
   }
+
+  async toggleTripAccess(id: string) {
+    const { status: tripStatus } = await this.prisma.trip.findUniqueOrThrow({
+      where: { id },
+      select: {
+        status: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (tripStatus !== TripStatusEnum.scheduled 
+      && tripStatus !== TripStatusEnum.closed 
+    ) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+    }
+
+    const updatedStatus = tripStatus === TripStatusEnum.scheduled ?
+      TripStatusEnum.closed : TripStatusEnum.scheduled;
+
+    return this.updateStatus(id, updatedStatus);
+  }
 }
