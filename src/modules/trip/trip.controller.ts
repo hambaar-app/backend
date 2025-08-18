@@ -251,8 +251,22 @@ export class TripController {
     entity: 'trip'
   })
   @Serialize(TripCompactResponseDto)
-  @Post(':id/toggle-access')
+  @Patch(':id/toggle-access')
   async toggleTripAccess(@Param('id', ParseUUIDPipe) id: string) {
     return this.tripService.toggleTripAccess(id);
   }
+
+  @ApiOperation({
+    summary: 'Start a trip'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Serialize(TripCompactResponseDto)
+  @Patch(':id/start')
+  async startTrip(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tripService.startTrip(id);
+  }
+
 }

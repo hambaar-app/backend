@@ -501,4 +501,25 @@ export class TripService {
 
     return this.updateStatus(id, updatedStatus);
   }
+
+  async startTrip(id: string) {
+    const { status: tripStatus } = await this.prisma.trip.findUniqueOrThrow({
+      where: { id },
+      select: {
+        status: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    const isValidStatus = tripStatus === TripStatusEnum.scheduled
+      || tripStatus === TripStatusEnum.closed
+      || tripStatus === TripStatusEnum.delayed;
+    if (!isValidStatus) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+    }
+
+    return this.updateStatus(id, TripStatusEnum.in_progress);
+  }
 }
