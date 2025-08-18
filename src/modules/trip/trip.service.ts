@@ -459,4 +459,15 @@ export class TripService {
       throw error;
     });
   }
+
+  private async updateStatus(
+    id: string,
+    status: TripStatusEnum,
+    tx: PrismaTransaction = this.prisma
+  ) {
+    return tx.trip.update({
+      where: { id },
+      data: { status }
+    });
+  }
 }
