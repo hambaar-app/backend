@@ -540,8 +540,10 @@ export class PackageService {
 
       const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
       const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
-      const { transporterEarnings } = plainToInstance(PriceBreakdownDto, packageData.breakdown);
-      const offeredPrice = transporterEarnings + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
+      const deviationCost = (matchedTrip.deviationInfo?.additionalPrice ?? 0);
+      const transporterEarnings =
+        this.pricingService.calculateTransporterEarnings(packageData.finalPrice, deviationCost);
+      const offeredPrice = transporterEarnings + deviationCost;
 
       const request = await tx.tripRequest.create({
         data: {
@@ -549,6 +551,7 @@ export class PackageService {
           tripId,
           deviationDistanceKm: deviationDistance,
           deviationDurationMin: deviationDuration,
+          deviationCost,
           offeredPrice,
           senderNote
         }
