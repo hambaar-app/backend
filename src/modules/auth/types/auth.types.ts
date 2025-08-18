@@ -33,5 +33,6 @@ export interface CheckOtpResult {
 
 export interface OwnershipConfig {
   entity: string;
+  ownershipName?: string;
   paramName?: string;
 }

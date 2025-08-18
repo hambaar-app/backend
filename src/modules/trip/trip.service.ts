@@ -4,11 +4,9 @@ import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
 import { PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
-import { CreateRequestDto } from './dto/create-request.dto';
-import { SessionData } from 'express-session';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 
@@ -95,10 +93,14 @@ export class TripService {
   async getById(id: string) {
     return this.prisma.trip.findUniqueOrThrow({
       where: { id },
-      select: {
+      include: {
         origin: true,
         destination: true,
-        waypoints: true,
+        waypoints: {
+          where: {
+            isVisible: true
+          }
+        },
         vehicle: {
           select: {
             vehicleType: true,
@@ -127,12 +129,7 @@ export class TripService {
         id: {
           in: ids
         },
-        status: {
-          in: [
-            TripStatusEnum.scheduled,
-            TripStatusEnum.delayed,
-        ],
-        },
+        status: TripStatusEnum.scheduled,
       },
       include: {
         origin: true,
@@ -147,10 +144,7 @@ export class TripService {
             }
           }
         },
-        requests: {
-          where: {
-            status: RequestStatusEnum.accepted
-          },
+        matchedRequests: {
           include: {
             package: {
               include: {
@@ -175,7 +169,9 @@ export class TripService {
     userId: string,
     status: TripStatusEnum[] = [
       TripStatusEnum.scheduled,
-      TripStatusEnum.delayed
+      TripStatusEnum.closed,
+      TripStatusEnum.delayed,
+      TripStatusEnum.in_progress,
     ]
   ) {
     return this.prisma.trip.findMany({
@@ -191,7 +187,11 @@ export class TripService {
       include: {
         origin: true,
         destination: true,
-        waypoints: true
+        waypoints: {
+          where: {
+            isVisible: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
@@ -234,7 +234,10 @@ export class TripService {
         };
 
         await tx.tripWaypoint.deleteMany({
-          where: { tripId: id },
+          where: {
+            tripId: id,
+            isVisible: true
+          },
         });
       }
 
@@ -326,79 +329,6 @@ export class TripService {
     );
   }
 
-  async createRequest(
-    userId: string,
-    {
-      packageId,
-      tripId,
-      senderNote
-    }: CreateRequestDto,
-    session: SessionData
-  ) {
-    return this.prisma.$transaction(async tx => {
-      const packageData = await tx.package.findUniqueOrThrow({
-        where: { id: packageId },
-      });
-
-      if (userId !== packageData.senderId) {
-        throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`);
-      }
-
-      if (packageData.status !== PackageStatusEnum.searching_transporter) {
-        throw new BadRequestException(BadRequestMessages.SendRequestPackage);
-      }
-
-      const tripData = await tx.trip.findUniqueOrThrow({
-        where: { id: tripId },
-        include: {
-          origin: true,
-          destination: true,
-          waypoints: true
-        }
-      });
-
-      const isValidTripStatus = tripData.status === TripStatusEnum.scheduled
-        || tripData.status === TripStatusEnum.delayed
-      if (!isValidTripStatus) {
-        throw new BadRequestException(BadRequestMessages.SendRequestTrip);
-      }
-
-      const matchedTrips = session.packages.find(p => p.id === packageId)?.matchResults;
-      if (!matchedTrips || !matchedTrips.length) {
-        throw new NotFoundException(NotFoundMessages.MatchedTrip);
-      }
-
-      const matchedTripIndex = matchedTrips.findIndex(t => t.tripId === tripId);
-      if (matchedTripIndex < 0) {
-        throw new BadRequestException(BadRequestMessages.SendRequestTrip);
-      }
-
-      const matchedTrip = matchedTrips[matchedTripIndex];
-      const deviationDistance = matchedTrip.deviationInfo?.distance ?? 0;
-      const deviationDuration = matchedTrip.deviationInfo?.duration ?? 0;
-      const offeredPrice = packageData.finalPrice + (matchedTrip.deviationInfo?.additionalPrice ?? 0);
-
-      const request = await tx.tripRequest.create({
-        data: {
-          packageId,
-          tripId,
-          deviationDistanceKm: deviationDistance,
-          deviationDurationMin: deviationDuration,
-          offeredPrice,
-          senderNote
-        }
-      });
-
-      // Update session
-      matchedTrips.splice(matchedTripIndex, 1);
-
-      return request;
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-  }
-
   async getAllTripRequests(tripId: string) {
     return this.prisma.tripRequest.findMany({
       where: {
@@ -416,8 +346,7 @@ export class TripService {
     {
       status,
       transporterNotes
-    }: UpdateRequestDto,
-    session: SessionData
+    }: UpdateRequestDto
   ) {
     if (status === RequestStatusEnum.rejected) {
       return this.prisma.tripRequest.update({
@@ -489,9 +418,6 @@ export class TripService {
         }
       });
 
-      // Update session
-      session.packages = session.packages.filter(p => p.id !== request.packageId);
-
       return request;
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -540,5 +466,60 @@ export class TripService {
       formatPrismaError(error);
       throw error;
     });
+  }
+
+  private async updateStatus(
+    id: string,
+    status: TripStatusEnum,
+    tx: PrismaTransaction = this.prisma
+  ) {
+    return tx.trip.update({
+      where: { id },
+      data: { status }
+    });
+  }
+
+  async toggleTripAccess(id: string) {
+    const { status: tripStatus } = await this.prisma.trip.findUniqueOrThrow({
+      where: { id },
+      select: {
+        status: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (tripStatus !== TripStatusEnum.scheduled 
+      && tripStatus !== TripStatusEnum.closed 
+    ) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+    }
+
+    const updatedStatus = tripStatus === TripStatusEnum.scheduled ?
+      TripStatusEnum.closed : TripStatusEnum.scheduled;
+
+    return this.updateStatus(id, updatedStatus);
+  }
+
+  async startTrip(id: string) {
+    const { status: tripStatus } = await this.prisma.trip.findUniqueOrThrow({
+      where: { id },
+      select: {
+        status: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    const isValidStatus = tripStatus === TripStatusEnum.scheduled
+      || tripStatus === TripStatusEnum.closed
+      || tripStatus === TripStatusEnum.delayed;
+    if (!isValidStatus) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+    }
+
+    return this.updateStatus(id, TripStatusEnum.in_progress);
   }
 }

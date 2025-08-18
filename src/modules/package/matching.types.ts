@@ -24,6 +24,7 @@ export interface DeviationInfo {
 
 export interface MatchResult {
   tripId: string;
+  isRequestSent: boolean;
   score: number;
   originDistance: number;
   destinationDistance: number;

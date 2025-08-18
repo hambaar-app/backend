@@ -44,7 +44,7 @@ export class MatchingService {
     }
 
     // Pre-filter trips
-    const candidateTrips = await this.getPreFilteredTrips(packageData, sessionPackage.lastCheckMatching);
+    const candidateTrips = await this.getPreFilteredTrips(packageData, sessionPackage.lastCheckMatching, tx);
 
     // Analyze each trip for corridor matching in parallel
     const matchResultPromises = candidateTrips.map(trip => 
@@ -94,12 +94,7 @@ export class MatchingService {
   ) {
     const whereClause: Prisma.TripWhereInput = {
       isActive: true,
-      status: {
-        in: [
-          TripStatusEnum.scheduled,
-          TripStatusEnum.delayed,
-        ],
-      },
+      status: TripStatusEnum.scheduled,
     };
 
     // Just check new trips after lastCheckMatching
@@ -202,6 +197,7 @@ export class MatchingService {
 
     return {
       tripId: trip.id,
+      isRequestSent: false,
       score,
       originDistance,
       destinationDistance,

@@ -19,7 +19,6 @@ export class CityDto {
   @IsLongitude()
   longitude: string;
 
-  @Expose()
   @IsOptional()
   @IsBoolean()
   isVisible?: boolean;

@@ -20,8 +20,10 @@ import { AccessTokenGuard } from '../auth/guard/token.guard';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { RecipientResponseDto } from './dto/recipient-response.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
@@ -38,8 +40,9 @@ import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 import { SessionData } from 'express-session';
 import { MatchedTripResponseDto } from '../trip/dto/trip-response.dto';
-import { BadRequestMessages } from 'src/common/enums/messages.enum';
+import { BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 import { RequestStatusEnum } from 'generated/prisma';
+import { CreateRequestDto } from '../trip/dto/create-request.dto';
 
 @Controller('packages')
 export class PackageController {
@@ -217,10 +220,45 @@ export class PackageController {
   }
 
   @ApiOperation({
+    summary: 'Create a request for a package to a matched trip',
+    description: `The sender must first call \`GET /packages/:id/matched-trips\` 
+      to obtain a list of compatible trips for the package.
+      If the package is already matched or the trip is not in the matched trips list
+      or not in \`scheduled\` or \`delayed\` status, the request will be rejected.`,
+  })
+  @AuthResponses()
+  @ValidationResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.SendRequestTrip
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.SendRequestPackage
+  })
+  @ApiNotFoundResponse({
+    description: NotFoundMessages.MatchedTrip
+  })
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @Post('requests')
+  async createTripRequest(
+    @Body() body: CreateRequestDto,
+    @CurrentUser('id') userId: string,
+    @Session() session: SessionData
+  ) {
+    return this.packageService.createRequest(userId, body, session);
+  }
+
+  @ApiOperation({
     summary: 'Get all package requests by its id',
   })
   @AuthResponses()
   @CrudResponses()
+  @ApiQuery({
+    name: 'status',
+    enum: RequestStatusEnum,
+    required: false,
+  })
   // TODO: Serializer
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -229,7 +267,7 @@ export class PackageController {
   @Get(':id/requests')
   async getAllPackageRequests(
     @Param('id', ParseUUIDPipe) id: string,
-    @Query('status', new ParseEnumPipe(RequestStatusEnum)) status?: RequestStatusEnum
+    @Query('status', new ParseEnumPipe(RequestStatusEnum, { optional: true })) status?: RequestStatusEnum
   ) {
     return this.packageService.getAllPackageRequests(id, status ? [status] : undefined);
   }
@@ -244,12 +282,14 @@ export class PackageController {
   // TODO: Serializer
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
-    entity: 'packageRequest',
+    entity: 'tripRequest',
+    ownershipName: 'packageRequest'
   })
   @Patch('requests/:id')
   async updateTripRequest(
     @Param('id', ParseUUIDPipe) id: string,
+    @Session() session: SessionData
   ) {
-    return this.packageService.updateRequest(id);
+    return this.packageService.updateRequest(id, session);
   }
 }

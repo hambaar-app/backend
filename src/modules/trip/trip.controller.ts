@@ -189,36 +189,6 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Create a request for a package to a matched trip',
-    description: `The sender must first call \`GET /packages/:id/matched-trips\` 
-      to obtain a list of compatible trips for the package.
-      If the package is already matched or the trip is not in the matched trips list
-      or not in \`scheduled\` or \`delayed\` status, the request will be rejected.`,
-  })
-  @AuthResponses()
-  @ValidationResponses()
-  @CrudResponses()
-  @ApiBadRequestResponse({
-    description: BadRequestMessages.SendRequestTrip
-  })
-  @ApiBadRequestResponse({
-    description: BadRequestMessages.SendRequestPackage
-  })
-  @ApiNotFoundResponse({
-    description: NotFoundMessages.MatchedTrip
-  })
-  @UseGuards(AccessTokenGuard)
-  @HttpCode(HttpStatus.CREATED)
-  @Post('requests')
-  async createTripRequest(
-    @Body() body: CreateRequestDto,
-    @CurrentUser('id') userId: string,
-    @Session() session: SessionData
-  ) {
-    return this.tripService.createRequest(userId, body, session);
-  }
-
-  @ApiOperation({
     summary: 'Get all trip pending requests by its id'
   })
   @AuthResponses()
@@ -243,15 +213,14 @@ export class TripController {
   @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
-    entity: 'tripRequest'
+    entity: 'tripRequest',
   })
   @Patch('requests/:id')
   async updateTripRequest(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateRequestDto,
-    @Session() session: SessionData
   ) {
-    return this.tripService.updateRequest(id, body, session);
+    return this.tripService.updateRequest(id, body);
   }
 
   @ApiOperation({
@@ -271,4 +240,33 @@ export class TripController {
   ) {
     return this.tripService.getAllMatchedRequests(id);
   }
+
+  @ApiOperation({
+    summary: 'Toggle trip access for requests',
+    description: `Toggles the trip status between \`scheduled\` (open for requests)
+      and \`closed\` (no more requests, not started). Only works if the current status is one of them.`
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Serialize(TripCompactResponseDto)
+  @Patch(':id/toggle-access')
+  async toggleTripAccess(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tripService.toggleTripAccess(id);
+  }
+
+  @ApiOperation({
+    summary: 'Start a trip'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Serialize(TripCompactResponseDto)
+  @Patch(':id/start')
+  async startTrip(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tripService.startTrip(id);
+  }
+
 }

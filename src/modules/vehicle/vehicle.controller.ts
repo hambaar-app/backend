@@ -5,7 +5,7 @@ import { ApiConflictResponse, ApiOkResponse, ApiOperation, ApiQuery } from '@nes
 import { CreateModelDto } from './dto/create-model.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
-import { VehicleResponseDto } from './dto/vehicle-response.dto';
+import { VehicleCompactResponseDto, VehicleResponseDto } from './dto/vehicle-response.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
@@ -81,9 +81,9 @@ export class VehicleController {
   })
   @AuthResponses()
   @ApiOkResponse({
-    type: [VehicleResponseDto]
+    type: [VehicleCompactResponseDto]
   })
-  @Serialize(VehicleResponseDto)
+  @Serialize(VehicleCompactResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get()
   async getAllTransporterVehicles(@CurrentUser('id') id: string) {
