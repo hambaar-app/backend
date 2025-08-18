@@ -120,7 +120,7 @@ export class PricingService {
         basePrice,
         distanceCost,
         weightCost,
-        specialHandlingMultiplier: specialMultiplier,
+        specialHandling: specialMultiplier,
         cityPremium,
       }
     };

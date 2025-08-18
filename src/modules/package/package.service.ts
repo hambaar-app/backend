@@ -16,7 +16,7 @@ import { PrismaTransaction } from '../prisma/prisma.types';
 import { JsonArray } from 'generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
-import { PriceBreakdown, PriceBreakdownDto } from '../pricing/pricing.types';
+import { PriceBreakdownDto } from './dto/package-response.dto';
 
 @Injectable()
 export class PackageService {
