@@ -96,7 +96,11 @@ export class TripService {
       include: {
         origin: true,
         destination: true,
-        waypoints: true,
+        waypoints: {
+          where: {
+            isVisible: true
+          }
+        },
         vehicle: {
           select: {
             vehicleType: true,
@@ -183,7 +187,11 @@ export class TripService {
       include: {
         origin: true,
         destination: true,
-        waypoints: true
+        waypoints: {
+          where: {
+            isVisible: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'

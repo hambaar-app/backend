@@ -6,9 +6,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { UserStatesEnum } from '../types/auth.enums';
-import { Expose, Type } from 'class-transformer';
-import { TransporterResponseDto } from 'src/modules/user/dto/transporter-response.dto';
+import { Expose } from 'class-transformer';
 import { StateDto } from './state-response.dto';
 
 export class CheckOtpDto {

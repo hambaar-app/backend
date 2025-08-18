@@ -240,4 +240,19 @@ export class TripController {
   ) {
     return this.tripService.getAllMatchedRequests(id);
   }
+
+  @ApiOperation({
+    summary: 'Toggle trip access for requests',
+    description: `Toggles the trip status between \`scheduled\` (open for requests)
+      and \`closed\` (no more requests, not started). Only works if the current status is one of them.`
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Serialize(TripCompactResponseDto)
+  @Post(':id/toggle-access')
+  async toggleTripAccess(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tripService.toggleTripAccess(id);
+  }
 }

@@ -21,7 +21,6 @@ export class TripCompactResponseDto {
   @ApiProperty({ type: [CityDto] })
   @Expose()
   @Type(() => CityDto)
-  @Transform(({ value }) => value?.filter(v => v.isVisible))
   waypoints: CityDto[];
 
   @ApiProperty({ enum: TripTypeEnum })
