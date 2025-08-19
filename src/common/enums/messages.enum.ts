@@ -24,9 +24,9 @@ export enum NotFoundMessages {
 }
 
 export enum BadRequestMessages {
-  BasePackageStatus = 'You can not update/delete a package with status ',
+  BasePackageStatus = 'You can not perform this action for a package with status ',
   InvalidPrice = 'The final price cannot be set lower than the suggested price.',
-  BaseTripStatus = 'You can not update/delete a trip with status ',
+  BaseTripStatus = 'You can not perform this action for a trip with status ',
   SendRequestPackage = 'You can not send request for this package.',
   SendRequestTrip = 'You can not send request to this trip.',
 }

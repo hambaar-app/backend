@@ -15,8 +15,8 @@ import { TripService } from '../trip/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { JsonArray } from 'generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
-import { PriceBreakdownDto } from './dto/package-response.dto';
+import { instanceToPlain } from 'class-transformer';
+import { TurfService } from '../turf/turf.service';
 
 @Injectable()
 export class PackageService {
@@ -27,6 +27,7 @@ export class PackageService {
     private matchingService: MatchingService,
     private tripService: TripService,
     private s3Service: S3Service,
+    private turfService: TurfService,
   ) {}
 
   async createRecipient(
@@ -455,6 +456,8 @@ export class PackageService {
           ].filter(v => v !== undefined)
         );
   
+        const sortedWaypoints = this.turfService.sortLocationsByRoute(trip.origin, trip.destination, waypoints)
+
         const { distance, duration } = await this.mapService.calculateDistance({
           origin: {
             latitude: trip.origin.latitude,
@@ -464,7 +467,7 @@ export class PackageService {
             latitude: trip.destination.latitude,
             longitude: trip.destination.longitude
           },
-          waypoints
+          waypoints: sortedWaypoints
         });
      
         const deviationDistance = Math.max(
