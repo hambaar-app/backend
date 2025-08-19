@@ -4,7 +4,7 @@ import { Prisma, TripStatusEnum } from 'generated/prisma';
 import { Feature, LineString, Point } from 'geojson';
 import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
-import { Turf, TURF_TOKEN } from './turf.provider';
+import { Turf, TURF_TOKEN } from '../turf/turf.provider';
 import { SessionData } from 'express-session';
 import { MatchResult, PackageWithLocations, TripWithLocations } from './matching.types';
 import { PrismaTransaction } from '../prisma/prisma.types';
