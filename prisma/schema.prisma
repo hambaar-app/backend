@@ -475,6 +475,25 @@ model MatchedRequest {
   @@map("matched_requests")
 }
 
+model TrackingUpdate {
+  id               String  @id @default(uuid()) @db.Uuid
+  matchedRequestId String  @map("matched_request_id") @db.Uuid
+  currentLatitude  Float?  @map("current_latitude")
+  currentLongitude Float?  @map("current_longitude")
+  lastCity         String? @map("last_city") @db.VarChar
+  routeName        String? @map("route_name") @db.VarChar
+  description      String? @db.Text
+
+  // Relations
+  matchedRequest MatchedRequest @relation(fields: [matchedRequestId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("tracking_updates")
+}
+
 model Wallet {
   id          String  @id @default(uuid()) @db.Uuid
   userId      String  @unique @map("user_id") @db.Uuid
@@ -525,21 +544,4 @@ model Achievement {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@map("achievements")
-}
-
-model TrackingUpdate {
-  id               String  @id @default(uuid()) @db.Uuid
-  matchedRequestId String  @map("matched_request_id") @db.Uuid
-  currentLatitude  Float?  @map("current_latitude")
-  currentLongitude Float?  @map("current_longitude")
-  lastCity         String? @map("last_city") @db.VarChar
-
-  // Relations
-  matchedRequest MatchedRequest @relation(fields: [matchedRequestId], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
-
-  @@map("tracking_update")
 }
