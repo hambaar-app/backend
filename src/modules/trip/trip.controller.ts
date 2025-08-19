@@ -12,13 +12,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
-import { CityDto } from './dto/city.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
@@ -32,51 +30,6 @@ import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
 @Controller('trips')
 export class TripController {
   constructor(private tripService: TripService) {}
-
-  @ApiOperation({
-    summary: 'Get intermediate cities between two coordinates',
-    description: `This endpoint returns a list of intermediate cities between two coordinates
-      (e.g., origin and destination latitude/longitude), which can be used to define waypoints
-      during trip creation via \`POST /trips\`.`,
-  })
-  @ApiOkResponse({
-    type: [CityDto]
-  })
-  @Serialize(CityDto)
-  @AuthResponses()
-  @ApiInternalServerErrorResponse({
-    description: 'Failed to get intermediate cities.'
-  })
-  @Serialize(CityDto)
-  @UseGuards(AccessTokenGuard)
-  @Get('intermediate-cities/with-coords')
-  async getIntermediateCitiesWithCoords(@Query() query: CoordinatesQueryDto) {
-    return this.tripService.getIntermediateCitiesWithCoords(query);
-  }
-
-  @ApiOperation({
-    summary: 'Get intermediate cities between two coordinates',
-    description: `This endpoint returns a list of intermediate cities between two coordinates
-      (e.g., origin and destination latitude/longitude), which can be used to define waypoints
-      during trip creation via \`POST /trips\`.`,
-  })
-  @ApiOkResponse({
-    type: [CityDto]
-  })
-  @Serialize(CityDto)
-  @AuthResponses()
-  @ApiInternalServerErrorResponse({
-    description: 'Failed to get intermediate cities.'
-  })
-  @Serialize(CityDto)
-  @UseGuards(AccessTokenGuard)
-  @Get('intermediate-cities/with-ids')
-  async getIntermediateCitiesWithIds(
-    @Query('originId', ParseUUIDPipe) originId: string,
-    @Query('destinationId', ParseUUIDPipe) destinationId: string
-  ) {
-    return this.tripService.getIntermediateCitiesWithIds(originId, destinationId);
-  }
 
   @ApiOperation({
     summary: 'Create a new trip',

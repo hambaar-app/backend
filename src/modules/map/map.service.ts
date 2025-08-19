@@ -13,11 +13,13 @@ import {
   VehicleTypes,
 } from './map.types';
 import { ConfigService } from '@nestjs/config';
-import { TripTypeEnum } from 'generated/prisma';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { CityDto } from '../trip/dto/city.dto';
+import { formatPrismaError } from 'src/common/utilities';
+import { PrismaService } from '../prisma/prisma.service';
+import { CoordinatesQueryDto } from './coordinates-query.dto';
 
 @Injectable()
 export class MapService {
@@ -27,6 +29,7 @@ export class MapService {
   constructor(
     private httpService: HttpService,
     config: ConfigService,
+    private prisma: PrismaService
   ) {
     this.mapApiKey = config.getOrThrow<string>('MAP_API_KEY');
     this.mapApiUrl = config.getOrThrow<string>('MAP_API_URL');
@@ -64,6 +67,56 @@ export class MapService {
       distance: Number((distance / 1000).toFixed(2)),
       duration: Number((duration / 60).toFixed(0))
     };
+  }
+
+  async getIntermediateCitiesWithCoords(
+    {
+      origin,
+      destination
+    }: CoordinatesQueryDto
+  ) {
+    const [originLat, originLng] = origin.split(',');
+    const [destLat, destLng] = destination.split(',');
+    return this.getIntermediateCities(
+      {
+        latitude: originLat,
+        longitude: originLng,
+      },
+      {
+        latitude: destLat,
+        longitude: destLng,
+      },
+    );
+  }
+
+  async getIntermediateCitiesWithIds(
+    originId: string,
+    destinationId: string
+  ) {
+    const originCity = await this.prisma.city.findUniqueOrThrow({
+      where: { id: originId }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    const destinationCity = await this.prisma.city.findUniqueOrThrow({
+      where: { id: destinationId }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    return this.getIntermediateCities(
+      {
+        latitude: originCity.latitude,
+        longitude: originCity.longitude,
+      },
+      {
+        latitude: destinationCity.latitude,
+        longitude: destinationCity.longitude,
+      },
+    );
   }
 
   private async getDirections(
@@ -123,7 +176,7 @@ export class MapService {
     }
   }
 
-  async getIntermediateCities(
+  private async getIntermediateCities(
     origin: Location,
     destination: Location,
     vehicleType: VehicleTypes = 'car',

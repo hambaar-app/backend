@@ -1,6 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { MapService } from '../map/map.service';
-import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
@@ -280,56 +279,6 @@ export class TripService {
       formatPrismaError(error);
       throw error;
     });
-  }
-
-  async getIntermediateCitiesWithCoords(
-    {
-      origin,
-      destination
-    }: CoordinatesQueryDto
-  ) {
-    const [originLat, originLng] = origin.split(',');
-    const [destLat, destLng] = destination.split(',');
-    return this.mapService.getIntermediateCities(
-      {
-        latitude: originLat,
-        longitude: originLng,
-      },
-      {
-        latitude: destLat,
-        longitude: destLng,
-      },
-    );
-  }
-
-  async getIntermediateCitiesWithIds(
-    originId: string,
-    destinationId: string
-  ) {
-    const originCity = await this.prisma.city.findUniqueOrThrow({
-      where: { id: originId }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-
-    const destinationCity = await this.prisma.city.findUniqueOrThrow({
-      where: { id: destinationId }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-
-    return this.mapService.getIntermediateCities(
-      {
-        latitude: originCity.latitude,
-        longitude: originCity.longitude,
-      },
-      {
-        latitude: destinationCity.latitude,
-        longitude: destinationCity.longitude,
-      },
-    );
   }
 
   async getAllTripRequests(tripId: string) {
