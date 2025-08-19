@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { MapService } from '../map/map.service';
 import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -76,6 +76,7 @@ export class TripService {
       } as Prisma.TripUncheckedCreateInput;
 
       if (waypoints) {
+        // TODO: Sort waypoints?
         tripData.waypoints = {
           createMany: {
             data: waypoints
@@ -422,7 +423,9 @@ export class TripService {
 
       // Update breakdown
       const breakdown = plainToInstance(PriceBreakdownDto, packageData?.breakdown);
-      breakdown.deviationCost = request.deviationCost;;
+      if (breakdown) {
+        breakdown.deviationCost = request.deviationCost ?? 0;
+      }
       const plainBreakdown = instanceToPlain(breakdown);
 
       await tx.package.update({
@@ -448,6 +451,7 @@ export class TripService {
       select: {
         package: {
           select: {
+            id: true,
             sender: {
               select: {
                 firstName: true,
@@ -536,5 +540,53 @@ export class TripService {
     }
 
     return this.updateStatus(id, TripStatusEnum.in_progress);
+  }
+
+  async addTripNote(
+    tripId: string,
+    note: string,
+    packageId?: string,
+    tx: PrismaTransaction = this.prisma
+  ) {
+    const trip = await tx.trip.findUniqueOrThrow({
+      where: {
+        id: tripId
+      },
+      include: {
+        matchedRequests: {
+          where: {
+            packageId
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (trip.status === TripStatusEnum.completed) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${trip.status}.`);
+    }
+
+    // If packageId included, the note will send for all matched requests within a trip.
+    const updatedMatchedRequestsPromises = trip.matchedRequests.map(m => {
+      // Push note
+      const oldNotes = plainToInstance(Array<String>, m.transporterNotes) ?? [];
+      oldNotes.push(note);
+      const plainNewNotes = instanceToPlain(oldNotes);
+
+      return tx.matchedRequest.update({
+        where: {
+          tripId,
+          packageId: m.packageId
+        },
+        data: {
+          transporterNotes: plainNewNotes
+        }
+      });
+    });
+    await Promise.all(updatedMatchedRequestsPromises);
+
+    return true;
   }
 }
