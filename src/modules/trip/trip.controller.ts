@@ -27,7 +27,7 @@ import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/ap
 import { TripFilterQueryDto } from './dto/trip-filter-query.dto';
 import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
-import { AddNoteDto } from './dto/add-note.dto';
+import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
 
 @Controller('trips')
 export class TripController {
@@ -267,7 +267,7 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Add a note for a specific package'
+    summary: 'Add a note for a specific matched package'
   })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -279,5 +279,20 @@ export class TripController {
     @Body() body: AddNoteDto
   ) {
     return this.tripService.addTripNote(tripId, body.note, body.packageId);
-  }  
+  }
+
+  @ApiOperation({
+    summary: 'Add a note for all matched packages (broadcast)'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Post(':id/note/broadcast')
+  async broadcastTripNote(
+    @Param('id', ParseUUIDPipe) tripId: string,
+    @Body() body: BroadcastNoteDto
+  ) {
+    return this.tripService.addTripNote(tripId, body.note);
+  }
 }

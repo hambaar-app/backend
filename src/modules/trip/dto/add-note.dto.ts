@@ -1,12 +1,12 @@
 import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
-export class BroadcastNote {
+export class BroadcastNoteDto {
   @IsNotEmpty()
   @IsString()
   note: string;
 }
 
-export class AddNoteDto extends BroadcastNote {
+export class AddNoteDto extends BroadcastNoteDto {
   @IsNotEmpty()
   @IsUUID()
   packageId: string;
