@@ -11,6 +11,7 @@ import { S3Module } from '../s3/s3.module';
 import { MatchingService } from './matching.service';
 import { TurfProvider } from '../turf/turf.provider';
 import { TripModule } from '../trip/trip.module';
+import { TurfService } from '../turf/turf.service';
 
 
 @Module({
@@ -26,7 +27,7 @@ import { TripModule } from '../trip/trip.module';
   providers: [
     PackageService,
     MatchingService,
-    TurfProvider
+    TurfService,
   ],
   controllers: [PackageController]
 })
