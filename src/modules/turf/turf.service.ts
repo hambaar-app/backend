@@ -90,11 +90,8 @@ export class TurfService {
       return [...locations];
     }
 
-    // Remove duplicate waypoints
-    const uniqueLocations = this.removeDuplicateLocations(locations);
-
-    if (uniqueLocations.length <= 1) {
-      return uniqueLocations;
+    if (locations.length <= 1) {
+      return locations;
     }
 
     // Create the main route line from origin to destination
@@ -104,7 +101,7 @@ export class TurfService {
     ]);
 
     // Calculate position along route for each location
-    const locationsWithPosition = uniqueLocations.map(location => {
+    const locationsWithPosition = locations.map(location => {
       const locationPoint = this.turf.point([
         Number(location.longitude),
         Number(location.latitude)
@@ -126,17 +123,5 @@ export class TurfService {
     // Sort locations
     locationsWithPosition.sort((a, b) => a.distanceFromOrigin  - b.distanceFromOrigin );
     return locationsWithPosition.map(item => item.location);
-  }
-
-  private removeDuplicateLocations(locations: Location[]): Location[] {
-    const seen = new Set<string>();
-    return locations.filter(location => {
-      const key = `${location.latitude},${location.longitude}`;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
   }
 }

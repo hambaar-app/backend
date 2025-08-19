@@ -6,6 +6,7 @@ import { TurfProvider } from './turf.provider';
   providers: [
     TurfProvider,
     TurfService
-  ]
+  ],
+  exports: [TurfService]
 })
 export class TurfModule {}
