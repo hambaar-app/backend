@@ -478,9 +478,9 @@ model MatchedRequest {
 model TrackingUpdate {
   id               String  @id @default(uuid()) @db.Uuid
   matchedRequestId String  @map("matched_request_id") @db.Uuid
-  currentLatitude  Float?  @map("current_latitude")
-  currentLongitude Float?  @map("current_longitude")
-  lastCity         String? @map("last_city") @db.VarChar
+  latitude         String? @map("latitude")
+  longitude        String? @map("longitude")
+  city             String? @map("city") @db.VarChar
   routeName        String? @map("route_name") @db.VarChar
   description      String? @db.Text
 

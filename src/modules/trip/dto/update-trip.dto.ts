@@ -9,7 +9,7 @@ import {
   Min,
   Validate,
 } from 'class-validator';
-import { CityDto } from './city.dto';
+import { CityDto } from '../../map/dto/city.dto';
 import { Type } from 'class-transformer';
 import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
 
