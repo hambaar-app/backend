@@ -2,10 +2,11 @@ import { Controller, Get, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common
 import { MapService } from './map.service';
 import { ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
-import { CityDto } from '../trip/dto/city.dto';
+import { CityDto } from './dto/city.dto';
 import { AuthResponses } from 'src/common/api-docs.decorators';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
-import { CoordinatesQueryDto } from './coordinates-query.dto';
+import { CoordinateQueryDto, CoordinatesQueryDto } from './coordinates-query.dto';
+import { ReverseGeocodeDto } from './dto/reverse-geocode.dto';
 
 @Controller('map')
 export class MapController {
@@ -20,7 +21,6 @@ export class MapController {
   @ApiOkResponse({
     type: [CityDto]
   })
-  @Serialize(CityDto)
   @AuthResponses()
   @ApiInternalServerErrorResponse({
     description: 'Failed to get intermediate cities.'
@@ -41,7 +41,6 @@ export class MapController {
   @ApiOkResponse({
     type: [CityDto]
   })
-  @Serialize(CityDto)
   @AuthResponses()
   @ApiInternalServerErrorResponse({
     description: 'Failed to get intermediate cities.'
@@ -54,5 +53,36 @@ export class MapController {
     @Query('destinationId', ParseUUIDPipe) destinationId: string
   ) {
     return this.mapService.getIntermediateCitiesWithIds(originId, destinationId);
+  }
+
+  @ApiOperation({
+    summary: 'Get current location info',
+    description: `Which can be used to update tracking via \`POST /trips/:id/tracking\`.`,
+  })
+  @ApiOkResponse({
+    type: ReverseGeocodeDto
+  })
+  @AuthResponses()
+  @ApiInternalServerErrorResponse({
+    description: 'Failed to get intermediate cities.'
+  })
+  @Serialize(ReverseGeocodeDto)
+  @UseGuards(AccessTokenGuard)
+  @Get('reverse-geocode')
+  async reverseGeocode(@Query() query: CoordinateQueryDto) {
+    const location = {
+      latitude: query.lat,
+      longitude: query.lng
+    };
+    
+    const result = await this.mapService.reverseGeocode({
+      latitude: query.lat,
+      longitude: query.lng
+    });
+
+    return {
+      ...location,
+      ...result
+    };
   }
 }

@@ -16,7 +16,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
-import { CityDto } from '../trip/dto/city.dto';
+import { CityDto } from './dto/city.dto';
 import { formatPrismaError } from 'src/common/utilities';
 import { PrismaService } from '../prisma/prisma.service';
 import { CoordinatesQueryDto } from './coordinates-query.dto';
@@ -67,6 +67,33 @@ export class MapService {
       distance: Number((distance / 1000).toFixed(2)),
       duration: Number((duration / 60).toFixed(0))
     };
+  }
+
+  async reverseGeocode(
+    {
+      latitude,
+      longitude
+    }: Location
+  ): Promise<ReverseGeocodingResponse> {
+    try {
+      const url = `${this.mapApiUrl}/v5/reverse?lat=${latitude}&lng=${longitude}`;
+
+      const response: AxiosResponse<ReverseGeocodingResponse> = await firstValueFrom(
+        this.httpService.get<ReverseGeocodingResponse>(url, {
+          headers: {
+            'Api-Key': this.mapApiKey,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error(
+        'Error calling Neshan reverse geocoding API:',
+        error.response?.data || error.message
+      );
+      throw new InternalServerErrorException('Failed to reverse geocode.');
+    }
   }
 
   async getIntermediateCitiesWithCoords(
@@ -240,33 +267,6 @@ export class MapService {
         error.response?.data || error.message
       );
       throw new InternalServerErrorException('Failed to get intermediate cities.');
-    }
-  }
-
-  private async reverseGeocode(
-    {
-      latitude,
-      longitude
-    }: Location
-  ): Promise<ReverseGeocodingResponse> {
-    try {
-      const url = `${this.mapApiUrl}/v5/reverse?lat=${latitude}&lng=${longitude}`;
-
-      const response: AxiosResponse<ReverseGeocodingResponse> = await firstValueFrom(
-        this.httpService.get<ReverseGeocodingResponse>(url, {
-          headers: {
-            'Api-Key': this.mapApiKey,
-          },
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error(
-        'Error calling Neshan reverse geocoding API:',
-        error.response?.data || error.message
-      );
-      throw new InternalServerErrorException('Failed to reverse geocode.');
     }
   }
 
