@@ -10,14 +10,13 @@ import {
   Patch,
   Post,
   Query,
-  Session,
   UseGuards,
 } from '@nestjs/common';
 import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { ApiBadRequestResponse, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { CityDto } from './dto/city.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
@@ -27,10 +26,8 @@ import { CurrentUser } from '../user/current-user.middleware';
 import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
 import { TripFilterQueryDto } from './dto/trip-filter-query.dto';
 import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto';
-import { CreateRequestDto } from './dto/create-request.dto';
-import { SessionData } from 'express-session';
-import { BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
 import { UpdateRequestDto } from './dto/update-request.dto';
+import { AddNoteDto } from './dto/add-note.dto';
 
 @Controller('trips')
 export class TripController {
@@ -269,4 +266,18 @@ export class TripController {
     return this.tripService.startTrip(id);
   }
 
+  @ApiOperation({
+    summary: 'Add a note for a specific package'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Post(':id/note')
+  async addTripNote(
+    @Param('id', ParseUUIDPipe) tripId: string,
+    @Body() body: AddNoteDto
+  ) {
+    return this.tripService.addTripNote(tripId, body.note, body.packageId);
+  }  
 }
