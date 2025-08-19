@@ -26,6 +26,7 @@ import { TripFilterQueryDto } from './dto/trip-filter-query.dto';
 import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
+import { UpdateTrackingDto } from './dto/update-tracking.dto';
 
 @Controller('trips')
 export class TripController {
@@ -247,5 +248,20 @@ export class TripController {
     @Body() body: BroadcastNoteDto
   ) {
     return this.tripService.addTripNote(tripId, body.note);
+  }
+
+  @ApiOperation({
+    summary: 'Update tracking info for all matched packages'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Post(':id/tracking')
+  async updateTracking(
+    @Param('id', ParseUUIDPipe) tripId: string,
+    @Body() body: UpdateTrackingDto
+  ) {
+    return this.tripService.updateTracking(tripId, body);
   }
 }

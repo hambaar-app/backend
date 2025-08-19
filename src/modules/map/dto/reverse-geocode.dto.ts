@@ -7,10 +7,7 @@ export class ReverseGeocodeDto {
   @Expose()
   longitude: string;
 
-  @Transform(({ obj }) => {
-    console.log(obj);
-    
-    return `${obj.state}، ${obj.city ?? obj.county}`})
+  @Transform(({ obj }) => `${obj.state}، ${obj.city ?? obj.county}`)
   @Expose()
   city: string;
 

@@ -10,6 +10,7 @@ import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { PriceBreakdownDto } from '../package/dto/package-response.dto';
+import { UpdateTrackingDto } from './dto/update-tracking.dto';
 
 @Injectable()
 export class TripService {
@@ -223,7 +224,7 @@ export class TripService {
       });
       
       if (status !== TripStatusEnum.scheduled) {
-        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${status}.`);
+        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${status}*.`);
       }
 
       const tripData = tripDto as Prisma.TripUpdateInput;
@@ -266,7 +267,7 @@ export class TripService {
       });
       
       if (status !== TripStatusEnum.scheduled) {
-        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${status}.`);
+        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${status}*.`);
       }
 
       return tx.trip.update({
@@ -461,7 +462,7 @@ export class TripService {
     if (tripStatus !== TripStatusEnum.scheduled 
       && tripStatus !== TripStatusEnum.closed 
     ) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
     }
 
     const updatedStatus = tripStatus === TripStatusEnum.scheduled ?
@@ -485,9 +486,9 @@ export class TripService {
       || tripStatus === TripStatusEnum.closed
       || tripStatus === TripStatusEnum.delayed;
     if (!isValidStatus) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
     }
-
+    // TODO: Add a update to tracking.
     return this.updateStatus(id, TripStatusEnum.in_progress);
   }
 
@@ -514,7 +515,7 @@ export class TripService {
     });
 
     if (trip.status === TripStatusEnum.completed) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${trip.status}.`);
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
     }
 
     // If packageId included, the note will send for all matched requests within a trip.
@@ -537,5 +538,36 @@ export class TripService {
     await Promise.all(updatedMatchedRequestsPromises);
 
     return true;
+  }
+
+  async updateTracking(
+    tripId: string,
+    trackingDto: UpdateTrackingDto
+  ) {
+    const trip = await this.prisma.trip.findUniqueOrThrow({
+      where: { id: tripId },
+      include: {
+        matchedRequests: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    const isValidStatus = trip.status !== TripStatusEnum.scheduled
+     && trip.status !== TripStatusEnum.closed;
+    if (!isValidStatus) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
+    }
+
+    const trackingUpdates = trip.matchedRequests.map(m => ({
+      matchedRequestId: m.id,
+      ...trackingDto
+    }));
+    return this.prisma.trackingUpdate.createMany({
+      data: trackingUpdates
+    });
+
+    
   }
 }
