@@ -450,7 +450,7 @@ model MatchedRequest {
   packageId          String            @unique @map("package_id") @db.Uuid
   tripId             String            @map("trip_id") @db.Uuid
   trackingCode       String?           @unique @map("tracking_code") @db.VarChar // 20-digits (Auto generated)
-  receiptCode        String?           @map("receipt_code") @db.VarChar // 5-digits (Auto generated)
+  deliveryCode       String?           @map("delivery_code") @db.VarChar // 5-digits (Auto generated)
   transporterNotes   Json?             @map("transporter_note") @db.JsonB
   comment            String?           @map("comment") @db.Text
   senderRating       Int?              @map("sender_rating") // 1-5

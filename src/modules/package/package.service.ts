@@ -240,7 +240,7 @@ export class PackageService {
               },
             },
             trackingCode: true,
-            receiptCode: true,
+            deliveryCode: true,
             transporterNotes: true,
             comment: true,
             senderRating: true,
