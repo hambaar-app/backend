@@ -260,6 +260,20 @@ export class TripController {
   }
 
   @ApiOperation({
+    summary: 'Finish a trip'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Serialize(TripCompactResponseDto)
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/finish')
+  async finishTrip(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tripService.finishTrip(id);
+  }
+
+  @ApiOperation({
     summary: 'Add a note for a specific matched package'
   })
   @UseGuards(AccessTokenGuard, OwnershipGuard)

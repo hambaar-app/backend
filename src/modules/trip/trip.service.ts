@@ -472,7 +472,10 @@ export class TripService {
   }
 
   async startTrip(id: string) {
-    const { status: tripStatus, origin } = await this.prisma.trip.findUniqueOrThrow({
+    const {
+      status: tripStatus,
+      origin
+    } = await this.prisma.trip.findUniqueOrThrow({
       where: { id },
       select: {
         status: true,
@@ -500,7 +503,7 @@ export class TripService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });;
+    });
   }
 
   async pickupPackage(
@@ -624,7 +627,6 @@ export class TripService {
     if (trip.status !== TripStatusEnum.in_progress) {
       throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`);
     }
-console.log(code, deliveryCode);
 
     if (code !== deliveryCode) {
       throw new BadRequestException(BadRequestMessages.WrongDeliveryCode);
@@ -666,6 +668,37 @@ console.log(code, deliveryCode);
         deliveryTime
       };
     });
+  }
+
+  async finishTrip(id: string) {
+    const {
+      status: tripStatus,
+      matchedRequests
+    } = await this.prisma.trip.findUniqueOrThrow({
+      where: { id },
+      select: {
+        status: true,
+        matchedRequests: {
+          select: {
+            deliveryTime: true
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (tripStatus === TripStatusEnum.in_progress) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
+    }
+
+    const allRequestsDelivered = matchedRequests.every(m => m.deliveryTime !== null);
+    if (!allRequestsDelivered) {
+      throw new BadRequestException(BadRequestMessages.CannotFinishTrip);
+    }
+
+    return this.updateStatus(id, TripStatusEnum.completed);
   }
 
   async addTripNote(

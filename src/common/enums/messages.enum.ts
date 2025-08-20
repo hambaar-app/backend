@@ -29,7 +29,8 @@ export enum BadRequestMessages {
   BaseTripStatus = 'You can not perform this action for a trip with status ',
   SendRequestPackage = 'You can not send request for this package.',
   SendRequestTrip = 'You can not send request to this trip.',
-  WrongDeliveryCode = 'Wrong delivery code.'
+  WrongDeliveryCode = 'Wrong delivery code.',
+  CannotFinishTrip = 'You cannot finish the trip until all packages are delivered.'
 }
 
 export enum TrackingMessages {
