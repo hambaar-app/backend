@@ -3,7 +3,7 @@ import { MapService } from '../map/map.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, TrackingMessages } from 'src/common/enums/messages.enum';
 import { MatchedRequest, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -472,10 +472,11 @@ export class TripService {
   }
 
   async startTrip(id: string) {
-    const { status: tripStatus } = await this.prisma.trip.findUniqueOrThrow({
+    const { status: tripStatus, origin } = await this.prisma.trip.findUniqueOrThrow({
       where: { id },
       select: {
-        status: true
+        status: true,
+        origin: true
       }
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -488,8 +489,15 @@ export class TripService {
     if (!isValidStatus) {
       throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
     }
-    // TODO: Add a update to tracking.
-    return this.updateStatus(id, TripStatusEnum.in_progress);
+    
+    return this.prisma.$transaction(async tx => {
+      await this.updateTripTracking(id, {
+        city: origin.name,
+        description: TrackingMessages.TripStarted
+      });
+      
+      return this.updateStatus(id, TripStatusEnum.in_progress, tx);
+    });
   }
 
   async addTripNote(
@@ -551,11 +559,13 @@ export class TripService {
 
   async updateTripTracking(
     tripId: string,
-    trackingDto: UpdateTrackingDto
+    trackingDto: UpdateTrackingDto,
+    tx: PrismaTransaction = this.prisma,
   ) {
-    const trip = await this.prisma.trip.findUniqueOrThrow({
+    const trip = await tx.trip.findUniqueOrThrow({
       where: { id: tripId },
-      include: {
+      select: {
+        status: true,
         matchedRequests: true
       }
     }).catch((error: Error) => {
@@ -573,7 +583,7 @@ export class TripService {
       matchedRequestId: m.id,
       ...trackingDto
     }));
-    return this.prisma.trackingUpdate.createMany({
+    return tx.trackingUpdate.createMany({
       data: trackingUpdates
     });
   }
