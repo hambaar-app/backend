@@ -27,6 +27,7 @@ import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
+import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-response.dto';
 
 @Controller('trips')
 export class TripController {
@@ -269,11 +270,17 @@ export class TripController {
   @ApiOperation({
     summary: 'Get tracking info for a specific package (Protected)'
   })
+  @ApiOkResponse({
+    type: [TrackingUpdatesResponseDto]
+  })
+  @AuthResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip',
     paramName: 'tripId'
   })
+  @Serialize(TrackingUpdatesResponseDto)
   @Get(':tripId/tracking/:packageId')
   async getTripTracking(
     @Param('tripId', ParseUUIDPipe) tripId: string,
@@ -285,6 +292,11 @@ export class TripController {
   @ApiOperation({
     summary: 'Get tracking info by tracking code (Public)'
   })
+  @ApiOkResponse({
+    type: TrackingResponseDto
+  })
+  @CrudResponses()
+  @Serialize(TrackingResponseDto)
   @Get('tracking/:code')
   async getTripTrackingByCode(
     @Param('code') code: string,

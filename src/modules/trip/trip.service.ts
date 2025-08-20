@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
-import { PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
+import { MatchedRequest, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
@@ -535,9 +535,18 @@ export class TripService {
         }
       });
     });
-    await Promise.all(updatedMatchedRequestsPromises);
 
-    return true;
+    // Run queries parallel and Get 'resolved' promises's length
+    const results = await Promise.allSettled(updatedMatchedRequestsPromises);
+    const count = results
+      .filter((result): result is PromiseFulfilledResult<MatchedRequest> => 
+        result.status === 'fulfilled' && result.value !== null
+      )
+      .length;
+
+    return {
+      count
+    };
   }
 
   async updateTripTracking(
@@ -605,7 +614,11 @@ export class TripService {
         package: {
           select: {
             sender: true,
-            recipient: true,
+            recipient: {
+              include: {
+                address: true
+              }
+            },
             items: true,
             weight: true,
             dimensions: true,
