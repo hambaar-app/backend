@@ -12,13 +12,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
-import { CityDto } from './dto/city.dto';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
@@ -28,55 +26,12 @@ import { TripFilterQueryDto } from './dto/trip-filter-query.dto';
 import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
+import { UpdateTrackingDto } from './dto/update-tracking.dto';
+import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-response.dto';
 
 @Controller('trips')
 export class TripController {
   constructor(private tripService: TripService) {}
-
-  @ApiOperation({
-    summary: 'Get intermediate cities between two coordinates',
-    description: `This endpoint returns a list of intermediate cities between two coordinates
-      (e.g., origin and destination latitude/longitude), which can be used to define waypoints
-      during trip creation via \`POST /trips\`.`,
-  })
-  @ApiOkResponse({
-    type: [CityDto]
-  })
-  @Serialize(CityDto)
-  @AuthResponses()
-  @ApiInternalServerErrorResponse({
-    description: 'Failed to get intermediate cities.'
-  })
-  @Serialize(CityDto)
-  @UseGuards(AccessTokenGuard)
-  @Get('intermediate-cities/with-coords')
-  async getIntermediateCitiesWithCoords(@Query() query: CoordinatesQueryDto) {
-    return this.tripService.getIntermediateCitiesWithCoords(query);
-  }
-
-  @ApiOperation({
-    summary: 'Get intermediate cities between two coordinates',
-    description: `This endpoint returns a list of intermediate cities between two coordinates
-      (e.g., origin and destination latitude/longitude), which can be used to define waypoints
-      during trip creation via \`POST /trips\`.`,
-  })
-  @ApiOkResponse({
-    type: [CityDto]
-  })
-  @Serialize(CityDto)
-  @AuthResponses()
-  @ApiInternalServerErrorResponse({
-    description: 'Failed to get intermediate cities.'
-  })
-  @Serialize(CityDto)
-  @UseGuards(AccessTokenGuard)
-  @Get('intermediate-cities/with-ids')
-  async getIntermediateCitiesWithIds(
-    @Query('originId', ParseUUIDPipe) originId: string,
-    @Query('destinationId', ParseUUIDPipe) destinationId: string
-  ) {
-    return this.tripService.getIntermediateCitiesWithIds(originId, destinationId);
-  }
 
   @ApiOperation({
     summary: 'Create a new trip',
@@ -294,5 +249,58 @@ export class TripController {
     @Body() body: BroadcastNoteDto
   ) {
     return this.tripService.addTripNote(tripId, body.note);
+  }
+
+  @ApiOperation({
+    summary: 'Update tracking info for all matched packages',
+    description: 'You should fill the request\'s body with `GET /map/reverse-geocode`'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Post(':id/tracking')
+  async updateTripTracking(
+    @Param('id', ParseUUIDPipe) tripId: string,
+    @Body() body: UpdateTrackingDto
+  ) {
+    return this.tripService.updateTripTracking(tripId, body);
+  }
+
+  @ApiOperation({
+    summary: 'Get tracking info for a specific package (Protected)'
+  })
+  @ApiOkResponse({
+    type: [TrackingUpdatesResponseDto]
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip',
+    paramName: 'tripId'
+  })
+  @Serialize(TrackingUpdatesResponseDto)
+  @Get(':tripId/tracking/:packageId')
+  async getTripTracking(
+    @Param('tripId', ParseUUIDPipe) tripId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string
+  ) {
+    return this.tripService.getTripTracking(tripId, packageId);
+  }
+
+  @ApiOperation({
+    summary: 'Get tracking info by tracking code (Public)'
+  })
+  @ApiOkResponse({
+    type: TrackingResponseDto
+  })
+  @CrudResponses()
+  @Serialize(TrackingResponseDto)
+  @Get('tracking/:code')
+  async getTripTrackingByCode(
+    @Param('code') code: string,
+  ) {
+    return this.tripService.getTripTrackingByCode(code);
   }
 }

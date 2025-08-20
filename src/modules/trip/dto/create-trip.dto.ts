@@ -11,7 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
-import { CityDto } from './city.dto';
+import { CityDto } from '../../map/dto/city.dto';
 import { Type } from 'class-transformer';
 
 export class CreateTripDto {

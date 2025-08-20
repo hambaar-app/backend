@@ -1,16 +1,16 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { MapService } from '../map/map.service';
-import { CoordinatesQueryDto } from './dto/coordinates-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
-import { PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
+import { MatchedRequest, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { PriceBreakdownDto } from '../package/dto/package-response.dto';
+import { UpdateTrackingDto } from './dto/update-tracking.dto';
 
 @Injectable()
 export class TripService {
@@ -224,7 +224,7 @@ export class TripService {
       });
       
       if (status !== TripStatusEnum.scheduled) {
-        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${status}.`);
+        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${status}*.`);
       }
 
       const tripData = tripDto as Prisma.TripUpdateInput;
@@ -267,7 +267,7 @@ export class TripService {
       });
       
       if (status !== TripStatusEnum.scheduled) {
-        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${status}.`);
+        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${status}*.`);
       }
 
       return tx.trip.update({
@@ -280,56 +280,6 @@ export class TripService {
       formatPrismaError(error);
       throw error;
     });
-  }
-
-  async getIntermediateCitiesWithCoords(
-    {
-      origin,
-      destination
-    }: CoordinatesQueryDto
-  ) {
-    const [originLat, originLng] = origin.split(',');
-    const [destLat, destLng] = destination.split(',');
-    return this.mapService.getIntermediateCities(
-      {
-        latitude: originLat,
-        longitude: originLng,
-      },
-      {
-        latitude: destLat,
-        longitude: destLng,
-      },
-    );
-  }
-
-  async getIntermediateCitiesWithIds(
-    originId: string,
-    destinationId: string
-  ) {
-    const originCity = await this.prisma.city.findUniqueOrThrow({
-      where: { id: originId }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-
-    const destinationCity = await this.prisma.city.findUniqueOrThrow({
-      where: { id: destinationId }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-
-    return this.mapService.getIntermediateCities(
-      {
-        latitude: originCity.latitude,
-        longitude: originCity.longitude,
-      },
-      {
-        latitude: destinationCity.latitude,
-        longitude: destinationCity.longitude,
-      },
-    );
   }
 
   async getAllTripRequests(tripId: string) {
@@ -512,7 +462,7 @@ export class TripService {
     if (tripStatus !== TripStatusEnum.scheduled 
       && tripStatus !== TripStatusEnum.closed 
     ) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
     }
 
     const updatedStatus = tripStatus === TripStatusEnum.scheduled ?
@@ -536,9 +486,9 @@ export class TripService {
       || tripStatus === TripStatusEnum.closed
       || tripStatus === TripStatusEnum.delayed;
     if (!isValidStatus) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${tripStatus}.`);
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
     }
-
+    // TODO: Add a update to tracking.
     return this.updateStatus(id, TripStatusEnum.in_progress);
   }
 
@@ -565,7 +515,7 @@ export class TripService {
     });
 
     if (trip.status === TripStatusEnum.completed) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus} ${trip.status}.`);
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
     }
 
     // If packageId included, the note will send for all matched requests within a trip.
@@ -585,8 +535,146 @@ export class TripService {
         }
       });
     });
-    await Promise.all(updatedMatchedRequestsPromises);
 
-    return true;
+    // Run queries parallel and Get 'resolved' promises's length
+    const results = await Promise.allSettled(updatedMatchedRequestsPromises);
+    const count = results
+      .filter((result): result is PromiseFulfilledResult<MatchedRequest> => 
+        result.status === 'fulfilled' && result.value !== null
+      )
+      .length;
+
+    return {
+      count
+    };
+  }
+
+  async updateTripTracking(
+    tripId: string,
+    trackingDto: UpdateTrackingDto
+  ) {
+    const trip = await this.prisma.trip.findUniqueOrThrow({
+      where: { id: tripId },
+      include: {
+        matchedRequests: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    const isValidStatus = trip.status !== TripStatusEnum.scheduled
+     && trip.status !== TripStatusEnum.closed;
+    if (!isValidStatus) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
+    }
+
+    const trackingUpdates = trip.matchedRequests.map(m => ({
+      matchedRequestId: m.id,
+      ...trackingDto
+    }));
+    return this.prisma.trackingUpdate.createMany({
+      data: trackingUpdates
+    });
+  }
+
+  async getTripTracking(
+    tripId: string,
+    packageId: string,
+  ) {
+    return this.prisma.trackingUpdate.findMany({
+      where: {
+        matchedRequest: {
+          tripId,
+          packageId
+        },
+        deletedAt: null
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
+  async getTripTrackingByCode(trackingCode: string) {
+    const matchedRequest = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        trackingCode,
+        deletedAt: null
+      },
+      include: {
+        trackingUpdates: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        },
+        package: {
+          select: {
+            sender: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phoneNumber: true
+              }
+            },
+            recipient: {
+              include: {
+                address: true
+              }
+            },
+            items: true,
+            weight: true,
+            dimensions: true,
+            finalPrice: true,
+            breakdown: true,
+            status: true,
+            packageValue: true,
+            deliveryAtDestination: true,
+          }
+        },
+        trip: {
+          select: {
+            transporter: {
+              select: {
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    phoneNumber: true,
+                  }
+                }
+              }
+            },
+            vehicle: {
+              select: {
+                vehicleType: true,
+                model: {
+                  select: {
+                    brand: true
+                  }
+                },
+                manufactureYear: true,
+                color: true,
+              }
+            }
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    return {
+      trackingUpdates: matchedRequest.trackingUpdates,
+      package: matchedRequest.package,
+      transporter: {
+        ...matchedRequest.trip.transporter.user,
+        vehicle: matchedRequest.trip.vehicle
+      }
+    };
   }
 }

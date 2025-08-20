@@ -1,15 +1,6 @@
 import { Expose } from 'class-transformer';
 
-export class AddressResponseDto {
-  @Expose()
-  id: string;
-
-  @Expose()
-  title?: string;
-
-  @Expose()
-  country?: string;
-
+export class AddressCompactDto {
   @Expose()
   province: string;
 
@@ -33,6 +24,17 @@ export class AddressResponseDto {
 
   @Expose()
   longitude: string;
+}
+
+export class AddressResponseDto extends AddressCompactDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  title?: string;
+
+  @Expose()
+  country?: string;
 
   @Expose()
   isHighlighted?: boolean;
