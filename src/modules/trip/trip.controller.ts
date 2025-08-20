@@ -281,4 +281,14 @@ export class TripController {
   ) {
     return this.tripService.getTripTracking(tripId, packageId);
   }
+
+  @ApiOperation({
+    summary: 'Get tracking info by tracking code (Public)'
+  })
+  @Get('tracking/:code')
+  async getTripTrackingByCode(
+    @Param('code') code: string,
+  ) {
+    return this.tripService.getTripTrackingByCode(code);
+  }
 }

@@ -584,6 +584,47 @@ export class TripService {
       orderBy: {
         createdAt: 'desc'
       }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
+  }
+
+  async getTripTrackingByCode(trackingCode: string) {
+    const matchedRequest = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        trackingCode,
+        deletedAt: null
+      },
+      include: {
+        trackingUpdates: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        },
+        package: {
+          select: {
+            sender: true,
+            recipient: true,
+            items: true,
+            weight: true,
+            dimensions: true,
+            finalPrice: true,
+            breakdown: true,
+            status: true,
+            packageValue: true,
+            deliveryAtDestination: true,
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    return {
+      trackingUpdates: matchedRequest.trackingUpdates,
+      package: matchedRequest.package
+    };
   }
 }
