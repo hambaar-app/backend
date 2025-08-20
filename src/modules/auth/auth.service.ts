@@ -233,6 +233,9 @@ export class AuthService {
     const sender = await this.prisma.user.create({
       data: {
         ...senderDto,
+        wallet: {
+          create: {}
+        },
         role: RolesEnum.sender,
         phoneVerifiedAt: new Date()
       }
@@ -266,6 +269,9 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         ...transporterDto,
+        wallet: {
+          create: {}
+        },
         role: RolesEnum.transporter,
         transporter: {
           create: {
@@ -282,7 +288,7 @@ export class AuthService {
             },
             verificationStatus: {
               create: {}
-            }
+            },
           }
         },
       },
