@@ -216,9 +216,27 @@ export class TripController {
     entity: 'trip'
   })
   @Serialize(TripCompactResponseDto)
-  @Patch(':id/start')
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/start')
   async startTrip(@Param('id', ParseUUIDPipe) id: string) {
     return this.tripService.startTrip(id);
+  }
+
+  @ApiOperation({
+    summary: 'Pickup a trip\'s package'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip',
+    paramName: 'tripId'
+  })
+  @HttpCode(HttpStatus.OK)
+  @Post(':tripId/pickup/:packageId')
+  async pickupTripPackage(
+    @Param('tripId', ParseUUIDPipe) tripId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string
+  ) {
+    return this.tripService.pickupPackage(tripId, packageId);
   }
 
   @ApiOperation({
@@ -264,7 +282,7 @@ export class TripController {
     @Param('id', ParseUUIDPipe) tripId: string,
     @Body() body: UpdateTrackingDto
   ) {
-    return this.tripService.updateTripTracking(tripId, body);
+    return this.tripService.updateTracking(tripId, body);
   }
 
   @ApiOperation({

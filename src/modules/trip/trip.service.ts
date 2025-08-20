@@ -491,12 +491,91 @@ export class TripService {
     }
     
     return this.prisma.$transaction(async tx => {
-      await this.updateTripTracking(id, {
+      await this.updateTracking(id, {
         city: origin.name,
         description: TrackingMessages.TripStarted
       });
-      
+
       return this.updateStatus(id, TripStatusEnum.in_progress, tx);
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });;
+  }
+
+  async pickupPackage(
+    tripId: string,
+    packageId: string
+  ) {
+    const {
+      id: matchedRequestId,
+      package: packageData,
+      trip
+    } = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        tripId,
+        packageId
+      },
+      select: {
+        id: true,
+        package: {
+          select: {
+            status: true,
+            originAddress: true
+          }
+        },
+        trip: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (packageData.status !== PackageStatusEnum.matched) {
+      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${packageData.status}*.`);
+    }
+
+    if (trip.status !== TripStatusEnum.in_progress) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`);
+    }
+
+    return this.prisma.$transaction(async tx => {
+      // Update package status
+      const { status: packageStatus } = await tx.package.update({
+        where: {
+          id: packageId
+        },
+        data: {
+          status: PackageStatusEnum.in_transit
+        }
+      });
+
+      // Set pickupTime
+      const { pickupTime } = await tx.matchedRequest.update({
+        where: {
+          tripId,
+          packageId
+        },
+        data: {
+          pickupTime: new Date()
+        }
+      });
+
+      // Update tracking
+      await tx.trackingUpdate.create({
+        data: {
+          matchedRequestId,
+          latitude: packageData.originAddress.latitude,
+          longitude: packageData.originAddress.longitude,
+          city: packageData.originAddress.city,
+          description: TrackingMessages.PackagePickedUp
+        }
+      });
+
+      return {
+        packageStatus,
+        pickupTime
+      };
     });
   }
 
@@ -557,7 +636,7 @@ export class TripService {
     };
   }
 
-  async updateTripTracking(
+  async updateTracking(
     tripId: string,
     trackingDto: UpdateTrackingDto,
     tx: PrismaTransaction = this.prisma,
