@@ -16,7 +16,7 @@ import { UpdateTrackingDto } from './dto/update-tracking.dto';
 export class TripService {
   constructor(
     private prisma: PrismaService,
-    private mapService: MapService
+    private mapService: MapService,
   ) {}
 
   async create(
@@ -332,14 +332,14 @@ export class TripService {
 
       // Create MatchedRequest instance
       const trackingCode = generateUniqueCode();
-      const receiptCode = generateCode().toString();
+      const deliveryCode = generateCode().toString();
       await tx.matchedRequest.create({
         data: {
           requestId: request.id,
           packageId: request.packageId,
           tripId: request.tripId,
           trackingCode,
-          receiptCode,
+          deliveryCode,
           transporterNotes, // TODO: Improve it
         }
       });
@@ -524,7 +524,11 @@ export class TripService {
             originAddress: true
           }
         },
-        trip: true
+        trip: {
+          select: {
+            status: true
+          }
+        }
       }
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -541,14 +545,9 @@ export class TripService {
 
     return this.prisma.$transaction(async tx => {
       // Update package status
-      const { status: packageStatus } = await tx.package.update({
-        where: {
-          id: packageId
-        },
-        data: {
-          status: PackageStatusEnum.in_transit
-        }
-      });
+      const {
+        status: packageStatus
+      } = await this.updatePackageStatus(packageId, PackageStatusEnum.in_transit);
 
       // Set pickupTime
       const { pickupTime } = await tx.matchedRequest.update({
@@ -575,6 +574,96 @@ export class TripService {
       return {
         packageStatus,
         pickupTime
+      };
+    });
+  }
+
+  async deliveryPackage(
+    tripId: string,
+    packageId: string,
+    code: string
+  ) {
+    const {
+      id: matchedRequestId,
+      package: packageData,
+      trip,
+      deliveryCode
+    } = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        tripId,
+        packageId
+      },
+      select: {
+        id: true,
+        package: {
+          select: {
+            status: true,
+            recipient: {
+              include: {
+                address: true
+              }
+            }
+          }
+        },
+        trip: {
+          select: {
+            status: true
+          }
+        },
+        deliveryCode: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (packageData.status !== PackageStatusEnum.in_transit) {
+      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${packageData.status}*.`);
+    }
+
+    if (trip.status !== TripStatusEnum.in_progress) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`);
+    }
+console.log(code, deliveryCode);
+
+    if (code !== deliveryCode) {
+      throw new BadRequestException(BadRequestMessages.WrongDeliveryCode);
+    }
+
+    return this.prisma.$transaction(async tx => {
+      // Update package status
+      const {
+        status: packageStatus
+      } = await this.updatePackageStatus(packageId, PackageStatusEnum.delivered);
+
+      // Set pickupTime
+      const { deliveryTime } = await tx.matchedRequest.update({
+        where: {
+          tripId,
+          packageId
+        },
+        data: {
+          deliveryTime: new Date()
+        }
+      });
+
+      // Update tracking
+      await tx.trackingUpdate.create({
+        data: {
+          matchedRequestId,
+          latitude: packageData.recipient.address.latitude,
+          longitude: packageData.recipient.address.longitude,
+          city: packageData.recipient.address.city,
+          description: TrackingMessages.PackageDelivered
+        }
+      });
+
+      // TODO: Send SMS
+      // TODO: Handle escrowing
+
+      return {
+        packageStatus,
+        deliveryTime
       };
     });
   }
@@ -765,5 +854,21 @@ export class TripService {
         vehicle: matchedRequest.trip.vehicle
       }
     };
+  }
+
+  private async updatePackageStatus(
+    id: string,
+    status: PackageStatusEnum,
+    tx: PrismaTransaction = this.prisma
+  ) {
+    return tx.package.update({
+      where: {
+        id,
+        deletedAt: null
+      },
+      data: {
+        status
+      },
+    });
   }
 }

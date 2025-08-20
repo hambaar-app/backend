@@ -29,11 +29,12 @@ export enum BadRequestMessages {
   BaseTripStatus = 'You can not perform this action for a trip with status ',
   SendRequestPackage = 'You can not send request for this package.',
   SendRequestTrip = 'You can not send request to this trip.',
+  WrongDeliveryCode = 'Wrong delivery code.'
 }
 
 export enum TrackingMessages {
   TripStarted = 'سفر سفیر آغاز شده است. سفیر برای دریافت بسته با فرستنده تماس خواهد گرفت.',
   PackagePickedUp = 'بسته شما توسط سفیر دریافت شده است.',
-  PackageReceived = 'بسته شما با موفقیت تحویل داده شد.',
+  PackageDelivered = 'بسته شما با موفقیت تحویل داده شد.',
   TripDelayed = 'سفر با تأخیر مواجه شده است. لطفاً برای اطلاعات بیشتر با سفیر تماس بگیرید.',
 }

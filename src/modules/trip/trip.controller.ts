@@ -28,6 +28,7 @@ import { UpdateRequestDto } from './dto/update-request.dto';
 import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
 import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-response.dto';
+import { DeliveryPackageDto } from './dto/delivery-package.dto';
 
 @Controller('trips')
 export class TripController {
@@ -237,6 +238,25 @@ export class TripController {
     @Param('packageId', ParseUUIDPipe) packageId: string
   ) {
     return this.tripService.pickupPackage(tripId, packageId);
+  }
+
+  @ApiOperation({
+    summary: 'Delivery a trip\'s package',
+    description: 'The delivery code is a 5-digit code the recipient gives to the transporter to verify package delivery.'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip',
+    paramName: 'tripId'
+  })
+  @HttpCode(HttpStatus.OK)
+  @Post(':tripId/delivery/:packageId')
+  async deliveryTripPackage(
+    @Param('tripId', ParseUUIDPipe) tripId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string,
+    @Body() body: DeliveryPackageDto
+  ) {
+    return this.tripService.deliveryPackage(tripId, packageId, body.deliveryCode);
   }
 
   @ApiOperation({
