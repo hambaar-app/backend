@@ -15,7 +15,7 @@ import {
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
@@ -29,6 +29,7 @@ import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
 import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-response.dto';
 import { DeliveryPackageDto } from './dto/delivery-package.dto';
+import { BadRequestMessages } from 'src/common/enums/messages.enum';
 
 @Controller('trips')
 export class TripController {
@@ -199,6 +200,11 @@ export class TripController {
     description: `Toggles the trip status between \`scheduled\` (open for requests)
       and \`closed\` (no more requests, not started). Only works if the current status is one of them.`
   })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
+  })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
@@ -210,7 +216,15 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Start a trip'
+    summary: 'Start a trip',
+    description: `- The trip can only be started if its status is one of the following: \`scheduled\`
+      , \`closed\` and \`delayed\`.
+      - It updates package's tracking automatically.`,
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
   })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -224,7 +238,18 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Pickup a trip\'s package'
+    summary: 'Pickup a trip\'s package',
+    description: `- The package can be picked up if it's a \`matched\` package.
+      - The trip should have \`in_progress\` status.
+      - It updates package's tracking automatically.`,
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BasePackageStatus
   })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -242,7 +267,21 @@ export class TripController {
 
   @ApiOperation({
     summary: 'Delivery a trip\'s package',
-    description: 'The delivery code is a 5-digit code the recipient gives to the transporter to verify package delivery.'
+    description: `- The package can be picked up if it's a \`matched\` package.
+      - The trip should have \`in_progress\` status.
+      - It updates package's tracking automatically.
+      - The delivery code is a 5-digit code the recipient gives to the transporter to verify package delivery.`
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BasePackageStatus
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.WrongDeliveryCode
   })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -260,7 +299,14 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Finish a trip'
+    summary: 'Finish a trip',
+    description: `- The trip can only be started if its status is \`in_progress\`.
+      - You cannot finish the trip until all packages are delivered.`,
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
   })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
@@ -276,6 +322,8 @@ export class TripController {
   @ApiOperation({
     summary: 'Add a note for a specific matched package'
   })
+  @AuthResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
@@ -291,6 +339,8 @@ export class TripController {
   @ApiOperation({
     summary: 'Add a note for all matched packages (broadcast)'
   })
+  @AuthResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
@@ -307,6 +357,8 @@ export class TripController {
     summary: 'Update tracking info for all matched packages',
     description: 'You should fill the request\'s body with `GET /map/reverse-geocode`'
   })
+  @AuthResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
