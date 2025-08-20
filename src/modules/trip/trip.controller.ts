@@ -251,17 +251,34 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Update tracking info for all matched packages'
+    summary: 'Update tracking info for all matched packages',
+    description: 'You should fill the request\'s body with `GET /map/reverse-geocode`'
   })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
   })
   @Post(':id/tracking')
-  async updateTracking(
+  async updateTripTracking(
     @Param('id', ParseUUIDPipe) tripId: string,
     @Body() body: UpdateTrackingDto
   ) {
-    return this.tripService.updateTracking(tripId, body);
+    return this.tripService.updateTripTracking(tripId, body);
+  }
+
+  @ApiOperation({
+    summary: 'Get tracking info for a specific package (Protected)'
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip',
+    paramName: 'tripId'
+  })
+  @Get(':tripId/tracking/:packageId')
+  async getTripTracking(
+    @Param('tripId', ParseUUIDPipe) tripId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string
+  ) {
+    return this.tripService.getTripTracking(tripId, packageId);
   }
 }

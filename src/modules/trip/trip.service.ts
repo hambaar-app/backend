@@ -540,7 +540,7 @@ export class TripService {
     return true;
   }
 
-  async updateTracking(
+  async updateTripTracking(
     tripId: string,
     trackingDto: UpdateTrackingDto
   ) {
@@ -567,7 +567,23 @@ export class TripService {
     return this.prisma.trackingUpdate.createMany({
       data: trackingUpdates
     });
+  }
 
-    
+  async getTripTracking(
+    tripId: string,
+    packageId: string,
+  ) {
+    return this.prisma.trackingUpdate.findMany({
+      where: {
+        matchedRequest: {
+          tripId,
+          packageId
+        },
+        deletedAt: null
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
   }
 }
