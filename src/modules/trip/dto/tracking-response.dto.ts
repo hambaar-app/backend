@@ -20,6 +20,9 @@ export class TrackingUpdatesResponseDto {
 
   @Expose()
   description?: string;
+
+  @Expose()
+  createdAt: Date;
 }
 
 class SenderDto {
