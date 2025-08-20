@@ -15,7 +15,7 @@ import {
 import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
@@ -28,6 +28,8 @@ import { UpdateRequestDto } from './dto/update-request.dto';
 import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
 import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-response.dto';
+import { DeliveryPackageDto } from './dto/delivery-package.dto';
+import { BadRequestMessages } from 'src/common/enums/messages.enum';
 
 @Controller('trips')
 export class TripController {
@@ -198,6 +200,11 @@ export class TripController {
     description: `Toggles the trip status between \`scheduled\` (open for requests)
       and \`closed\` (no more requests, not started). Only works if the current status is one of them.`
   })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
+  })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
@@ -209,21 +216,114 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Start a trip'
+    summary: 'Start a trip',
+    description: `- The trip can only be started if its status is one of the following: \`scheduled\`
+      , \`closed\` and \`delayed\`.
+      - It updates package's tracking automatically.`,
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
   })
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
   })
   @Serialize(TripCompactResponseDto)
-  @Patch(':id/start')
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/start')
   async startTrip(@Param('id', ParseUUIDPipe) id: string) {
     return this.tripService.startTrip(id);
   }
 
   @ApiOperation({
+    summary: 'Pickup a trip\'s package',
+    description: `- The package can be picked up if it's a \`matched\` package.
+      - The trip should have \`in_progress\` status.
+      - It updates package's tracking automatically.`,
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BasePackageStatus
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip',
+    paramName: 'tripId'
+  })
+  @HttpCode(HttpStatus.OK)
+  @Post(':tripId/pickup/:packageId')
+  async pickupTripPackage(
+    @Param('tripId', ParseUUIDPipe) tripId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string
+  ) {
+    return this.tripService.pickupPackage(tripId, packageId);
+  }
+
+  @ApiOperation({
+    summary: 'Delivery a trip\'s package',
+    description: `- The package can be picked up if it's a \`matched\` package.
+      - The trip should have \`in_progress\` status.
+      - It updates package's tracking automatically.
+      - The delivery code is a 5-digit code the recipient gives to the transporter to verify package delivery.`
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BasePackageStatus
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.WrongDeliveryCode
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip',
+    paramName: 'tripId'
+  })
+  @HttpCode(HttpStatus.OK)
+  @Post(':tripId/delivery/:packageId')
+  async deliveryTripPackage(
+    @Param('tripId', ParseUUIDPipe) tripId: string,
+    @Param('packageId', ParseUUIDPipe) packageId: string,
+    @Body() body: DeliveryPackageDto
+  ) {
+    return this.tripService.deliveryPackage(tripId, packageId, body.deliveryCode);
+  }
+
+  @ApiOperation({
+    summary: 'Finish a trip',
+    description: `- The trip can only be started if its status is \`in_progress\`.
+      - You cannot finish the trip until all packages are delivered.`,
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BaseTripStatus
+  })
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Serialize(TripCompactResponseDto)
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/finish')
+  async finishTrip(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tripService.finishTrip(id);
+  }
+
+  @ApiOperation({
     summary: 'Add a note for a specific matched package'
   })
+  @AuthResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
@@ -239,6 +339,8 @@ export class TripController {
   @ApiOperation({
     summary: 'Add a note for all matched packages (broadcast)'
   })
+  @AuthResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
@@ -255,6 +357,8 @@ export class TripController {
     summary: 'Update tracking info for all matched packages',
     description: 'You should fill the request\'s body with `GET /map/reverse-geocode`'
   })
+  @AuthResponses()
+  @CrudResponses()
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
@@ -264,7 +368,7 @@ export class TripController {
     @Param('id', ParseUUIDPipe) tripId: string,
     @Body() body: UpdateTrackingDto
   ) {
-    return this.tripService.updateTripTracking(tripId, body);
+    return this.tripService.updateTracking(tripId, body);
   }
 
   @ApiOperation({

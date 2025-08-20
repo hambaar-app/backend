@@ -3,7 +3,7 @@ import { MapService } from '../map/map.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, TrackingMessages } from 'src/common/enums/messages.enum';
 import { MatchedRequest, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -16,7 +16,7 @@ import { UpdateTrackingDto } from './dto/update-tracking.dto';
 export class TripService {
   constructor(
     private prisma: PrismaService,
-    private mapService: MapService
+    private mapService: MapService,
   ) {}
 
   async create(
@@ -332,14 +332,14 @@ export class TripService {
 
       // Create MatchedRequest instance
       const trackingCode = generateUniqueCode();
-      const receiptCode = generateCode().toString();
+      const deliveryCode = generateCode().toString();
       await tx.matchedRequest.create({
         data: {
           requestId: request.id,
           packageId: request.packageId,
           tripId: request.tripId,
           trackingCode,
-          receiptCode,
+          deliveryCode,
           transporterNotes, // TODO: Improve it
         }
       });
@@ -472,10 +472,14 @@ export class TripService {
   }
 
   async startTrip(id: string) {
-    const { status: tripStatus } = await this.prisma.trip.findUniqueOrThrow({
+    const {
+      status: tripStatus,
+      origin
+    } = await this.prisma.trip.findUniqueOrThrow({
       where: { id },
       select: {
-        status: true
+        status: true,
+        origin: true
       }
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -488,8 +492,213 @@ export class TripService {
     if (!isValidStatus) {
       throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
     }
-    // TODO: Add a update to tracking.
-    return this.updateStatus(id, TripStatusEnum.in_progress);
+    
+    return this.prisma.$transaction(async tx => {
+      await this.updateTracking(id, {
+        city: origin.name,
+        description: TrackingMessages.TripStarted
+      });
+
+      return this.updateStatus(id, TripStatusEnum.in_progress, tx);
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
+  async pickupPackage(
+    tripId: string,
+    packageId: string
+  ) {
+    const {
+      id: matchedRequestId,
+      package: packageData,
+      trip
+    } = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        tripId,
+        packageId
+      },
+      select: {
+        id: true,
+        package: {
+          select: {
+            status: true,
+            originAddress: true
+          }
+        },
+        trip: {
+          select: {
+            status: true
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (packageData.status !== PackageStatusEnum.matched) {
+      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${packageData.status}*.`);
+    }
+
+    if (trip.status !== TripStatusEnum.in_progress) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`);
+    }
+
+    return this.prisma.$transaction(async tx => {
+      // Update package status
+      const {
+        status: packageStatus
+      } = await this.updatePackageStatus(packageId, PackageStatusEnum.in_transit);
+
+      // Set pickupTime
+      const { pickupTime } = await tx.matchedRequest.update({
+        where: {
+          tripId,
+          packageId
+        },
+        data: {
+          pickupTime: new Date()
+        }
+      });
+
+      // Update tracking
+      await tx.trackingUpdate.create({
+        data: {
+          matchedRequestId,
+          latitude: packageData.originAddress.latitude,
+          longitude: packageData.originAddress.longitude,
+          city: packageData.originAddress.city,
+          description: TrackingMessages.PackagePickedUp
+        }
+      });
+
+      return {
+        packageStatus,
+        pickupTime
+      };
+    });
+  }
+
+  async deliveryPackage(
+    tripId: string,
+    packageId: string,
+    code: string
+  ) {
+    const {
+      id: matchedRequestId,
+      package: packageData,
+      trip,
+      deliveryCode
+    } = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        tripId,
+        packageId
+      },
+      select: {
+        id: true,
+        package: {
+          select: {
+            status: true,
+            recipient: {
+              include: {
+                address: true
+              }
+            }
+          }
+        },
+        trip: {
+          select: {
+            status: true
+          }
+        },
+        deliveryCode: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (packageData.status !== PackageStatusEnum.in_transit) {
+      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${packageData.status}*.`);
+    }
+
+    if (trip.status !== TripStatusEnum.in_progress) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`);
+    }
+
+    if (code !== deliveryCode) {
+      throw new BadRequestException(BadRequestMessages.WrongDeliveryCode);
+    }
+
+    return this.prisma.$transaction(async tx => {
+      // Update package status
+      const {
+        status: packageStatus
+      } = await this.updatePackageStatus(packageId, PackageStatusEnum.delivered);
+
+      // Set pickupTime
+      const { deliveryTime } = await tx.matchedRequest.update({
+        where: {
+          tripId,
+          packageId
+        },
+        data: {
+          deliveryTime: new Date()
+        }
+      });
+
+      // Update tracking
+      await tx.trackingUpdate.create({
+        data: {
+          matchedRequestId,
+          latitude: packageData.recipient.address.latitude,
+          longitude: packageData.recipient.address.longitude,
+          city: packageData.recipient.address.city,
+          description: TrackingMessages.PackageDelivered
+        }
+      });
+
+      // TODO: Send SMS
+      // TODO: Handle escrowing
+
+      return {
+        packageStatus,
+        deliveryTime
+      };
+    });
+  }
+
+  async finishTrip(id: string) {
+    const {
+      status: tripStatus,
+      matchedRequests
+    } = await this.prisma.trip.findUniqueOrThrow({
+      where: { id },
+      select: {
+        status: true,
+        matchedRequests: {
+          select: {
+            deliveryTime: true
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (tripStatus === TripStatusEnum.in_progress) {
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
+    }
+
+    const allRequestsDelivered = matchedRequests.every(m => m.deliveryTime !== null);
+    if (!allRequestsDelivered) {
+      throw new BadRequestException(BadRequestMessages.CannotFinishTrip);
+    }
+
+    return this.updateStatus(id, TripStatusEnum.completed);
   }
 
   async addTripNote(
@@ -549,13 +758,15 @@ export class TripService {
     };
   }
 
-  async updateTripTracking(
+  async updateTracking(
     tripId: string,
-    trackingDto: UpdateTrackingDto
+    trackingDto: UpdateTrackingDto,
+    tx: PrismaTransaction = this.prisma,
   ) {
-    const trip = await this.prisma.trip.findUniqueOrThrow({
+    const trip = await tx.trip.findUniqueOrThrow({
       where: { id: tripId },
-      include: {
+      select: {
+        status: true,
         matchedRequests: true
       }
     }).catch((error: Error) => {
@@ -573,7 +784,7 @@ export class TripService {
       matchedRequestId: m.id,
       ...trackingDto
     }));
-    return this.prisma.trackingUpdate.createMany({
+    return tx.trackingUpdate.createMany({
       data: trackingUpdates
     });
   }
@@ -676,5 +887,21 @@ export class TripService {
         vehicle: matchedRequest.trip.vehicle
       }
     };
+  }
+
+  private async updatePackageStatus(
+    id: string,
+    status: PackageStatusEnum,
+    tx: PrismaTransaction = this.prisma
+  ) {
+    return tx.package.update({
+      where: {
+        id,
+        deletedAt: null
+      },
+      data: {
+        status
+      },
+    });
   }
 }
