@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
 
@@ -24,6 +24,29 @@ export class FinancialService {
       where: { userId },
       data: {
         balance: {
+          increment: amount
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+  
+  async escrowFunds(userId: string, amount: number) {
+    const wallet = await this.getWallet(userId);
+    
+    if (wallet.balance < amount) {
+      throw new BadRequestException('Not enough balance.');
+    }
+
+    return this.prisma.wallet.update({
+      where: { userId },
+      data: {
+        balance: {
+          decrement: amount
+        },
+        escrowedAmount: {
           increment: amount
         }
       }
