@@ -3,6 +3,7 @@ import { Expose, Transform, Type } from 'class-transformer';
 import { PackageStatusEnum } from 'generated/prisma';
 import { AddressCompactDto } from 'src/modules/address/dto/address-response.dto';
 import { PriceBreakdownDto } from 'src/modules/package/dto/package-response.dto';
+import { VehicleCompactResponseDto } from 'src/modules/vehicle/dto/vehicle-response.dto';
 
 export class TrackingUpdatesResponseDto {
   @Expose()
@@ -77,6 +78,12 @@ class PackageTrackingDto {
   deliveryAtDestination: boolean;
 }
 
+class TransporterDto extends SenderDto {
+  @Type(() => VehicleCompactResponseDto)
+  @Expose()
+  vehicle: VehicleCompactResponseDto;
+}
+
 export class TrackingResponseDto {
   @Type(() => TrackingUpdatesResponseDto)
   @Expose()
@@ -85,4 +92,13 @@ export class TrackingResponseDto {
   @Type(() => PackageTrackingDto)
   @Expose()
   package: PackageTrackingDto;
+
+  @Transform(({ obj }) => ({
+    fullName: `${obj.transporter?.firstName} ${obj.transporter?.lastName}`,
+    phoneNumber: obj.transporter?.phoneNumber,
+    vehicle: obj.transporter?.vehicle
+  }))
+  @Type(() => TransporterDto)
+  @Expose()
+  transporter: TransporterDto;
 }

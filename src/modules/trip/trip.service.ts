@@ -613,7 +613,13 @@ export class TripService {
         },
         package: {
           select: {
-            sender: true,
+            sender: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phoneNumber: true
+              }
+            },
             recipient: {
               include: {
                 address: true
@@ -628,6 +634,33 @@ export class TripService {
             packageValue: true,
             deliveryAtDestination: true,
           }
+        },
+        trip: {
+          select: {
+            transporter: {
+              select: {
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    phoneNumber: true,
+                  }
+                }
+              }
+            },
+            vehicle: {
+              select: {
+                vehicleType: true,
+                model: {
+                  select: {
+                    brand: true
+                  }
+                },
+                manufactureYear: true,
+                color: true,
+              }
+            }
+          }
         }
       }
     }).catch((error: Error) => {
@@ -637,7 +670,11 @@ export class TripService {
 
     return {
       trackingUpdates: matchedRequest.trackingUpdates,
-      package: matchedRequest.package
+      package: matchedRequest.package,
+      transporter: {
+        ...matchedRequest.trip.transporter.user,
+        vehicle: matchedRequest.trip.vehicle
+      }
     };
   }
 }
