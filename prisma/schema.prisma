@@ -472,6 +472,7 @@ model MatchedRequest {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
+  @@unique([packageId, tripId])
   @@map("matched_requests")
 }
 

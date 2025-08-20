@@ -5,15 +5,14 @@ import {
   IsNotEmpty,
   IsOptional,
   IsPhoneNumber,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { CreateAddressDto } from 'src/modules/address/dto/create-address.dto';
 
 export class CreateRecipientDto {
   @IsNotEmpty()
-  @IsAlpha('fa-IR', {
-    message: 'fullName should be a string only contain persian letters',
-  })
+  @IsString()
   fullName: string;
 
   @IsNotEmpty()
