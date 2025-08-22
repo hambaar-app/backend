@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
 import { PrismaTransaction } from '../prisma/prisma.types';
+import { TransactionTypeEnum } from 'generated/prisma';
 
 @Injectable()
 export class FinancialService {
@@ -34,14 +35,31 @@ export class FinancialService {
     userId: string,
     amount: number
   ) {
+    const wallet = await this.getWallet(userId, 1, 0);
+    
     // TODO: Payment Gateway transaction
-    return this.prisma.wallet.update({
-      where: { userId },
-      data: {
-        balance: {
-          increment: amount
+    return this.prisma.$transaction(async (tx) => {
+      const updatedWallet = await tx.wallet.update({
+        where: { userId },
+        data: {
+          balance: {
+            increment: BigInt(amount)
+          },
         }
-      }
+      });
+
+      await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          transactionType: TransactionTypeEnum.deposit,
+          amount: BigInt(amount),
+          balanceBefore: wallet.balance,
+          reason: 'Funds added to wallet.',
+          // TODO: gatewayTransactionId
+        }
+      });
+
+      return updatedWallet;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
