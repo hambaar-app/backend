@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
 import { PrismaTransaction } from '../prisma/prisma.types';
-import { PaymentStatusEnum, TransactionTypeEnum } from 'generated/prisma';
+import { MatchStatusEnum, PaymentStatusEnum, TransactionTypeEnum } from 'generated/prisma';
 import { BadRequestMessages } from 'src/common/enums/messages.enum';
 
 @Injectable()
@@ -66,66 +66,6 @@ export class FinancialService {
       throw error;
     });
   }
-  
-  async escrowFunds(userId: string, amount: number) {
-    const wallet = await this.getWallet(userId);
-    
-    if (wallet.balance < amount) {
-      throw new BadRequestException('Not enough balance.');
-    }
-
-    return this.prisma.wallet.update({
-      where: { userId },
-      data: {
-        balance: {
-          decrement: amount
-        },
-        escrowedAmount: {
-          increment: amount
-        }
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-  }
-  
-  async releaseFunds(
-    senderId: string,
-    transporterId: string,
-    amount: number,
-    tx: PrismaTransaction = this.prisma
-  ) {
-    const senderWallet = await this.getWallet(senderId);
-    
-    if (senderWallet.escrowedAmount < amount) {
-      throw new BadRequestException('Not enough escrowed funds.');
-    }
-
-    // Release from escrow and transfer to transporter
-    const { balance: senderBalance } = await tx.wallet.update({
-      where: { userId: senderId },
-      data: {
-        escrowedAmount: {
-          decrement: amount
-        }
-      }
-    });
-
-    const { balance: transporterBalance } = await tx.wallet.update({
-      where: { userId: transporterId },
-      data: {
-        balance: {
-          increment: amount
-        }
-      }
-    });
-
-    return {
-      senderBalance,
-      transporterBalance
-    };
-  }
 
   async createEscrow(
     packageId: string,
@@ -184,7 +124,7 @@ export class FinancialService {
       });
 
       // Create escrow transaction
-      const escrowTransaction = await tx.transaction.create({
+      await tx.transaction.create({
         data: {
           walletId: senderWallet.id,
           transactionType: TransactionTypeEnum.escrow,
@@ -207,5 +147,120 @@ export class FinancialService {
         escrowedAmount: finalPrice
       };
     });
+  }
+
+  async releaseEscrow(
+    packageId: string,
+    tripId: string
+  ) {
+    const matchedRequest = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        packageId,
+        tripId
+      },
+      include: {
+        package: {
+          include: {
+            sender: true
+          }
+        },
+        trip: {
+          include: {
+            transporter: {
+              include: {
+                user: true
+              }
+            }
+          }
+        },
+        request: {
+          select: {
+            offeredPrice: true
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (matchedRequest.paymentStatus !== PaymentStatusEnum.escrowed) {
+      throw new BadRequestException(BadRequestMessages.NoEscrowedPayment);
+    }
+
+    const senderId = matchedRequest.package.senderId;
+    const transporterId = matchedRequest.trip.transporter.userId;
+
+    const escrowedAmount = matchedRequest.package.finalPrice;
+    const transporterEarnings = matchedRequest.request.offeredPrice;
+    
+    return this.prisma.$transaction(async (tx) => {
+      const transporterWallet = await this.getWallet(transporterId);
+
+      // Release escrow from sender
+      await tx.wallet.update({
+        where: { userId: senderId },
+        data: {
+          escrowedAmount: {
+            decrement: escrowedAmount
+          }
+        }
+      });
+
+      // Pay transporter
+      await tx.wallet.update({
+        where: { userId: transporterId },
+        data: {
+          balance: {
+            increment: BigInt(transporterEarnings)
+          },
+          totalEarned: {
+            increment: BigInt(transporterEarnings)
+          }
+        }
+      });
+
+      // Create release transaction for transporter
+      await tx.transaction.create({
+        data: {
+          walletId: transporterWallet.id,
+          transactionType: TransactionTypeEnum.release,
+          amount: BigInt(transporterEarnings),
+          balanceBefore: transporterWallet.balance,
+          reason: `Payment received for package ${matchedRequest.packageId}.`,
+          matchedRequestId: matchedRequest.id,
+        }
+      });
+
+      // Create commission transaction (platform earning)
+      await tx.transaction.create({
+        data: {
+          walletId: await this.getPlatformWalletId(),
+          transactionType: TransactionTypeEnum.commission,
+          amount: BigInt(escrowedAmount - transporterEarnings),
+          reason: `Commission from package ${matchedRequest.packageId}`,
+          matchedRequestId: matchedRequest.id,
+        }
+      });
+
+      return true;
+    });
+  }
+
+  private async getPlatformWalletId(): Promise<string> {
+    const platformUser = await this.prisma.user.findFirst({
+      where: {
+        role: 'admin'
+      },
+      include: {
+        wallet: true
+      }
+    });
+
+    if (!platformUser?.wallet) {
+      throw new Error('Platform wallet not configured.');
+    }
+
+    return platformUser.wallet.id;
   }
 }

@@ -122,7 +122,6 @@ enum TransactionTypeEnum {
   refund
   commission
 
-
   @@map("transaction_type_enum")
 }
 
@@ -524,11 +523,10 @@ model Transaction {
   walletId             String              @map("wallet_id") @db.Uuid
   transactionType      TransactionTypeEnum @map("transaction_type")
   amount               BigInt
-  balanceBefore        BigInt              @map("balance_before")
+  balanceBefore        BigInt?             @map("balance_before")
   matchedRequestId     String?             @map("matched_request_id") @db.Uuid
   gatewayTransactionId String?             @map("gateway_transaction_id") @db.VarChar
   reason               String?             @db.VarChar
-  metadata             Json?               @db.JsonB
 
   // Relations
   wallet         Wallet          @relation(fields: [walletId], references: [id])
