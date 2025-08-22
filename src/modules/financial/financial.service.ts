@@ -7,9 +7,23 @@ import { PrismaTransaction } from '../prisma/prisma.types';
 export class FinancialService {
   constructor(private prisma: PrismaService) {}
 
-  async getWallet(userId: string) {
+  async getWallet(
+    userId: string,
+    page = 1,
+    limit = 10
+  ) {
+    const skip = (page - 1) * limit;
     return this.prisma.wallet.findUniqueOrThrow({
-      where: { userId }
+      where: { userId },
+      include: {
+        transactions: {
+          orderBy: {
+            createdAt: 'desc'
+          },
+          skip,
+          take: limit,
+        }
+      },
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
