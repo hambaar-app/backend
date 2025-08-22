@@ -2,7 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
 import { PrismaTransaction } from '../prisma/prisma.types';
-import { TransactionTypeEnum } from 'generated/prisma';
+import { PaymentStatusEnum, TransactionTypeEnum } from 'generated/prisma';
+import { BadRequestMessages } from 'src/common/enums/messages.enum';
 
 @Injectable()
 export class FinancialService {
@@ -124,5 +125,87 @@ export class FinancialService {
       senderBalance,
       transporterBalance
     };
+  }
+
+  async createEscrow(
+    packageId: string,
+    tripId: string
+  ) {
+    const matchedRequest = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        packageId,
+        tripId
+      },
+      include: {
+        package: {
+          include: {
+            sender: true
+          }
+        },
+        trip: {
+          include: {
+            transporter: {
+              include: {
+                user: true
+              }
+            }
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (matchedRequest.paymentStatus !== PaymentStatusEnum.unpaid) {
+      throw new BadRequestException(BadRequestMessages.PaymentProcessed);
+    }
+
+    const senderId = matchedRequest.package.senderId;
+    const finalPrice = matchedRequest.package.finalPrice;
+    
+    const senderWallet = await this.getWallet(senderId, 1, 0);
+    if (senderWallet.balance < BigInt(finalPrice)) {
+      throw new BadRequestException(BadRequestMessages.NotEnoughBalance);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Escrow funds from sender
+      await tx.wallet.update({
+        where: { userId: senderId },
+        data: {
+          balance: {
+            decrement: BigInt(finalPrice)
+          },
+          escrowedAmount: {
+            increment: finalPrice
+          }
+        }
+      });
+
+      // Create escrow transaction
+      const escrowTransaction = await tx.transaction.create({
+        data: {
+          walletId: senderWallet.id,
+          transactionType: TransactionTypeEnum.escrow,
+          amount: finalPrice,
+          balanceBefore: senderWallet.balance,
+          reason: `Escrowed payment for package ${matchedRequest.package.id}.`,
+          matchedRequestId: matchedRequest.id
+        }
+      });
+
+      // Update matched request
+      await tx.matchedRequest.update({
+        where: { id: matchedRequest.id },
+        data: {
+          paymentStatus: PaymentStatusEnum.escrowed
+        }
+      });
+      
+      return {
+        escrowedAmount: finalPrice
+      };
+    });
   }
 }

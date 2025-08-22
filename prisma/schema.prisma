@@ -110,10 +110,6 @@ enum PaymentStatusEnum {
   unpaid
   escrowed
   released
-  escrow
-  release
-  refund
-  commission
 
   @@map("payment_status_enum")
 }
@@ -121,6 +117,11 @@ enum PaymentStatusEnum {
 enum TransactionTypeEnum {
   deposit
   withdrawal
+  escrow
+  release
+  refund
+  commission
+
 
   @@map("transaction_type_enum")
 }
