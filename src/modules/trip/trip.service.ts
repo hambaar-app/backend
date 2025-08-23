@@ -11,12 +11,14 @@ import { PrismaTransaction } from '../prisma/prisma.types';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { PriceBreakdownDto } from '../package/dto/package-response.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
+import { FinancialService } from '../financial/financial.service';
 
 @Injectable()
 export class TripService {
   constructor(
     private prisma: PrismaService,
     private mapService: MapService,
+    private financialService: FinancialService
   ) {}
 
   async create(
@@ -385,6 +387,14 @@ export class TripService {
           breakdown: plainBreakdown
         }
       });
+
+      // Create escrow if balance is enough
+      try {
+        await this.financialService.createEscrow({
+          packageId: request.packageId,
+          tripId: request.tripId
+        });
+      } catch(error) {}
 
       return request;
     }).catch((error: Error) => {
