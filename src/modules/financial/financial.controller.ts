@@ -1,5 +1,4 @@
 import {
-  Body,
   Controller,
   DefaultValuePipe,
   Get,
@@ -17,6 +16,7 @@ import {
   AuthResponses,
 } from 'src/common/api-docs.decorators';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
+import { CreateEscrowDto } from './dto/create-escrow.dto';
 
 @Controller('financial')
 export class FinancialController {
@@ -43,7 +43,24 @@ export class FinancialController {
   @AuthResponses()
   @UseGuards(AccessTokenGuard)
   @Post('add-funds')
-  async addFunds(@Body() body: AddFundsDto, @CurrentUser('id') userId: string) {
-    return this.financialService.addFunds(userId, body);
+  async addFunds(
+    @Query() query: AddFundsDto,
+    @CurrentUser('id') userId: string
+  ) {
+    return this.financialService.addFunds(userId, query);
+  }
+
+  @ApiOperation({
+    summary: 'Add funds and Create escrow',
+    description: 'Add funds and Create escrow for a specific package shipping price.'
+  })
+  @AuthResponses()
+  @UseGuards(AccessTokenGuard)
+  @Post('add-funds')
+  async addFundsAndCreateEscrow(
+    @Query() query: AddFundsDto & CreateEscrowDto,
+    @CurrentUser('id') userId: string
+  ) {
+    return this.financialService.addFundsAndCreateEscrow(userId, query);
   }
 }
