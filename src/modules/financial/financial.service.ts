@@ -1,9 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
-import { PrismaTransaction } from '../prisma/prisma.types';
-import { MatchStatusEnum, PaymentStatusEnum, TransactionTypeEnum } from 'generated/prisma';
+import { PaymentStatusEnum, TransactionTypeEnum } from 'generated/prisma';
 import { BadRequestMessages } from 'src/common/enums/messages.enum';
+import { AddFundsDto } from './dto/add-funds.dto';
+import { CreateEscrowDto } from './dto/create-escrow.dto';
 
 @Injectable()
 export class FinancialService {
@@ -34,10 +35,10 @@ export class FinancialService {
 
   async addFunds(
     userId: string,
-    amount: number
+    { amount }: AddFundsDto
   ) {
     const wallet = await this.getWallet(userId, 1, 0);
-    
+
     // TODO: Payment Gateway transaction
     return this.prisma.$transaction(async (tx) => {
       const updatedWallet = await tx.wallet.update({
@@ -68,8 +69,10 @@ export class FinancialService {
   }
 
   async createEscrow(
-    packageId: string,
-    tripId: string
+    {
+      packageId,
+      tripId
+    }: CreateEscrowDto
   ) {
     const matchedRequest = await this.prisma.matchedRequest.findUniqueOrThrow({
       where: {
@@ -147,6 +150,19 @@ export class FinancialService {
         escrowedAmount: finalPrice
       };
     });
+  }
+
+  async addFundsAndCreateEscrow(
+    userId: string,
+    {
+      amount,
+      gatewayTransactionId,
+      packageId,
+      tripId,
+    }: AddFundsDto & CreateEscrowDto
+  ) {
+    await this.addFunds(userId, { amount, gatewayTransactionId });
+    return this.createEscrow({ packageId, tripId });
   }
 
   async releaseEscrow(
