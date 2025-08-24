@@ -117,6 +117,10 @@ enum PaymentStatusEnum {
 enum TransactionTypeEnum {
   deposit
   withdrawal
+  escrow
+  release
+  refund
+  commission
 
   @@map("transaction_type_enum")
 }
@@ -445,28 +449,27 @@ model TripRequest {
 }
 
 model MatchedRequest {
-  id                 String            @id @default(uuid()) @db.Uuid
-  requestId          String            @unique @map("request_id") @db.Uuid
-  packageId          String            @unique @map("package_id") @db.Uuid
-  tripId             String            @map("trip_id") @db.Uuid
-  trackingCode       String?           @unique @map("tracking_code") @db.VarChar // 20-digits (Auto generated)
-  deliveryCode       String?           @map("delivery_code") @db.VarChar // 5-digits (Auto generated)
-  transporterNotes   Json?             @map("transporter_note") @db.JsonB
-  comment            String?           @map("comment") @db.Text
-  senderRating       Int?              @map("sender_rating") // 1-5
-  isCompleted        Boolean           @default(false) @map("is_completed")
-  pickupTime         DateTime?         @map("pickup_time") @db.Timestamp
-  deliveryTime       DateTime?         @map("delivery_time") @db.Timestamp
-  matchStatus        MatchStatusEnum   @default(confirmed) @map("match_status")
-  paymentStatus      PaymentStatusEnum @default(unpaid) @map("payment_status")
-  cancellationReason String?           @map("cancellation_reason") @db.Text
-  cancelledBy        RolesEnum?        @map("cancelled_by")
+  id               String            @id @default(uuid()) @db.Uuid
+  requestId        String            @unique @map("request_id") @db.Uuid
+  packageId        String            @unique @map("package_id") @db.Uuid
+  tripId           String            @map("trip_id") @db.Uuid
+  trackingCode     String?           @unique @map("tracking_code") @db.VarChar // 20-digits (Auto generated)
+  deliveryCode     String?           @map("delivery_code") @db.VarChar // 5-digits (Auto generated)
+  transporterNotes Json?             @map("transporter_note") @db.JsonB
+  comment          String?           @map("comment") @db.Text
+  senderRating     Int?              @map("sender_rating") // 1-5
+  isCompleted      Boolean           @default(false) @map("is_completed")
+  pickupTime       DateTime?         @map("pickup_time") @db.Timestamp
+  deliveryTime     DateTime?         @map("delivery_time") @db.Timestamp
+  matchStatus      MatchStatusEnum   @default(confirmed) @map("match_status")
+  paymentStatus    PaymentStatusEnum @default(unpaid) @map("payment_status")
 
   // Relations
   request         TripRequest      @relation(fields: [requestId], references: [id])
   package         Package          @relation(fields: [packageId], references: [id])
   trip            Trip             @relation(fields: [tripId], references: [id])
   trackingUpdates TrackingUpdate[]
+  transactions    Transaction[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -496,12 +499,13 @@ model TrackingUpdate {
 }
 
 model Wallet {
-  id          String  @id @default(uuid()) @db.Uuid
-  userId      String  @unique @map("user_id") @db.Uuid
-  balance     BigInt  @default(0)
-  totalEarned BigInt  @default(0) @map("total_earned")
-  totalSpent  BigInt  @default(0) @map("total_spent")
-  isActive    Boolean @default(true) @map("is_active")
+  id             String  @id @default(uuid()) @db.Uuid
+  userId         String  @unique @map("user_id") @db.Uuid
+  balance        BigInt  @default(0)
+  escrowedAmount Int     @default(0)
+  totalEarned    BigInt  @default(0) @map("total_earned")
+  totalSpent     BigInt  @default(0) @map("total_spent")
+  isActive       Boolean @default(true) @map("is_active")
 
   // Relations
   user         User          @relation(fields: [userId], references: [id])
@@ -515,15 +519,18 @@ model Wallet {
 }
 
 model Transaction {
-  id              String              @id @default(uuid()) @db.Uuid
-  walletId        String              @map("wallet_id") @db.Uuid
-  transactionType TransactionTypeEnum @map("transaction_type")
-  amount          BigInt
-  balanceBefore   BigInt              @map("balance_before")
-  reason          String?             @db.VarChar
+  id                   String              @id @default(uuid()) @db.Uuid
+  walletId             String              @map("wallet_id") @db.Uuid
+  transactionType      TransactionTypeEnum @map("transaction_type")
+  amount               BigInt
+  balanceBefore        BigInt?             @map("balance_before")
+  matchedRequestId     String?             @map("matched_request_id") @db.Uuid
+  gatewayTransactionId String?             @map("gateway_transaction_id") @db.VarChar
+  reason               String?             @db.VarChar
 
   // Relations
-  wallet Wallet @relation(fields: [walletId], references: [id])
+  wallet         Wallet          @relation(fields: [walletId], references: [id])
+  matchedRequest MatchedRequest? @relation(fields: [matchedRequestId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()

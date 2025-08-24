@@ -30,7 +30,10 @@ export enum BadRequestMessages {
   SendRequestPackage = 'You can not send request for this package.',
   SendRequestTrip = 'You can not send request to this trip.',
   WrongDeliveryCode = 'Wrong delivery code.',
-  CannotFinishTrip = 'You cannot finish the trip until all packages are delivered.'
+  CannotFinishTrip = 'You cannot finish the trip until all packages are delivered.',
+  PaymentProcessed = 'Payment already processed.',
+  NotEnoughBalance = 'Not enough balance.',
+  NoEscrowedPayment = 'No escrowed payment found.'
 }
 
 export enum TrackingMessages {

@@ -11,12 +11,14 @@ import { PrismaTransaction } from '../prisma/prisma.types';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { PriceBreakdownDto } from '../package/dto/package-response.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
+import { FinancialService } from '../financial/financial.service';
 
 @Injectable()
 export class TripService {
   constructor(
     private prisma: PrismaService,
     private mapService: MapService,
+    private financialService: FinancialService
   ) {}
 
   async create(
@@ -382,9 +384,20 @@ export class TripService {
         where: { id: request.packageId },
         data: {
           status: PackageStatusEnum.matched,
+          finalPrice: {
+            increment: request.deviationCost
+          },
           breakdown: plainBreakdown
         }
       });
+
+      // Create escrow if balance is enough
+      try {
+        await this.financialService.createEscrow({
+          packageId: request.packageId,
+          tripId: request.tripId
+        });
+      } catch(error) {}
 
       return request;
     }).catch((error: Error) => {
@@ -625,7 +638,7 @@ export class TripService {
     }
 
     if (trip.status !== TripStatusEnum.in_progress) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`);
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
     }
 
     if (code !== deliveryCode) {
@@ -638,7 +651,7 @@ export class TripService {
         status: packageStatus
       } = await this.updatePackageStatus(packageId, PackageStatusEnum.delivered);
 
-      // Set pickupTime
+      // Set deliveryTime
       const { deliveryTime } = await tx.matchedRequest.update({
         where: {
           tripId,
@@ -660,8 +673,10 @@ export class TripService {
         }
       });
 
+      // Release escrow
+      await this.financialService.releaseEscrow(packageId, tripId, tx);
+
       // TODO: Send SMS
-      // TODO: Handle escrowing
 
       return {
         packageStatus,

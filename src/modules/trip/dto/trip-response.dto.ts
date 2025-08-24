@@ -28,9 +28,6 @@ export class TripCompactResponseDto {
   tripType: TripTypeEnum;
 
   @Expose()
-  vehicleId: string;
-
-  @Expose()
   maxPackageWeightGr: number;
 
   @Expose()

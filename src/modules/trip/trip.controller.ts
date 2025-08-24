@@ -217,9 +217,9 @@ export class TripController {
 
   @ApiOperation({
     summary: 'Start a trip',
-    description: `- The trip can only be started if its status is one of the following: \`scheduled\`
+    description: `* The trip can only be started if its status is one of the following: \`scheduled\`
       , \`closed\` and \`delayed\`.
-      - It updates package's tracking automatically.`,
+      * It updates package's tracking automatically.`,
   })
   @AuthResponses()
   @CrudResponses()
@@ -239,9 +239,9 @@ export class TripController {
 
   @ApiOperation({
     summary: 'Pickup a trip\'s package',
-    description: `- The package can be picked up if it's a \`matched\` package.
-      - The trip should have \`in_progress\` status.
-      - It updates package's tracking automatically.`,
+    description: `* The package can be picked up if it's a \`matched\` package.
+      * The trip should have \`in_progress\` status.
+      * It updates package's tracking automatically.`,
   })
   @AuthResponses()
   @CrudResponses()
@@ -267,10 +267,10 @@ export class TripController {
 
   @ApiOperation({
     summary: 'Delivery a trip\'s package',
-    description: `- The package can be picked up if it's a \`matched\` package.
-      - The trip should have \`in_progress\` status.
-      - It updates package's tracking automatically.
-      - The delivery code is a 5-digit code the recipient gives to the transporter to verify package delivery.`
+    description: `* The package can be picked up if it's a \`matched\` package.
+      * The trip should have \`in_progress\` status.
+      * It updates package's tracking automatically.
+      * The delivery code is a 5-digit code the recipient gives to the transporter to verify package delivery.`
   })
   @AuthResponses()
   @CrudResponses()
@@ -300,8 +300,8 @@ export class TripController {
 
   @ApiOperation({
     summary: 'Finish a trip',
-    description: `- The trip can only be started if its status is \`in_progress\`.
-      - You cannot finish the trip until all packages are delivered.`,
+    description: `* The trip can only be started if its status is \`in_progress\`.
+      * You cannot finish the trip until all packages are delivered.`,
   })
   @AuthResponses()
   @CrudResponses()

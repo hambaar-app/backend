@@ -6,6 +6,7 @@ import { CurrentUserMiddleware } from 'src/modules/user/current-user.middleware'
 import { PrismaModule } from '../prisma/prisma.module';
 import { TokenModule } from '../token/token.module';
 import { UserModule } from '../user/user.module';
+import { FinancialModule } from '../financial/financial.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UserModule } from '../user/user.module';
     MapModule,
     TokenModule,
     UserModule,
+    FinancialModule
   ],
   controllers: [TripController],
   providers: [TripService],
