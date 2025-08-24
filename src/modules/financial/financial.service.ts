@@ -5,6 +5,9 @@ import { PaymentStatusEnum, TransactionTypeEnum } from 'generated/prisma';
 import { BadRequestMessages } from 'src/common/enums/messages.enum';
 import { AddFundsDto } from './dto/add-funds.dto';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
+import { PrismaTransaction } from '../prisma/prisma.types';
+
+// TODO: Payment Gateway transaction
 
 @Injectable()
 export class FinancialService {
@@ -13,10 +16,11 @@ export class FinancialService {
   async getWallet(
     userId: string,
     page = 1,
-    limit = 10
+    limit = 10,
+    tx: PrismaTransaction = this.prisma
   ) {
     const skip = (page - 1) * limit;
-    return this.prisma.wallet.findUniqueOrThrow({
+    return tx.wallet.findUniqueOrThrow({
       where: { userId },
       include: {
         transactions: {
@@ -35,11 +39,14 @@ export class FinancialService {
 
   async addFunds(
     userId: string,
-    { amount }: AddFundsDto
+    {
+      amount,
+      gatewayTransactionId
+    }: AddFundsDto
   ) {
     const wallet = await this.getWallet(userId, 1, 0);
 
-    // TODO: Payment Gateway transaction
+    // TODO: Check all unpaid matchedRequests
     return this.prisma.$transaction(async (tx) => {
       const updatedWallet = await tx.wallet.update({
         where: { userId },
@@ -57,7 +64,7 @@ export class FinancialService {
           amount: BigInt(amount),
           balanceBefore: wallet.balance,
           reason: 'Funds added to wallet.',
-          // TODO: gatewayTransactionId
+          gatewayTransactionId
         }
       });
 
@@ -167,9 +174,10 @@ export class FinancialService {
 
   async releaseEscrow(
     packageId: string,
-    tripId: string
+    tripId: string,
+    tx: PrismaTransaction
   ) {
-    const matchedRequest = await this.prisma.matchedRequest.findUniqueOrThrow({
+    const matchedRequest = await tx.matchedRequest.findUniqueOrThrow({
       where: {
         packageId,
         tripId
@@ -210,57 +218,55 @@ export class FinancialService {
     const escrowedAmount = matchedRequest.package.finalPrice;
     const transporterEarnings = matchedRequest.request.offeredPrice;
     
-    return this.prisma.$transaction(async (tx) => {
-      const transporterWallet = await this.getWallet(transporterId);
+    const transporterWallet = await this.getWallet(transporterId, 1, 0,tx);
 
-      // Release escrow from sender
-      await tx.wallet.update({
-        where: { userId: senderId },
-        data: {
+    // Release escrow from sender
+    await tx.wallet.update({
+      where: { userId: senderId },
+      data: {
           escrowedAmount: {
-            decrement: escrowedAmount
-          }
+          decrement: escrowedAmount
         }
-      });
-
-      // Pay transporter
-      await tx.wallet.update({
-        where: { userId: transporterId },
-        data: {
-          balance: {
-            increment: BigInt(transporterEarnings)
-          },
-          totalEarned: {
-            increment: BigInt(transporterEarnings)
-          }
-        }
-      });
-
-      // Create release transaction for transporter
-      await tx.transaction.create({
-        data: {
-          walletId: transporterWallet.id,
-          transactionType: TransactionTypeEnum.release,
-          amount: BigInt(transporterEarnings),
-          balanceBefore: transporterWallet.balance,
-          reason: `Payment received for package ${matchedRequest.packageId}.`,
-          matchedRequestId: matchedRequest.id,
-        }
-      });
-
-      // Create commission transaction (platform earning)
-      await tx.transaction.create({
-        data: {
-          walletId: await this.getPlatformWalletId(),
-          transactionType: TransactionTypeEnum.commission,
-          amount: BigInt(escrowedAmount - transporterEarnings),
-          reason: `Commission from package ${matchedRequest.packageId}`,
-          matchedRequestId: matchedRequest.id,
-        }
-      });
-
-      return true;
+      }
     });
+
+    // Pay transporter
+    await tx.wallet.update({
+      where: { userId: transporterId },
+      data: {
+        balance: {
+          increment: BigInt(transporterEarnings)
+        },
+        totalEarned: {
+          increment: BigInt(transporterEarnings)
+        }
+      }
+    });
+
+    // Create release transaction for transporter
+    await tx.transaction.create({
+      data: {
+        walletId: transporterWallet.id,
+        transactionType: TransactionTypeEnum.release,
+        amount: BigInt(transporterEarnings),
+        balanceBefore: transporterWallet.balance,
+        reason: `Payment received for package ${matchedRequest.packageId}.`,
+        matchedRequestId: matchedRequest.id,
+      }
+    });
+
+    // Create commission transaction (platform earning)
+    await tx.transaction.create({
+      data: {
+        walletId: await this.getPlatformWalletId(),
+        transactionType: TransactionTypeEnum.commission,
+        amount: BigInt(escrowedAmount - transporterEarnings),
+        reason: `Commission from package ${matchedRequest.packageId}`,
+        matchedRequestId: matchedRequest.id,
+      }
+    });
+
+    return true;
   }
 
   private async getPlatformWalletId(): Promise<string> {

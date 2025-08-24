@@ -648,7 +648,7 @@ export class TripService {
         status: packageStatus
       } = await this.updatePackageStatus(packageId, PackageStatusEnum.delivered);
 
-      // Set pickupTime
+      // Set deliveryTime
       const { deliveryTime } = await tx.matchedRequest.update({
         where: {
           tripId,
@@ -670,8 +670,10 @@ export class TripService {
         }
       });
 
+      // Release escrow
+      await this.financialService.releaseEscrow(packageId, tripId, tx);
+
       // TODO: Send SMS
-      // TODO: Handle escrowing
 
       return {
         packageStatus,
