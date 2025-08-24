@@ -167,13 +167,13 @@ model Transporter {
   bio                   String?          @db.Text
 
   // Relations
-  user               User                @relation(fields: [userId], references: [id])
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   vehicles           Vehicle[]
   trips              Trip[]
   achievements       Achievement[]
-  nationalIdStatus   VerificationStatus? @relation("NationalIdStatus", fields: [nationalIdStatusId], references: [id])
-  licenseStatus      VerificationStatus? @relation("DriverLicenseStatus", fields: [licenseStatusId], references: [id])
-  verificationStatus VerificationStatus? @relation("TransporterVerification", fields: [verificationStatusId], references: [id])
+  nationalIdStatus   VerificationStatus? @relation("NationalIdStatus", fields: [nationalIdStatusId], references: [id], onDelete: SetNull)
+  licenseStatus      VerificationStatus? @relation("DriverLicenseStatus", fields: [licenseStatusId], references: [id], onDelete: SetNull)
+  verificationStatus VerificationStatus? @relation("TransporterVerification", fields: [verificationStatusId], references: [id], onDelete: SetNull)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -222,9 +222,9 @@ model Vehicle {
 
   // Relations
   trips              Trip[]
-  verificationStatus VerificationStatus? @relation("TransporterVehicleStatus", fields: [verificationStatusId], references: [id])
-  owner              Transporter         @relation(fields: [ownerId], references: [id])
-  model              VehicleModel?       @relation(fields: [modelId], references: [id])
+  verificationStatus VerificationStatus? @relation("TransporterVehicleStatus", fields: [verificationStatusId], references: [id], onDelete: SetNull)
+  owner              Transporter         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  model              VehicleModel?       @relation(fields: [modelId], references: [id], onDelete: SetNull)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -254,7 +254,7 @@ model VehicleModel {
 
   // Relations
   vehicles Vehicle[]
-  brand    VehicleBrand @relation(fields: [brandId], references: [id])
+  brand    VehicleBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -307,7 +307,7 @@ model Address {
   isHighlighted Boolean @default(false) @map("is_highlighted")
 
   // Relations
-  user             User               @relation(fields: [userId], references: [id])
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   packagesOrigin   Package[]          @relation("OriginAddress")
   packageRecipient PackageRecipient[]
 
@@ -326,7 +326,7 @@ model PackageRecipient {
   isHighlighted Boolean @default(true) @map("is_highlighted")
 
   // Relations
-  address  Address   @relation(fields: [addressId], references: [id])
+  address  Address   @relation(fields: [addressId], references: [id], onDelete: Cascade)
   packages Package[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
@@ -361,9 +361,9 @@ model Package {
   // Relations
   deliveryRequests TripRequest[]    @relation("SenderRequests")
   matchedRequest   MatchedRequest?
-  sender           User             @relation(fields: [senderId], references: [id])
-  originAddress    Address          @relation("OriginAddress", fields: [originAddressId], references: [id])
-  recipient        PackageRecipient @relation(fields: [recipientId], references: [id])
+  sender           User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  originAddress    Address          @relation("OriginAddress", fields: [originAddressId], references: [id], onDelete: Restrict)
+  recipient        PackageRecipient @relation(fields: [recipientId], references: [id], onDelete: Restrict)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -394,10 +394,10 @@ model Trip {
   waypoints       TripWaypoint[]
   requests        TripRequest[]    @relation("TransporterRequests")
   matchedRequests MatchedRequest[]
-  transporter     Transporter      @relation(fields: [transporterId], references: [id])
-  origin          City             @relation("TripOrigin", fields: [originId], references: [id])
-  destination     City             @relation("TripDestination", fields: [destinationId], references: [id])
-  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
+  transporter     Transporter      @relation(fields: [transporterId], references: [id], onDelete: Cascade)
+  origin          City             @relation("TripOrigin", fields: [originId], references: [id], onDelete: Restrict)
+  destination     City             @relation("TripDestination", fields: [destinationId], references: [id], onDelete: Restrict)
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -415,7 +415,7 @@ model TripWaypoint {
   isVisible Boolean @default(false) @map("is_visible")
 
   // Relations
-  trip Trip @relation(fields: [tripId], references: [id])
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -436,8 +436,8 @@ model TripRequest {
   status               RequestStatusEnum? @default(pending)
 
   // Relations
-  package        Package         @relation("SenderRequests", fields: [packageId], references: [id])
-  trip           Trip            @relation("TransporterRequests", fields: [tripId], references: [id])
+  package        Package         @relation("SenderRequests", fields: [packageId], references: [id], onDelete: Cascade)
+  trip           Trip            @relation("TransporterRequests", fields: [tripId], references: [id], onDelete: Cascade)
   matchedRequest MatchedRequest?
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
@@ -465,9 +465,9 @@ model MatchedRequest {
   paymentStatus    PaymentStatusEnum @default(unpaid) @map("payment_status")
 
   // Relations
-  request         TripRequest      @relation(fields: [requestId], references: [id])
-  package         Package          @relation(fields: [packageId], references: [id])
-  trip            Trip             @relation(fields: [tripId], references: [id])
+  request         TripRequest      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  package         Package          @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  trip            Trip             @relation(fields: [tripId], references: [id], onDelete: Cascade)
   trackingUpdates TrackingUpdate[]
   transactions    Transaction[]
 
@@ -489,7 +489,7 @@ model TrackingUpdate {
   description      String? @db.Text
 
   // Relations
-  matchedRequest MatchedRequest @relation(fields: [matchedRequestId], references: [id])
+  matchedRequest MatchedRequest @relation(fields: [matchedRequestId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
@@ -508,7 +508,7 @@ model Wallet {
   isActive       Boolean @default(true) @map("is_active")
 
   // Relations
-  user         User          @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
@@ -529,11 +529,11 @@ model Transaction {
   reason               String?             @db.VarChar
 
   // Relations
-  wallet         Wallet          @relation(fields: [walletId], references: [id])
-  matchedRequest MatchedRequest? @relation(fields: [matchedRequestId], references: [id])
+  wallet         Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  matchedRequest MatchedRequest? @relation(fields: [matchedRequestId], references: [id], onDelete: SetNull)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_date") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@map("transactions")
@@ -545,7 +545,7 @@ model Achievement {
   name      String @db.VarChar // based on comments (Auto generated)
 
   // Relations
-  profile Transporter @relation(fields: [profileId], references: [id])
+  profile Transporter @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
