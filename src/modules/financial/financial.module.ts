@@ -10,6 +10,7 @@ import { TokenModule } from '../token/token.module';
     TokenModule
   ],
   providers: [FinancialService],
-  controllers: [FinancialController]
+  controllers: [FinancialController],
+  exports: [FinancialService]
 })
 export class FinancialModule {}

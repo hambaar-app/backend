@@ -384,6 +384,9 @@ export class TripService {
         where: { id: request.packageId },
         data: {
           status: PackageStatusEnum.matched,
+          finalPrice: {
+            increment: request.deviationCost
+          },
           breakdown: plainBreakdown
         }
       });
@@ -635,7 +638,7 @@ export class TripService {
     }
 
     if (trip.status !== TripStatusEnum.in_progress) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`);
+      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
     }
 
     if (code !== deliveryCode) {

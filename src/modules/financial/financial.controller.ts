@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { FinancialService } from './financial.service';
-import { AddFundsDto } from './dto/add-funds.dto';
+import { AddFundsAndCreateEscrow, AddFundsDto } from './dto/add-funds.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { ApiOperation } from '@nestjs/swagger';
 import {
@@ -56,9 +56,9 @@ export class FinancialController {
   })
   @AuthResponses()
   @UseGuards(AccessTokenGuard)
-  @Post('add-funds')
+  @Post('add-funds-create-escrow')
   async addFundsAndCreateEscrow(
-    @Query() query: AddFundsDto & CreateEscrowDto,
+    @Query() query: AddFundsAndCreateEscrow,
     @CurrentUser('id') userId: string
   ) {
     return this.financialService.addFundsAndCreateEscrow(userId, query);

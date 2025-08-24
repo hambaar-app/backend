@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from 'src/common/utilities';
 import { PaymentStatusEnum, TransactionTypeEnum } from 'generated/prisma';
 import { BadRequestMessages } from 'src/common/enums/messages.enum';
-import { AddFundsDto } from './dto/add-funds.dto';
+import { AddFundsAndCreateEscrow, AddFundsDto } from './dto/add-funds.dto';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 
@@ -114,7 +114,7 @@ export class FinancialService {
     const senderId = matchedRequest.package.senderId;
     const finalPrice = matchedRequest.package.finalPrice;
     
-    const senderWallet = await this.getWallet(senderId, 1, 0);
+    const senderWallet = await this.getWallet(senderId, 1, 0);    
     if (senderWallet.balance < BigInt(finalPrice)) {
       throw new BadRequestException(BadRequestMessages.NotEnoughBalance);
     }
@@ -166,7 +166,7 @@ export class FinancialService {
       gatewayTransactionId,
       packageId,
       tripId,
-    }: AddFundsDto & CreateEscrowDto
+    }: AddFundsAndCreateEscrow
   ) {
     await this.addFunds(userId, { amount, gatewayTransactionId });
     return this.createEscrow({ packageId, tripId });
@@ -256,13 +256,27 @@ export class FinancialService {
     });
 
     // Create commission transaction (platform earning)
+    const platformWalletId = await this.getPlatformWalletId();
+    const platformEarnings = BigInt(escrowedAmount - transporterEarnings);
     await tx.transaction.create({
       data: {
-        walletId: await this.getPlatformWalletId(),
+        walletId: platformWalletId,
         transactionType: TransactionTypeEnum.commission,
-        amount: BigInt(escrowedAmount - transporterEarnings),
+        amount: platformEarnings,
         reason: `Commission from package ${matchedRequest.packageId}`,
         matchedRequestId: matchedRequest.id,
+      }
+    });
+
+    await tx.wallet.update({
+      where: { id: platformWalletId },
+      data: {
+        balance: {
+          increment: platformEarnings
+        },
+        totalEarned: {
+          increment: platformEarnings
+        }
       }
     });
 
