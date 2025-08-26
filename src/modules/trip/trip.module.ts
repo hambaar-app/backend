@@ -7,6 +7,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { TokenModule } from '../token/token.module';
 import { UserModule } from '../user/user.module';
 import { FinancialModule } from '../financial/financial.module';
+import { S3Module } from '../s3/s3.module';
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { FinancialModule } from '../financial/financial.module';
     MapModule,
     TokenModule,
     UserModule,
-    FinancialModule
+    FinancialModule,
+    S3Module,
   ],
   controllers: [TripController],
   providers: [TripService],

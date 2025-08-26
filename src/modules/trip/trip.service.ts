@@ -14,13 +14,15 @@ import { UpdateTrackingDto } from './dto/update-tracking.dto';
 import { FinancialService } from '../financial/financial.service';
 import { RateTripDto } from './dto/rate-trip.dto';
 import { isNumber } from 'class-validator';
+import { S3Service } from '../s3/s3.service';
 
 @Injectable()
 export class TripService {
   constructor(
     private prisma: PrismaService,
     private mapService: MapService,
-    private financialService: FinancialService
+    private financialService: FinancialService,
+    private s3Service: S3Service
   ) {}
 
   async create(
@@ -867,6 +869,8 @@ export class TripService {
           select: {
             transporter: {
               select: {
+                profilePictureKey: true,
+                rate: true,
                 user: {
                   select: {
                     firstName: true,
@@ -900,6 +904,8 @@ export class TripService {
       trackingUpdates: matchedRequest.trackingUpdates,
       package: matchedRequest.package,
       transporter: {
+        profilePictureUrl: await this.s3Service.generateGetPresignedUrl(matchedRequest.trip.transporter.profilePictureKey!),
+        ...matchedRequest.trip.transporter,
         ...matchedRequest.trip.transporter.user,
         vehicle: matchedRequest.trip.vehicle
       }
