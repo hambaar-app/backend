@@ -19,7 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node prisma/provinces-cities.seed.ts || ts-node prisma/vehicle-brands.seed.ts"
+    "seed": "ts-node prisma/seeders/admin-test.seed.ts || ts-node prisma/seeders/provinces-cities.seed.ts || ts-node prisma/seeders/vehicle-brands.seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
