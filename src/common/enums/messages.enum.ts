@@ -33,7 +33,8 @@ export enum BadRequestMessages {
   CannotFinishTrip = 'You cannot finish the trip until all packages are delivered.',
   PaymentProcessed = 'Payment already processed.',
   NotEnoughBalance = 'Not enough balance.',
-  NoEscrowedPayment = 'No escrowed payment found.'
+  NoEscrowedPayment = 'No escrowed payment found.',
+  AlreadyRatedTrip = 'You have already rated this trip.'
 }
 
 export enum TrackingMessages {

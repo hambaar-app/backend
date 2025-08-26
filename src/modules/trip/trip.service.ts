@@ -12,6 +12,8 @@ import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { PriceBreakdownDto } from '../package/dto/package-response.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
 import { FinancialService } from '../financial/financial.service';
+import { RateTripDto } from './dto/rate-trip.dto';
+import { isNumber } from 'class-validator';
 
 @Injectable()
 export class TripService {
@@ -902,6 +904,66 @@ export class TripService {
         vehicle: matchedRequest.trip.vehicle
       }
     };
+  }
+
+  async rateTrip(
+    userId: string,
+    {
+      tripId,
+      packageId,
+      rate,
+      comment
+    }: RateTripDto
+  ) {
+    const {
+      senderRating,
+      package: { senderId, status }
+    } = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        tripId,
+        packageId
+      },
+      select: {
+        senderRating: true,
+        package: {
+          select: {
+            senderId: true,
+            status: true
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (senderId !== userId) {
+      throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`);
+    }
+
+    if (isNumber(senderRating)) {
+      throw new BadRequestException(BadRequestMessages.AlreadyRatedTrip);
+    }
+
+    const isValidStatus = status === PackageStatusEnum.delivered
+      || status === PackageStatusEnum.returned;
+    if (!isValidStatus) {
+      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${status}*.`);
+    }
+
+    return this.prisma.matchedRequest.update({
+      where: {
+        tripId,
+        packageId
+      },
+      data: {
+        senderRating: rate,
+        senderComment: comment
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
   }
 
   private async updatePackageStatus(
