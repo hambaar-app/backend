@@ -53,7 +53,7 @@ export class VehicleService {
     return this.prisma.vehicleModel.findMany({
       where: {
         brandId,
-        model: {
+        name: {
           contains: search,
           mode: 'insensitive'
         }

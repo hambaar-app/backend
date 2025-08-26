@@ -7,5 +7,5 @@ export class CreateModelDto {
 
   @IsNotEmpty()
   @IsString()
-  model: string;
+  name: string;
 }

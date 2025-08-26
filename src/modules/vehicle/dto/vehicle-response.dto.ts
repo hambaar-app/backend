@@ -13,7 +13,7 @@ export class VehicleCompactResponseDto {
   @Transform(({ obj }) => obj.model?.brand?.name)
   brand?: string;
 
-  @Transform(({ obj }) => obj.model?.model)
+  @Transform(({ obj }) => obj.model?.name)
   @Expose()
   model?: string;
 
