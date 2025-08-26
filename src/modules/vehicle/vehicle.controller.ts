@@ -1,26 +1,54 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { ApiConflictResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+} from '@nestjs/swagger';
 import { CreateModelDto } from './dto/create-model.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
-import { VehicleCompactResponseDto, VehicleResponseDto } from './dto/vehicle-response.dto';
+import {
+  VehicleCompactResponseDto,
+  VehicleResponseDto,
+} from './dto/vehicle-response.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
-import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import {
+  ApiQuerySearch,
+  AuthResponses,
+  CrudResponses,
+  ValidationResponses,
+} from 'src/common/api-docs.decorators';
 import { CurrentUser } from '../user/current-user.middleware';
+import { NotFoundMessages } from 'src/common/enums/messages.enum';
+import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
 @Controller('vehicles')
 export class VehicleController {
   constructor(private vehicleService: VehicleService) {}
 
   @ApiOperation({
-    summary: 'Create a vehicle brand'
+    summary: 'Create a vehicle brand',
   })
   @ApiConflictResponse({
-    description: 'Unique database constraint for => name'
+    description: 'Unique database constraint for => name',
   })
   @HttpCode(HttpStatus.CREATED)
   @Post('brands')
@@ -29,7 +57,7 @@ export class VehicleController {
   }
 
   @ApiOperation({
-    summary: 'Retrieves all vehicle brands'
+    summary: 'Retrieves all vehicle brands',
   })
   @ApiQuerySearch()
   @Get('brands')
@@ -38,10 +66,10 @@ export class VehicleController {
   }
 
   @ApiOperation({
-    summary: 'Create a vehicle model'
+    summary: 'Create a vehicle model',
   })
   @ApiConflictResponse({
-    description: 'Unique database constraint for => model (With this brandId)'
+    description: 'Unique database constraint for => model (With this brandId)',
   })
   @HttpCode(HttpStatus.CREATED)
   @Post('models')
@@ -50,15 +78,41 @@ export class VehicleController {
   }
 
   @ApiOperation({
-    summary: 'Retrieves all vehicle models'
+    summary: 'Retrieves all vehicle models',
   })
   @ApiQuerySearch()
   @Get('models/:brandId')
   async getAllBrandModels(
     @Param('brandId', ParseUUIDPipe) brandId: string,
-    @Query('search') search?: string
+    @Query('search') search?: string,
   ) {
     return this.vehicleService.getAllBrandModels(brandId, search);
+  }
+
+  @ApiOperation({
+    summary: 'Create a new vehicle for a transporter',
+  })
+  @ApiNotFoundResponse({
+    description: NotFoundMessages.VehicleModel,
+  })
+  @ApiConflictResponse({
+    description: `Unique database constraint for =>
+      vin, licensePlate, barcode, greenSheetNumber and insuranceNumber`,
+  })
+  @ApiCreatedResponse({
+    type: VehicleResponseDto,
+  })
+  @AuthResponses()
+  @ValidationResponses()
+  @Serialize(VehicleResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @Post()
+  async registerTransporterVehicle(
+    @Body() body: CreateVehicleDto,
+    @CurrentUser('id') id: string,
+  ) {
+    return this.vehicleService.create(id, body);
   }
 
   @ApiOperation({
@@ -67,7 +121,7 @@ export class VehicleController {
   @AuthResponses()
   @CrudResponses()
   @ApiOkResponse({
-    type: VehicleResponseDto
+    type: VehicleResponseDto,
   })
   @Serialize(VehicleResponseDto)
   @UseGuards(AccessTokenGuard)
@@ -81,7 +135,7 @@ export class VehicleController {
   })
   @AuthResponses()
   @ApiOkResponse({
-    type: [VehicleCompactResponseDto]
+    type: [VehicleCompactResponseDto],
   })
   @Serialize(VehicleCompactResponseDto)
   @UseGuards(AccessTokenGuard)
@@ -97,17 +151,17 @@ export class VehicleController {
   @ValidationResponses()
   @CrudResponses()
   @ApiOkResponse({
-    type: VehicleResponseDto
+    type: VehicleResponseDto,
   })
   @Serialize(VehicleResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
-    entity: 'vehicle'
+    entity: 'vehicle',
   })
   @Patch('/:id')
   async updateTransporter(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: UpdateVehicleDto
+    @Body() body: UpdateVehicleDto,
   ) {
     return this.vehicleService.update(id, body);
   }
