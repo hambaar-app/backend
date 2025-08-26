@@ -234,8 +234,9 @@ model Vehicle {
 }
 
 model VehicleBrand {
-  id   String @id @default(uuid()) @db.Uuid
-  name String @db.VarChar
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String  @db.VarChar
+  englishName String? @map("english_name") @db.VarChar
 
   // Relations
   models VehicleModel[]
@@ -248,9 +249,10 @@ model VehicleBrand {
 }
 
 model VehicleModel {
-  id      String @id @default(uuid()) @db.Uuid
-  brandId String @map("brand_id") @db.Uuid
-  model   String @db.VarChar
+  id          String  @id @default(uuid()) @db.Uuid
+  brandId     String  @map("brand_id") @db.Uuid
+  name       String  @db.VarChar
+  englishName String? @map("english_name") @db.VarChar
 
   // Relations
   vehicles Vehicle[]
@@ -260,7 +262,7 @@ model VehicleModel {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
-  @@unique([brandId, model])
+  @@unique([brandId, name])
   @@map("vehicle_models")
 }
 

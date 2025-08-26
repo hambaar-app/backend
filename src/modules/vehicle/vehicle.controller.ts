@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { ApiConflictResponse, ApiOkResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiConflictResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { CreateModelDto } from './dto/create-model.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
