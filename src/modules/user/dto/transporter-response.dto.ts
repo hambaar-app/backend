@@ -74,6 +74,9 @@ export class TransporterInfoResponseDto {
 
   @Expose()
   phoneNumber: string;
+  
+  @Expose()
+  rate: number;
 
   @Type(() => VehicleCompactResponseDto)
   @Expose()

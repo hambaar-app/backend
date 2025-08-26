@@ -30,6 +30,7 @@ import { UpdateTrackingDto } from './dto/update-tracking.dto';
 import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-response.dto';
 import { DeliveryPackageDto } from './dto/delivery-package.dto';
 import { BadRequestMessages } from 'src/common/enums/messages.enum';
+import { RateTripDto } from './dto/rate-trip.dto';
 
 @Controller('trips')
 export class TripController {
@@ -406,5 +407,25 @@ export class TripController {
     @Param('code') code: string,
   ) {
     return this.tripService.getTripTrackingByCode(code);
+  }
+
+  @ApiOperation({
+    summary: 'Rate to delivered package\'s trip'
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.BasePackageStatus
+  })
+  @ApiBadRequestResponse({
+    description: BadRequestMessages.AlreadyRatedTrip
+  })
+  @HttpCode(HttpStatus.OK)
+  @Post('rate')
+  async rateTrip(
+    @Body() body: RateTripDto,
+    @CurrentUser('id') userId: string
+  ) {
+    return this.tripService.rateTrip(userId, body);
   }
 }

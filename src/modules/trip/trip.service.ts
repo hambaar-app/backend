@@ -12,13 +12,17 @@ import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { PriceBreakdownDto } from '../package/dto/package-response.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
 import { FinancialService } from '../financial/financial.service';
+import { RateTripDto } from './dto/rate-trip.dto';
+import { isNumber } from 'class-validator';
+import { S3Service } from '../s3/s3.service';
 
 @Injectable()
 export class TripService {
   constructor(
     private prisma: PrismaService,
     private mapService: MapService,
-    private financialService: FinancialService
+    private financialService: FinancialService,
+    private s3Service: S3Service
   ) {}
 
   async create(
@@ -865,6 +869,8 @@ export class TripService {
           select: {
             transporter: {
               select: {
+                profilePictureKey: true,
+                rate: true,
                 user: {
                   select: {
                     firstName: true,
@@ -898,10 +904,100 @@ export class TripService {
       trackingUpdates: matchedRequest.trackingUpdates,
       package: matchedRequest.package,
       transporter: {
+        profilePictureUrl: await this.s3Service.generateGetPresignedUrl(matchedRequest.trip.transporter.profilePictureKey!),
+        ...matchedRequest.trip.transporter,
         ...matchedRequest.trip.transporter.user,
         vehicle: matchedRequest.trip.vehicle
       }
     };
+  }
+
+  async rateTrip(
+    userId: string,
+    {
+      tripId,
+      packageId,
+      rate,
+      comment
+    }: RateTripDto
+  ) {
+    const {
+      senderRating,
+      package: { senderId, status },
+      trip: { transporterId, transporter: { rate: tRate, rateCount } }
+    } = await this.prisma.matchedRequest.findUniqueOrThrow({
+      where: {
+        tripId,
+        packageId
+      },
+      select: {
+        senderRating: true,
+        package: {
+          select: {
+            senderId: true,
+            status: true
+          }
+        },
+        trip: {
+          select: {
+            transporterId: true,
+            transporter: {
+              select: {
+                rate: true,
+                rateCount: true,
+              }
+            }
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (senderId !== userId) {
+      throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`);
+    }
+
+    if (isNumber(senderRating)) {
+      throw new BadRequestException(BadRequestMessages.AlreadyRatedTrip);
+    }
+
+    const isValidStatus = status === PackageStatusEnum.delivered
+      || status === PackageStatusEnum.returned;
+    if (!isValidStatus) {
+      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${status}*.`);
+    }
+
+    return this.prisma.$transaction(async tx => {
+      // Update transporter rate
+      const newRateCount = rateCount + 1;
+      const newRate = ((tRate * rateCount) + rate) / newRateCount;
+
+      await tx.transporter.update({
+        where: {
+          id: transporterId
+        },
+        data: {
+          rate: newRate,
+          rateCount: newRateCount
+        }
+      });
+
+      return tx.matchedRequest.update({
+        where: {
+          tripId,
+          packageId
+        },
+        data: {
+          senderRating: rate,
+          senderComment: comment
+        }
+      });
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
   }
 
   private async updatePackageStatus(

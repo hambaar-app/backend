@@ -95,6 +95,7 @@ class MatchedRequestDto {
     lastName: obj.trip?.transporter?.user?.lastName,
     gender: obj.trip?.transporter?.user?.gender,
     phoneNumber: obj.trip?.transporter?.user?.phoneNumber,
+    rate: obj.trip?.transporter?.rate,
     vehicle: obj.trip?.vehicle
   }))
   @Type(() => TransporterInfoResponseDto)
@@ -122,12 +123,12 @@ class MatchedRequestDto {
 
   @Expose()
   deliveryTime: Date;
+  
+  @Expose()
+  senderRating?: number | null;
 
   @Expose()
-  comment?: string | null;
-
-  @Expose()
-  senderRating?: string | null;
+  senderComment?: string | null;
 
   @Expose()
   isCompleted: boolean;

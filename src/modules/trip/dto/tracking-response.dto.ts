@@ -82,6 +82,14 @@ class PackageTrackingDto {
 }
 
 class TransporterDto extends SenderDto {
+  @Expose()
+  profilePictureUrl: string;
+
+  @Expose()
+  rate: number;
+  
+  // TODO: Add experience
+  
   @Type(() => VehicleCompactResponseDto)
   @Expose()
   vehicle: VehicleCompactResponseDto;
@@ -98,6 +106,8 @@ export class TrackingResponseDto {
 
   @Transform(({ obj }) => ({
     fullName: `${obj.transporter?.firstName} ${obj.transporter?.lastName}`,
+    profilePictureUrl: obj.transporter?.profilePictureUrl,
+    rate: obj.transporter?.rate ? obj.transporter?.rate : null,
     phoneNumber: obj.transporter?.phoneNumber,
     vehicle: obj.transporter?.vehicle
   }))
