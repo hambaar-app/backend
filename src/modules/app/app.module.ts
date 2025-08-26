@@ -1,10 +1,10 @@
-import { ClassSerializerInterceptor, MiddlewareConsumer, Module, ValidationPipe } from '@nestjs/common';
+import { MiddlewareConsumer, Module, ValidationPipe } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
-import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_PIPE } from '@nestjs/core';
 import { createClient } from 'redis';
 import * as session from 'express-session';
 import * as cookieParser from 'cookie-parser';
@@ -18,6 +18,8 @@ import { SupportModule } from '../support/support.module';
 import { AddressModule } from '../address/address.module';
 import { PackageModule } from '../package/package.module';
 import { TripModule } from '../trip/trip.module';
+import { FinancialModule } from '../financial/financial.module';
+import { MapModule } from '../map/map.module';
 
 @Module({
   imports: [
@@ -42,7 +44,9 @@ import { TripModule } from '../trip/trip.module';
     SupportModule,
     AddressModule,
     PackageModule,
-    TripModule
+    TripModule,
+    MapModule,
+    FinancialModule,
   ],
   controllers: [AppController],
   providers: [
