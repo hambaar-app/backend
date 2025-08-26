@@ -917,7 +917,8 @@ export class TripService {
   ) {
     const {
       senderRating,
-      package: { senderId, status }
+      package: { senderId, status },
+      trip: { transporterId, transporter: { rate: tRate, rateCount } }
     } = await this.prisma.matchedRequest.findUniqueOrThrow({
       where: {
         tripId,
@@ -929,6 +930,17 @@ export class TripService {
           select: {
             senderId: true,
             status: true
+          }
+        },
+        trip: {
+          select: {
+            transporterId: true,
+            transporter: {
+              select: {
+                rate: true,
+                rateCount: true,
+              }
+            }
           }
         }
       }
@@ -951,15 +963,31 @@ export class TripService {
       throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${status}*.`);
     }
 
-    return this.prisma.matchedRequest.update({
-      where: {
-        tripId,
-        packageId
-      },
-      data: {
-        senderRating: rate,
-        senderComment: comment
-      }
+    return this.prisma.$transaction(async tx => {
+      // Update transporter rate
+      const newRateCount = rateCount + 1;
+      const newRate = ((tRate * rateCount) + rate) / newRateCount;
+
+      await tx.transporter.update({
+        where: {
+          id: transporterId
+        },
+        data: {
+          rate: newRate,
+          rateCount: newRateCount
+        }
+      });
+
+      return tx.matchedRequest.update({
+        where: {
+          tripId,
+          packageId
+        },
+        data: {
+          senderRating: rate,
+          senderComment: comment
+        }
+      });
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
