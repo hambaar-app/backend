@@ -251,7 +251,7 @@ model VehicleBrand {
 model VehicleModel {
   id          String  @id @default(uuid()) @db.Uuid
   brandId     String  @map("brand_id") @db.Uuid
-  name       String  @db.VarChar
+  name        String  @db.VarChar
   englishName String? @map("english_name") @db.VarChar
 
   // Relations
@@ -458,8 +458,8 @@ model MatchedRequest {
   trackingCode     String?           @unique @map("tracking_code") @db.VarChar // 20-digits (Auto generated)
   deliveryCode     String?           @map("delivery_code") @db.VarChar // 5-digits (Auto generated)
   transporterNotes Json?             @map("transporter_note") @db.JsonB
-  comment          String?           @map("comment") @db.Text
   senderRating     Int?              @map("sender_rating") // 1-5
+  senderComment    String?           @map("sender_comment") @db.Text
   isCompleted      Boolean           @default(false) @map("is_completed")
   pickupTime       DateTime?         @map("pickup_time") @db.Timestamp
   deliveryTime     DateTime?         @map("delivery_time") @db.Timestamp

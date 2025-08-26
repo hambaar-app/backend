@@ -242,8 +242,8 @@ export class PackageService {
             trackingCode: true,
             deliveryCode: true,
             transporterNotes: true,
-            comment: true,
             senderRating: true,
+            senderComment: true,
             isCompleted: true,
             pickupTime: true,
             deliveryTime: true,
@@ -354,7 +354,24 @@ export class PackageService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });;
+    });
+  }
+  
+  async generatePackagePicPresignedUrl(keys: JsonArray) {
+    return Promise.all(
+      keys.map(async (key, index) => {
+        const keyString = JSON.stringify(key).split('"')[1];
+        try {
+          if (keyString) {
+            return this.s3Service.generateGetPresignedUrl(keyString);
+          }
+          return '';
+        } catch (urlError) {
+          console.error(`Failed to generate presigned URL for picturesKey[${index}]:`, urlError);
+          return '';
+        }
+      })
+    );
   }
 
   private async updateStatus(
@@ -612,22 +629,5 @@ export class PackageService {
     if (matchedTrip) matchedTrip.isRequestSent = false;
 
     return request;
-  }
-
-  async generatePackagePicPresignedUrl(keys: JsonArray) {
-    return Promise.all(
-      keys.map(async (key, index) => {
-        const keyString = JSON.stringify(key).split('"')[1];
-        try {
-          if (keyString) {
-            return this.s3Service.generateGetPresignedUrl(keyString);
-          }
-          return '';
-        } catch (urlError) {
-          console.error(`Failed to generate presigned URL for picturesKey[${index}]:`, urlError);
-          return '';
-        }
-      })
-    );
   }
 }
