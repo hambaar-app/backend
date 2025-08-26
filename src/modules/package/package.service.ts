@@ -212,6 +212,7 @@ export class PackageService {
               select: {
                 transporter: {
                   select: {
+                    rate: true,
                     user: {
                       select: {
                         firstName: true,
