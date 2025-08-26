@@ -21,6 +21,7 @@ import { SubmitDocumentsDto } from './dto/submit-documents.dto';
 import { SessionData } from 'express-session';
 import { UserStatesEnum } from './types/auth.enums';
 import { TransporterResponseDto } from '../user/dto/transporter-response.dto';
+import { SmsService } from '../sms/sms.service';
 
 @Injectable()
 export class AuthService {
@@ -37,6 +38,7 @@ export class AuthService {
     private vehicleService: VehicleService,
     private prisma: PrismaService,
     @Inject(CACHE_MANAGER) cacheManager: Cache,
+    private smsService: SmsService,
     config: ConfigService,
   ) {
     this.cacheManager = cacheManager.stores[1];
@@ -71,9 +73,8 @@ export class AuthService {
     userData.attempts.lastSendAttempt = now;
     userData.otp = otp;
 
-    const storeResult = await this.setUserData(userKey, userData);
-    // call otp service method and error handling.
-    return storeResult;
+    const otpSmsResult = await this.smsService.sendOtp(phoneNumber, otp.code);
+    return otpSmsResult && await this.setUserData(userKey, userData);
   }
 
   async checkOtp(

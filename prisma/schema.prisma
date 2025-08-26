@@ -533,7 +533,7 @@ model Transaction {
   matchedRequest MatchedRequest? @relation(fields: [matchedRequestId], references: [id], onDelete: SetNull)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_date") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@map("transactions")

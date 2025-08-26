@@ -6,6 +6,7 @@ import { UserModule } from '../user/user.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { VehicleModule } from '../vehicle/vehicle.module';
 import { CurrentUserMiddleware } from 'src/modules/user/current-user.middleware';
+import { SmsModule } from '../sms/sms.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { CurrentUserMiddleware } from 'src/modules/user/current-user.middleware'
     TokenModule,
     UserModule,
     VehicleModule,
+    SmsModule
   ],
   controllers: [AuthController],
   providers: [AuthService]
