@@ -122,12 +122,12 @@ class MatchedRequestDto {
 
   @Expose()
   deliveryTime: Date;
+  
+  @Expose()
+  senderRating?: number | null;
 
   @Expose()
-  comment?: string | null;
-
-  @Expose()
-  senderRating?: string | null;
+  senderComment?: string | null;
 
   @Expose()
   isCompleted: boolean;
