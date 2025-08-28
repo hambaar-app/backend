@@ -1,10 +1,10 @@
-import { Body, Controller, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { Serialize } from 'src/common/serialize.interceptor';
-import { UserResponseDto } from './dto/user-response.dto';
+import { ProfileResponseDto, UserResponseDto } from './dto/user-response.dto';
 import { TransporterCompactDto } from './dto/transporter-response.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CurrentUser } from './current-user.middleware';
@@ -13,6 +13,22 @@ import { AuthResponses, ValidationResponses } from 'src/common/api-docs.decorato
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
+
+  @ApiOperation({
+    summary: 'Get user\'s profile info',
+  })
+  @ApiOkResponse({
+    type: ProfileResponseDto
+  })
+  @AuthResponses()
+  @Serialize(ProfileResponseDto)
+  @UseGuards(AccessTokenGuard)
+  @Get('profile')
+  async getUserProfile(
+    @CurrentUser('id') id: string
+  ) {
+    return this.userService.getProfile(id);
+  }
 
   @ApiOperation({
     summary: 'Updates user info',

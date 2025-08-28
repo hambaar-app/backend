@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Transform, Type } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { LicenseTypeEnum } from 'generated/prisma';
 import { VerificationStatusDto } from 'src/modules/auth/dto/verification-status.dto';
 import { VehicleCompactResponseDto, VehicleResponseDto } from 'src/modules/vehicle/dto/vehicle-response.dto';
@@ -19,6 +19,9 @@ export class TransporterCompactDto {
   nationalIdDocumentKey?: string | null;
 
   @Expose()
+  nationalIdDocumentUrl?: string | null;
+
+  @Expose()
   licenseNumber: string;
 
   @Expose()
@@ -27,6 +30,9 @@ export class TransporterCompactDto {
 
   @Expose()
   licenseDocumentKey?: string;
+
+  @Expose()
+  licenseDocumentUrl?: string;
 
   @ApiProperty({ enum: LicenseTypeEnum })
   @Expose()
@@ -37,6 +43,9 @@ export class TransporterCompactDto {
 
   @Expose()
   profilePictureKey?: string;
+
+  @Expose()
+  profilePictureUrl?: string;
 
   @Expose()
   bio: string;

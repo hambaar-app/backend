@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { GendersEnum } from 'generated/prisma';
+import { TransporterCompactDto } from './transporter-response.dto';
 
 export class UserResponseDto {
   @Expose()
@@ -33,4 +34,10 @@ export class UserResponseDto {
 
   @Expose()
   deletedAt: Date;
+}
+
+export class ProfileResponseDto extends UserResponseDto {
+  @Expose()
+  @Type(() => TransporterCompactDto)
+  transporter: TransporterCompactDto;
 }
