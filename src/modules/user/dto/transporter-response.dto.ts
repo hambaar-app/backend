@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Transform, Type } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { LicenseTypeEnum } from 'generated/prisma';
 import { VerificationStatusDto } from 'src/modules/auth/dto/verification-status.dto';
 import { VehicleCompactResponseDto, VehicleResponseDto } from 'src/modules/vehicle/dto/vehicle-response.dto';

@@ -23,6 +23,24 @@ export class UserService {
     return this.get({ phoneNumber });
   }
 
+  async getProfile(userId: string) {
+    return this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: {
+        transporter: {
+          include: {
+            licenseStatus: true,
+            nationalIdStatus: true,
+            verificationStatus: true
+          }
+        }
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+  }
+
   async update(id: string, { phoneNumber, ...userDto }: UpdateUserDto) {
     // TODO
     return this.prisma.user.update({
