@@ -19,6 +19,9 @@ export class TransporterCompactDto {
   nationalIdDocumentKey?: string | null;
 
   @Expose()
+  nationalIdDocumentUrl?: string | null;
+
+  @Expose()
   licenseNumber: string;
 
   @Expose()
@@ -27,6 +30,9 @@ export class TransporterCompactDto {
 
   @Expose()
   licenseDocumentKey?: string;
+
+  @Expose()
+  licenseDocumentUrl?: string;
 
   @ApiProperty({ enum: LicenseTypeEnum })
   @Expose()
@@ -37,6 +43,9 @@ export class TransporterCompactDto {
 
   @Expose()
   profilePictureKey?: string;
+
+  @Expose()
+  profilePictureUrl?: string;
 
   @Expose()
   bio: string;
