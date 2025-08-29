@@ -9,7 +9,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "npm run db-push && cross-env NODE_ENV=development nest start --watch",
+    "start:dev": "npm run prisma:push && cross-env NODE_ENV=development nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/main",
     "prisma:push": "npx prisma db push",
@@ -20,7 +20,10 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node prisma/seeders/admin-test.seed.ts || ts-node prisma/seeders/provinces-cities.seed.ts || ts-node prisma/seeders/vehicle-brands.seed.ts"
+    "seed:admin": "ts-node prisma/seeders/admin-test.seed.ts",
+    "seed:cities": "ts-node prisma/seeders/provinces-cities.seed.ts",
+    "seed:models": "ts-node prisma/seeders/vehicle-brands.seed.ts",
+    "seed": "concurrently npm:seed:*"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
