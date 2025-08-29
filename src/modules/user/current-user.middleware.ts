@@ -23,6 +23,7 @@ export class CurrentUserMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     const { userId } = req.session;
     const phoneNumber = req.user?.phoneNumber;
+console.log('as');
 
     if (userId && !phoneNumber) {            
       const user = await this.userService.get({ id: userId });      
