@@ -33,8 +33,6 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
-    console.log('asss');
-    
     return this.health.check([
       () => this.http.pingCheck('nestjs-docs', 'https://docs.nestjs.com'),
       () => this.db.pingCheck('database', this.prisma),

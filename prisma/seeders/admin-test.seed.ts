@@ -1,4 +1,4 @@
-import { PrismaClient, RolesEnum } from '../../generated/prisma';
+import { PrismaClient, RolesEnum } from '../../generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 
@@ -45,11 +45,11 @@ async function seedTestAdminUser() {
   }
 }
 
-if (require.main === module) {
+if (import.meta.url.endsWith(process.argv[1])) {
   seedTestAdminUser()
     .catch((error) => {
       console.error(error);
-      process.exit(1);
+      process.exit(0);
     });
 }
 

@@ -1,4 +1,4 @@
-import { PrismaClient } from '../../generated/prisma';
+import { PrismaClient } from '../../generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 
@@ -559,11 +559,11 @@ async function seedProvincesAndCities() {
   }
 }
 
-if (require.main === module) {
+if (import.meta.url.endsWith(process.argv[1])) {
   seedProvincesAndCities()
     .catch((error) => {
       console.error(error);
-      process.exit(1);
+      process.exit(0);
     });
 }
 
