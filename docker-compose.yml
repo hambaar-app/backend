@@ -73,6 +73,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
+    image: 1mimhe/hambaar-backend:latest
     container_name: hambaar-backend-prod
     hostname: hambaar.prod
     restart: unless-stopped

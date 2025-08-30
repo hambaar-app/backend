@@ -22,6 +22,10 @@ prod:
 build:
 	docker compose build
 
+# Push to docker registry
+push:
+	
+
 # Show logs
 logs:
 	docker compose logs
