@@ -20,6 +20,7 @@ import { PackageModule } from '../package/package.module';
 import { TripModule } from '../trip/trip.module';
 import { FinancialModule } from '../financial/financial.module';
 import { MapModule } from '../map/map.module';
+import { HealthModule } from '../health/health.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { MapModule } from '../map/map.module';
     TripModule,
     MapModule,
     FinancialModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

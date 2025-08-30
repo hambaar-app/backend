@@ -1,4 +1,4 @@
-import { PrismaClient } from '../../generated/prisma';
+import { PrismaClient } from '../../generated/prisma/index.js';
 
 const prisma = new PrismaClient();
 
@@ -460,11 +460,12 @@ async function seedVehicleBrandsAndModels() {
   }
 }
 
-if (require.main === module) {
-  seedVehicleBrandsAndModels().catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+if (import.meta.url.endsWith(process.argv[1])) {
+  seedVehicleBrandsAndModels()
+    .catch((error) => {
+      console.error(error);
+      process.exit(0);
+    });
 }
 
 export default seedVehicleBrandsAndModels;
