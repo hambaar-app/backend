@@ -1,34 +1,39 @@
 ##############
 # Base Stage #
 ##############
-FROM node:22-alpine AS base
+FROM node:22-bookworm-slim AS base
 
 LABEL Maintainer="Mohammad Hosseini <mimhe1381@gmail.com>"
+
+RUN apt-get update -y && \
+    apt-get upgrade -y && \
+    apt-get install -y openssl && \
+    apt-get install -y bash && \
+    npm install -g ts-node && \
+    npm install -g @nestjs/cli && \
+    npm install -g prisma && \
+    npm install -g concurrently
 
 WORKDIR /usr/app
 COPY package*.json ./
 
-#####################
-# Development Stage #
-#####################
+#############################
+#     Development Stage     #
+#############################
 FROM base AS dev
 
-COPY package*.json ./
-
 RUN npm ci && \
-    npm install -g npm@11 && \
-    npm install -g @nestjs/cli && \
     npm cache clean --force
 
-COPY . .
+COPY ./ ./
 
 EXPOSE 3000
 
 CMD ["npm", "run", "start:dev"]
 
-###############
-# Build Stage #
-###############
+#######################
+#     Build Stage     #
+#######################
 FROM base AS build
 
 RUN npm ci
@@ -43,34 +48,36 @@ RUN npm run prisma:generate && \
 #################################
 # Production Dependencies Stage #
 #################################
-FROM node:22-alpine AS prod-deps
-WORKDIR /usr/app
-
-COPY package*.json ./
+FROM base AS prod-deps
 
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund && \
     npm cache clean --force && \
     rm -rf ~/.npm
 
-############## Test Stage ##############
+##############
+# Test Stage #
+##############
+
 # Soon
 
-############## Runtime Stage ##############
-FROM node:22-alpine AS runtime
+#########################
+#     Runtime Stage     #
+#########################
+FROM base AS runtime
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nestjs -u 1001
-
-WORKDIR /usr/app
+RUN groupadd --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs nestjs
 
 COPY --from=build --chown=nestjs:nodejs /usr/app/dist ./dist
-COPY --from=prod-deps --chown=nestjs:nodejs /usr/app/node_modules ./node_modules
-COPY --from=build --chown=nestjs:nodejs /usr/app/package.json ./
 COPY --from=build --chown=nestjs:nodejs /usr/app/generated ./generated
-
-USER nestjs
+COPY --from=prod-deps --chown=nestjs:nodejs /usr/app/node_modules ./node_modules
+COPY /prisma ./prisma
+COPY entrypoint.sh ./
 
 EXPOSE 3000
+
+ENTRYPOINT ["./entrypoint.sh"]
+RUN chmod 755 ./entrypoint.sh
 
 CMD ["npm", "run", "start:prod"]
