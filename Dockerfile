@@ -77,7 +77,7 @@ COPY entrypoint.sh ./
 
 EXPOSE 3000
 
-ENTRYPOINT ["./entrypoint.sh"]
+# ENTRYPOINT ["./entrypoint.sh"]
 RUN chmod 755 ./entrypoint.sh
 
 CMD ["npm", "run", "start:prod"]
