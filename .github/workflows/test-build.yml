@@ -57,13 +57,16 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Update and Upgrade image
-        run: apt-get update -y && apt-get upgrade -y && apt-get install -y openssl
+        run: apt-get update -y
+          && apt-get upgrade -y
+          && apt-get install -y openssl
+          && apt-get install -y bash
         
       - name: Install Deps
         run: npm ci
         
-      # - name: Push DB with prisma
-      #   run: npm run prisma:push
+      - name: Push DB with prisma
+        run: npm run prisma:push
           
       - name: Test
         run: npm test
