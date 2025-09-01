@@ -66,9 +66,13 @@ jobs:
       - name: Install Deps
         run: cd src && npm ci --include=dev
         
+      # TODO: Uncomment when add e2e tests
       # - name: Push DB with prisma
       #   run: npm run prisma:push
-          
+      
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+
       - name: Test
         run: cd src && npm test     
   build:
