@@ -17,7 +17,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { CityDto } from './dto/city.dto';
-import { formatPrismaError } from 'src/common/utilities';
+import { formatPrismaError } from '../../common/utilities';
 import { PrismaService } from '../prisma/prisma.service';
 import { CoordinatesQueryDto } from './coordinates-query.dto';
 

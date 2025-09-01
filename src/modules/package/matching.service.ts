@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, TripStatusEnum } from 'generated/prisma';
+import { Prisma, TripStatusEnum } from '../../../generated/prisma';
 import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
 import { SessionData } from 'express-session';

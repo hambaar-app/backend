@@ -18,15 +18,14 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiQuery,
 } from '@nestjs/swagger';
-import { Serialize } from 'src/common/serialize.interceptor';
+import { Serialize } from '../../common/serialize.interceptor';
 import { AddressResponseDto } from './dto/address-response.dto';
 import { CheckOwnership } from '../auth/auth.decorators';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { CurrentUser } from '../user/current-user.middleware';
-import { ApiQuerySearch } from 'src/common/api-docs.decorators';
+import { ApiQuerySearch } from '../../common/api-docs.decorators';
 
 @Controller('addresses')
 export class AddressController {

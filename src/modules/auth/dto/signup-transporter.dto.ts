@@ -7,14 +7,13 @@ import {
   IsNumberString,
   IsOptional,
   IsPhoneNumber,
-  IsString,
   Length,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { GendersEnum, LicenseTypeEnum } from 'generated/prisma';
-import { TransporterCompactDto } from 'src/modules/user/dto/transporter-response.dto';
+import { GendersEnum, LicenseTypeEnum } from '../../../../generated/prisma';
+import { TransporterCompactDto } from '../../user/dto/transporter-response.dto';
 import { Expose } from 'class-transformer';
-import { IsValidS3Key } from 'src/common/utilities';
+import { IsValidS3Key } from '../../../common/utilities';
 
 export class SignupTransporterDto {
   @IsNotEmpty()

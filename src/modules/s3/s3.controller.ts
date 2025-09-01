@@ -3,7 +3,7 @@ import { S3Service } from './s3.service';
 import { FileNameDto } from './s3.dto';
 import { ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from '../user/current-user.middleware';
-import { AuthResponses } from 'src/common/api-docs.decorators';
+import { AuthResponses } from '../../common/api-docs.decorators';
 import { MultiTokenGuard } from '../auth/guard/multi-token.guard';
 
 // TODO: Add limit

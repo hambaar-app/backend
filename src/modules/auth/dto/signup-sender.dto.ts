@@ -8,7 +8,7 @@ import {
   IsOptional,
   IsPhoneNumber,
 } from 'class-validator';
-import { GendersEnum } from 'generated/prisma/client';
+import { GendersEnum } from '../../../../generated/prisma/client';
 
 export class SignupSenderDto {
   @IsNotEmpty()

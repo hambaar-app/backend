@@ -2,10 +2,10 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
-import { AuthMessages, BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
-import { formatPrismaError } from 'src/common/utilities';
+import { AuthMessages, BadRequestMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import { formatPrismaError } from '../../common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
-import { PackageStatusEnum, RequestStatusEnum, TripStatusEnum } from 'generated/prisma';
+import { PackageStatusEnum, RequestStatusEnum, TripStatusEnum } from '../../../generated/prisma';
 import { MapService } from '../map/map.service';
 import { PricingService } from '../pricing/pricing.service';
 import { S3Service } from '../s3/s3.service';

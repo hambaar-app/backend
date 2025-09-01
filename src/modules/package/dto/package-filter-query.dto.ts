@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
-import { PackageStatusEnum } from 'generated/prisma';
+import { PackageStatusEnum } from '../../../../generated/prisma';
 
 export class PackageFilterQueryDto {
   @ApiProperty({

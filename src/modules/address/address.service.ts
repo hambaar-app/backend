@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
-import { formatPrismaError } from 'src/common/utilities';
+import { formatPrismaError } from '../../common/utilities';
 
 @Injectable()
 export class AddressService {

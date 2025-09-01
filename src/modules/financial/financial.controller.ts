@@ -14,9 +14,8 @@ import { ApiOperation } from '@nestjs/swagger';
 import {
   ApiQueryPagination,
   AuthResponses,
-} from 'src/common/api-docs.decorators';
+} from '../../common/api-docs.decorators';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
-import { CreateEscrowDto } from './dto/create-escrow.dto';
 
 @Controller('financial')
 export class FinancialController {

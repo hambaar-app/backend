@@ -16,12 +16,12 @@ import { TripService } from './trip.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { Serialize } from 'src/common/serialize.interceptor';
+import { Serialize } from '../../common/serialize.interceptor';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
 import { CurrentUser } from '../user/current-user.middleware';
-import { AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { AuthResponses, CrudResponses, ValidationResponses } from '../../common/api-docs.decorators';
 import { TripFilterQueryDto } from './dto/trip-filter-query.dto';
 import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -29,7 +29,7 @@ import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
 import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-response.dto';
 import { DeliveryPackageDto } from './dto/delivery-package.dto';
-import { BadRequestMessages } from 'src/common/enums/messages.enum';
+import { BadRequestMessages } from '../../common/enums/messages.enum';
 import { RateTripDto } from './dto/rate-trip.dto';
 
 @Controller('trips')

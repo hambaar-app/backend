@@ -1,10 +1,10 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { MapService } from '../map/map.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatPrismaError, generateCode, generateUniqueCode } from 'src/common/utilities';
+import { formatPrismaError, generateCode, generateUniqueCode } from '../../common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages, TrackingMessages } from 'src/common/enums/messages.enum';
-import { MatchedRequest, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from 'generated/prisma';
+import { AuthMessages, BadRequestMessages, TrackingMessages } from '../../common/enums/messages.enum';
+import { MatchedRequest, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from '../../../generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';

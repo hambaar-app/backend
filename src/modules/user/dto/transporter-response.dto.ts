@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { LicenseTypeEnum } from 'generated/prisma';
-import { VerificationStatusDto } from 'src/modules/auth/dto/verification-status.dto';
-import { VehicleCompactResponseDto, VehicleResponseDto } from 'src/modules/vehicle/dto/vehicle-response.dto';
+import { LicenseTypeEnum } from '../../../../generated/prisma';
+import { VerificationStatusDto } from '../../auth/dto/verification-status.dto';
+import { VehicleCompactResponseDto, VehicleResponseDto } from '../../vehicle/dto/vehicle-response.dto';
 
 export class TransporterCompactDto {
   @Expose()

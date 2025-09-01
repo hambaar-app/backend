@@ -1,10 +1,10 @@
 import { BadRequestException, CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtPayload } from 'jsonwebtoken';
-import { AuthTokens } from 'src/common/enums/auth.enum';
-import { CookieNames } from 'src/common/enums/cookies.enum';
-import { AuthMessages } from 'src/common/enums/messages.enum';
-import { TokenService } from 'src/modules/token/token.service';
+import { AuthTokens } from '../../../common/enums/auth.enum';
+import { CookieNames } from '../../../common/enums/cookies.enum';
+import { AuthMessages } from '../../../common/enums/messages.enum';
+import { TokenService } from '../../../modules/token/token.service';
 
 @Injectable()
 export class DenyAuthorizedGuard implements CanActivate {

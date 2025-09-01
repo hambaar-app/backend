@@ -1,6 +1,6 @@
 import { IsNotEmpty } from 'class-validator';
-import { IsValidS3Key } from 'src/common/utilities';
-import { VehicleDocumentsDto } from 'src/modules/vehicle/dto/create-vehicle.dto';
+import { IsValidS3Key } from '../../../common/utilities';
+import { VehicleDocumentsDto } from '../../vehicle/dto/create-vehicle.dto';
 
 export class SubmitDocumentsDto extends VehicleDocumentsDto {
   @IsNotEmpty()

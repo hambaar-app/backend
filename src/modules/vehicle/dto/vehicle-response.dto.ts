@@ -1,6 +1,6 @@
 import { Expose, Transform, Type } from 'class-transformer';
 import { VehicleDocumentsDto } from './create-vehicle.dto';
-import { VerificationStatusDto } from 'src/modules/auth/dto/verification-status.dto';
+import { VerificationStatusDto } from '../../auth/dto/verification-status.dto';
 
 export class VehicleCompactResponseDto {
   @Expose()

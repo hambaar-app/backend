@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
-import { AuthTokens } from 'src/common/enums/auth.enum';
-import { AuthMessages } from 'src/common/enums/messages.enum';
+import { AuthTokens } from '../../common/enums/auth.enum';
+import { AuthMessages } from '../../common/enums/messages.enum';
 
 @Injectable()
 export class TokenService {

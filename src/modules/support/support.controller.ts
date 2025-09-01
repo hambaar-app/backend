@@ -2,7 +2,7 @@ import { Body, Controller, Param, ParseUUIDPipe, Patch } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { ApiOperation, ApiProperty } from '@nestjs/swagger';
 import { UpdateVerificationDto } from './dto/update-verification.dto';
-import { CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { CrudResponses, ValidationResponses } from '../../common/api-docs.decorators';
 
 @Controller('support')
 export class SupportController {

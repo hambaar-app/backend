@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, User } from 'generated/prisma';
+import { Prisma, User } from '../../../generated/prisma';
 import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
-import { formatPrismaError } from 'src/common/utilities';
+import { formatPrismaError } from '../../common/utilities';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { S3Service } from '../s3/s3.service';
 

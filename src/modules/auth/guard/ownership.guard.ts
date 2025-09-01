@@ -7,10 +7,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { RolesEnum, User } from 'generated/prisma';
-import { PrismaService } from 'src/modules/prisma/prisma.service';
+import { RolesEnum, User } from '../../../../generated/prisma';
+import { PrismaService } from '../../prisma/prisma.service';
 import { OwnershipConfig } from '../types/auth.types';
-import { AuthMessages } from 'src/common/enums/messages.enum';
+import { AuthMessages } from '../../../common/enums/messages.enum';
 
 // Just a mvp version
 

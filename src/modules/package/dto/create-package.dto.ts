@@ -12,7 +12,11 @@ import {
   Matches,
   Validate,
 } from 'class-validator';
-import { IsDeliveryAfterPickupConstraint, IsValidDateTimeTupleConstraint, IsValidS3Key } from 'src/common/utilities';
+import {
+  IsDeliveryAfterPickupConstraint,
+  IsValidDateTimeTupleConstraint,
+  IsValidS3Key,
+} from '../../../common/utilities';
 
 export class CreatePackageDto {
   @ArrayNotEmpty()
@@ -36,7 +40,7 @@ export class CreatePackageDto {
 
   @ApiProperty({
     description: 'In LxWxH format.',
-    example: '20x30x40'
+    example: '20x30x40',
   })
   @Matches(/^\d+(\.\d+)?x\d+(\.\d+)?x\d+(\.\d+)?$/, {
     message: 'dimensions should be in cm and "LxWxH" format.',
@@ -68,14 +72,14 @@ export class CreatePackageDto {
   deliveryAtDestination: boolean;
 
   @ApiProperty({
-    example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]'
+    example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]',
   })
   @IsOptional()
   @Validate(IsValidDateTimeTupleConstraint)
   preferredPickupTime: [Date, Date]; // [startDateTime, endDateTime]
-  
+
   @ApiProperty({
-    example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]'
+    example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]',
   })
   @IsOptional()
   @Validate(IsValidDateTimeTupleConstraint)

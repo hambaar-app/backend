@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '../../generated/prisma';
 import {
   BadRequestException,
   ConflictException,

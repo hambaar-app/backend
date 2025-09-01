@@ -1,9 +1,9 @@
 import { Controller, Get, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
 import { MapService } from './map.service';
 import { ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { Serialize } from 'src/common/serialize.interceptor';
+import { Serialize } from '../../common/serialize.interceptor';
 import { CityDto } from './dto/city.dto';
-import { AuthResponses } from 'src/common/api-docs.decorators';
+import { AuthResponses } from '../../common/api-docs.decorators';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CoordinateQueryDto, CoordinatesQueryDto } from './coordinates-query.dto';
 import { ReverseGeocodeDto } from './dto/reverse-geocode.dto';
