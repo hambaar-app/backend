@@ -63,7 +63,7 @@ jobs:
           && apt-get install -y bash
         
       - name: Install Dependencies
-        run: cd src && npm ci
+        run: cd src && npm ci --include=dev
         
       # TODO: Uncomment when add e2e tests
       # - name: Push DB with prisma
