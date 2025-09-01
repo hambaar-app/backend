@@ -6,7 +6,7 @@ import {
   NestMiddleware,
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { UserService } from 'src/modules/user/user.service';
+import { UserService } from '../user/user.service';
 import { AuthMessages } from '../../common/enums/messages.enum';
 
 export const CurrentUser = createParamDecorator(

@@ -21,6 +21,4 @@ import { S3Module } from '../s3/s3.module';
   providers: [TripService],
   exports: [TripService]
 })
-export class TripModule {
-  configure() {}
-}
+export class TripModule {}

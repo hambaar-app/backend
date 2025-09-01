@@ -1,10 +1,10 @@
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
-import { AddressResponseDto } from 'src/modules/address/dto/address-response.dto';
+import { AddressResponseDto } from '../../address/dto/address-response.dto';
 import { RecipientResponseDto } from './recipient-response.dto';
-import { PaymentStatusEnum, TripStatusEnum } from 'generated/prisma';
+import { PaymentStatusEnum, TripStatusEnum } from '../../../../generated/prisma';
 import { ApiProperty } from '@nestjs/swagger';
-import { TransporterInfoResponseDto } from 'src/modules/user/dto/transporter-response.dto';
-import { PriceBreakdown } from 'src/modules/pricing/pricing.types';
+import { TransporterInfoResponseDto } from '../../user/dto/transporter-response.dto';
+import { PriceBreakdown } from '../../pricing/pricing.types';
 
 export class PackageCompactResponseDto {
   @Expose()

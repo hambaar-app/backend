@@ -1,6 +1,5 @@
 import { Type } from 'class-transformer';
 import {
-  IsAlpha,
   IsBoolean,
   IsNotEmpty,
   IsOptional,
@@ -8,7 +7,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { CreateAddressDto } from 'src/modules/address/dto/create-address.dto';
+import { CreateAddressDto } from '../../address/dto/create-address.dto';
 
 export class CreateRecipientDto {
   @IsNotEmpty()

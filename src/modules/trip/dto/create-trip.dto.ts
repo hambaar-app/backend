@@ -10,7 +10,7 @@ import {
   Validate,
   ValidateNested,
 } from 'class-validator';
-import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
+import { IsValidDateTimeTupleConstraint } from '../../../common/utilities';
 import { CityDto } from '../../map/dto/city.dto';
 import { Type } from 'class-transformer';
 

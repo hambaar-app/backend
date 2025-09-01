@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatPrismaError } from 'src/common/utilities';
-import { PaymentStatusEnum, TransactionTypeEnum } from 'generated/prisma';
-import { BadRequestMessages } from 'src/common/enums/messages.enum';
+import { formatPrismaError } from '../../common/utilities';
+import { PaymentStatusEnum, TransactionTypeEnum } from '../../../generated/prisma';
+import { BadRequestMessages } from '../../common/enums/messages.enum';
 import { AddFundsAndCreateEscrow, AddFundsDto } from './dto/add-funds.dto';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';

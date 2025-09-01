@@ -26,7 +26,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { RecipientResponseDto } from './dto/recipient-response.dto';
-import { Serialize } from 'src/common/serialize.interceptor';
+import { Serialize } from '../../common/serialize.interceptor';
 import { CreatePackageDto } from './dto/create-package.dto';
 import {
   PackageCompactResponseDto,
@@ -34,14 +34,14 @@ import {
 } from './dto/package-response.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
-import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } from 'src/common/api-docs.decorators';
+import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } from '../../common/api-docs.decorators';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 import { SessionData } from 'express-session';
 import { MatchedTripResponseDto } from '../trip/dto/trip-response.dto';
-import { BadRequestMessages, NotFoundMessages } from 'src/common/enums/messages.enum';
-import { RequestStatusEnum } from 'generated/prisma';
+import { BadRequestMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import { RequestStatusEnum } from '../../../generated/prisma';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
 
 @Controller('packages')

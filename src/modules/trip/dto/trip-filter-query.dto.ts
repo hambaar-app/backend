@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsEnum, IsOptional } from 'class-validator';
-import { TripStatusEnum } from 'generated/prisma';
+import { TripStatusEnum } from '../../../../generated/prisma';
 
 export class TripFilterQueryDto {
   @ApiProperty({

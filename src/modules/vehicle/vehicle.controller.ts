@@ -21,7 +21,7 @@ import {
   ApiOperation,
 } from '@nestjs/swagger';
 import { CreateModelDto } from './dto/create-model.dto';
-import { Serialize } from 'src/common/serialize.interceptor';
+import { Serialize } from '../../common/serialize.interceptor';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import {
   VehicleCompactResponseDto,
@@ -35,9 +35,9 @@ import {
   AuthResponses,
   CrudResponses,
   ValidationResponses,
-} from 'src/common/api-docs.decorators';
+} from '../../common/api-docs.decorators';
 import { CurrentUser } from '../user/current-user.middleware';
-import { NotFoundMessages } from 'src/common/enums/messages.enum';
+import { NotFoundMessages } from '../../common/enums/messages.enum';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
 @Controller('vehicles')

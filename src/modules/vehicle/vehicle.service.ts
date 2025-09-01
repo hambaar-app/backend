@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { formatPrismaError } from 'src/common/utilities';
+import { formatPrismaError } from '../../common/utilities';
 import { CreateModelDto } from './dto/create-model.dto';
 import { CreateVehicleDto, VehicleDocumentsDto, VehicleDocumentUrlsDto } from './dto/create-vehicle.dto';
 import { instanceToPlain, plainToInstance } from 'class-transformer';

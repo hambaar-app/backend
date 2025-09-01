@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { AddressResponseDto } from 'src/modules/address/dto/address-response.dto';
+import { AddressResponseDto } from '../../address/dto/address-response.dto';
 
 export class RecipientResponseDto {
   @Expose()

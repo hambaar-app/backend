@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { UserStatesEnum } from '../types/auth.enums';
-import { TransporterResponseDto } from 'src/modules/user/dto/transporter-response.dto';
-import { RolesEnum } from 'generated/prisma';
+import { TransporterResponseDto } from '../../user/dto/transporter-response.dto';
+import { RolesEnum } from '../../../../generated/prisma';
 
 export class StateDto {  
   @Expose()

@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { CityDto } from '../../map/dto/city.dto';
 import { Type } from 'class-transformer';
-import { IsValidDateTimeTupleConstraint } from 'src/common/utilities';
+import { IsValidDateTimeTupleConstraint } from '../../../common/utilities';
 
 export class UpdateTripDto {
   @IsOptional()

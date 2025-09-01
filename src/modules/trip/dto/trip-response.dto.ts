@@ -1,7 +1,7 @@
-import { TripStatusEnum, TripTypeEnum } from 'generated/prisma';
+import { TripStatusEnum, TripTypeEnum } from '../../../../generated/prisma';
 import { CityDto } from '../../map/dto/city.dto';
 import { Expose, Transform, Type } from 'class-transformer';
-import { VehicleCompactResponseDto } from 'src/modules/vehicle/dto/vehicle-response.dto';
+import { VehicleCompactResponseDto } from '../../vehicle/dto/vehicle-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class TripCompactResponseDto {

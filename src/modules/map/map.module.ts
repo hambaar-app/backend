@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MapService } from './map.service';
 import { HttpModule } from '@nestjs/axios';
 import { MapController } from './map.controller';
-import { Prisma } from 'generated/prisma';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TokenModule } from '../token/token.module';
 

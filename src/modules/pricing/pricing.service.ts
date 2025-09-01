@@ -27,31 +27,31 @@ export class PricingService {
   private readonly majorCities: string[];
   private readonly distanceTiers: DistanceTier[];
 
-  constructor(private configService: ConfigService) {
+  constructor(config: ConfigService) {
     // Base Constants (in Iranian Rial)
-    this.basePrice = this.configService.get<number>('PRICING_BASE_PRICE', 50000);
-    this.fuelRate = this.configService.get<number>('PRICING_FUEL_RATE', 200);
-    this.weightBaseRate = this.configService.get<number>('PRICING_WEIGHT_BASE_RATE', 10000);
-    this.driverShare = this.configService.get<number>('PRICING_DRIVER_SHARE', 0.7);
+    this.basePrice = config.get<number>('PRICING_BASE_PRICE', 50000);
+    this.fuelRate = config.get<number>('PRICING_FUEL_RATE', 200);
+    this.weightBaseRate = config.get<number>('PRICING_WEIGHT_BASE_RATE', 10000);
+    this.driverShare = config.get<number>('PRICING_DRIVER_SHARE', 0.7);
     this.platformCommission = 1 - this.driverShare;
 
     // Multipliers
-    this.fragileMultiplier = this.configService.get<number>('PRICING_FRAGILE_MULTIPLIER', 1.25);
-    this.perishableMultiplier = this.configService.get<number>('PRICING_PERISHABLE_MULTIPLIER', 1.35);
-    this.bothFragilePerishableMultiplier = this.configService.get<number>('PRICING_BOTH_FRAGILE_PERISHABLE', 1.5);
+    this.fragileMultiplier = config.get<number>('PRICING_FRAGILE_MULTIPLIER', 1.25);
+    this.perishableMultiplier = config.get<number>('PRICING_PERISHABLE_MULTIPLIER', 1.35);
+    this.bothFragilePerishableMultiplier = config.get<number>('PRICING_BOTH_FRAGILE_PERISHABLE', 1.5);
 
     // City Premium Factors
-    this.majorCityOrigin = this.configService.get<number>('PRICING_MAJOR_CITY_ORIGIN', 0.9);
-    this.majorCityDestination = this.configService.get<number>('PRICING_MAJOR_CITY_DESTINATION', 1.3);
-    this.bothMajorCities = this.configService.get<number>('PRICING_BOTH_MAJOR_CITIES', 1.0);
-    this.smallCityFactor = this.configService.get<number>('PRICING_SMALL_CITY_FACTOR', 1.2);
+    this.majorCityOrigin = config.get<number>('PRICING_MAJOR_CITY_ORIGIN', 0.9);
+    this.majorCityDestination = config.get<number>('PRICING_MAJOR_CITY_DESTINATION', 1.3);
+    this.bothMajorCities = config.get<number>('PRICING_BOTH_MAJOR_CITIES', 1.0);
+    this.smallCityFactor = config.get<number>('PRICING_SMALL_CITY_FACTOR', 1.2);
 
     // Route Deviation Costs
-    this.deviationRate = this.configService.get<number>('PRICING_DEVIATION_RATE', 15000);
-    this.timeDeviationRate = this.configService.get<number>('PRICING_TIME_DEVIATION_RATE', 5000);
+    this.deviationRate = config.get<number>('PRICING_DEVIATION_RATE', 15000);
+    this.timeDeviationRate = config.get<number>('PRICING_TIME_DEVIATION_RATE', 5000);
 
     // Major Cities List
-    const majorCitiesString = this.configService.get<string>(
+    const majorCitiesString = config.get<string>(
       'PRICING_MAJOR_CITIES', 'تهران,اصفهان,مشهد'
     );
     this.majorCities = majorCitiesString.split(',').map(city => city.trim());
@@ -61,27 +61,27 @@ export class PricingService {
       {
         minKm: 0,
         maxKm: 100,
-        ratePerKm: this.configService.get<number>('PRICING_TIER_1_RATE', 1000)
+        ratePerKm: config.get<number>('PRICING_TIER_1_RATE', 1000)
       },
       {
         minKm: 101,
         maxKm: 300,
-        ratePerKm: this.configService.get<number>('PRICING_TIER_2_RATE', 950)
+        ratePerKm: config.get<number>('PRICING_TIER_2_RATE', 950)
       },
       {
         minKm: 301,
         maxKm: 600,
-        ratePerKm: this.configService.get<number>('PRICING_TIER_3_RATE', 850)
+        ratePerKm: config.get<number>('PRICING_TIER_3_RATE', 850)
       },
       {
         minKm: 601,
         maxKm: 1000,
-        ratePerKm: this.configService.get<number>('PRICING_TIER_4_RATE', 750)
+        ratePerKm: config.get<number>('PRICING_TIER_4_RATE', 750)
       },
       {
         minKm: 1001,
         maxKm: Infinity,
-        ratePerKm: this.configService.get<number>('PRICING_TIER_5_RATE', 600)
+        ratePerKm: config.get<number>('PRICING_TIER_5_RATE', 600)
       }
     ];
   }
