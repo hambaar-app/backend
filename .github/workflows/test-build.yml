@@ -73,7 +73,7 @@ jobs:
         run: npm run prisma:generate
 
       - name: Run Unit Tests
-        run: npm test     
+        run: cd src && npm test     
   build:
     runs-on: ubuntu-latest
     needs: test
