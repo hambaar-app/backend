@@ -63,7 +63,7 @@ jobs:
         run: npm ci
         
       - name: Push DB with prisma
-        run: npm run db-push
+        run: npm run prisma:push
           
       - name: Test
         run: npm test
