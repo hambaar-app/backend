@@ -1,0 +1,110 @@
+name: Stable Merge
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@hambaar.postgres:5432/${{ secrets.POSTGRES_DB }}
+  REDIS_URL: redis://:${{ secrets.REDIS_PASSWORD }}@hambaar.redis:6379
+  JWT_ACCESS_SECRET_KEY: ${{ secrets.JWT_ACCESS_SECRET_KEY }}
+  JWT_PROGRESS_SECRET_KEY: ${{ secrets.JWT_PROGRESS_SECRET_KEY }}
+  JWT_TEMP_SECRET_KEY: ${{ secrets.JWT_TEMP_SECRET_KEY }}
+  COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
+  SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+  AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+  AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+  MAP_API_KEY: ${{ secrets.MAP_API_KEY }}
+  MAP_API_URL: ${{ secrets.MAP_API_URL }}
+  SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: node:22-bookworm-slim
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        
+      - name: Update and Upgrade image
+        run: apt-get update -y
+          && apt-get upgrade -y
+          && apt-get install -y openssl
+          && apt-get install -y bash
+        
+      - name: Install Dependencies
+        run: npm ci
+        
+      # TODO: Uncomment when add e2e tests
+      # - name: Push DB with prisma
+      #   run: npm run prisma:push
+      
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+
+      - name: Run Unit Tests
+        run: cd src && npm test     
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: 1mimhe/hambaar-app
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=main-
+            latest
+        
+      - name: Build Image and Push to DockerHub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: runtime
