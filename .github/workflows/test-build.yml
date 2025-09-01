@@ -61,10 +61,10 @@ jobs:
           && apt-get upgrade -y
           && apt-get install -y openssl
           && apt-get install -y bash
-          && npm i -g ts-jest
+          # && npm i -g ts-jest
         
       - name: Install Deps
-        run: npm ci
+        run: cd src && npm ci
         
       # - name: Push DB with prisma
       #   run: npm run prisma:push
