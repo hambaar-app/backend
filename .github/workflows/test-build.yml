@@ -61,6 +61,7 @@ jobs:
           && apt-get upgrade -y
           && apt-get install -y openssl
           && apt-get install -y bash
+          && npm i -g ts-jest
         
       - name: Install Deps
         run: npm ci
