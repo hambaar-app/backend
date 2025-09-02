@@ -69,10 +69,6 @@ services:
       hambaar-network:
 
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runtime
     image: 1mimhe/hambaar-api:latest
     container_name: hambaar-api
     hostname: hambaar.api
