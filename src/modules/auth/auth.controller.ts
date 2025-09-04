@@ -111,7 +111,9 @@ export class AuthController {
 
         res.cookie(CookieNames.AccessToken, token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          // TODO: Fix this when you deploy on a https server
+          // secure: process.env.NODE_ENV === 'production',
+          secure: false,
           sameSite: 'strict',
           maxAge: this.cookieMaxAge,
         });
@@ -120,7 +122,9 @@ export class AuthController {
       case AuthTokens.Temporary:
         res.cookie(CookieNames.TemporaryToken, token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          // TODO: Fix this when you deploy on a https server
+          // secure: process.env.NODE_ENV === 'production',
+          secure: false,
           sameSite: 'strict',
           maxAge: 20 * 60 * 1000,
         });
@@ -129,7 +133,7 @@ export class AuthController {
       case AuthTokens.Progress:
         res.cookie(CookieNames.ProgressToken, token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          
           sameSite: 'strict',
           maxAge: this.progressMaxAge,
         });
@@ -174,7 +178,9 @@ export class AuthController {
     session.accessToken = accessToken;
     res.cookie(CookieNames.AccessToken, accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // TODO: Fix this when you deploy on a https server
+      // secure: process.env.NODE_ENV === 'production',
+      secure: false,
       sameSite: 'strict',
       maxAge: this.cookieMaxAge,
     });
@@ -224,7 +230,9 @@ export class AuthController {
 
     res.cookie(CookieNames.ProgressToken, progressToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // TODO: Fix this when you deploy on a https server
+      // secure: process.env.NODE_ENV === 'production',
+      secure: false,
       sameSite: 'strict',
       maxAge: this.progressMaxAge,
     });
@@ -291,7 +299,9 @@ export class AuthController {
     session.accessToken = accessToken;
     res.cookie(CookieNames.AccessToken, accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // TODO: Fix this when you deploy on a https server
+      // secure: process.env.NODE_ENV === 'production',
+      secure: false,
       sameSite: 'strict',
       maxAge: this.cookieMaxAge,
     });

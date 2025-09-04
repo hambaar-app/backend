@@ -85,7 +85,9 @@ export class AppModule {
           }),
           cookie: {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            // TODO: Fix this when you deploy on a https server
+            // secure: process.env.NODE_ENV === 'production',
+            secure: false,
             sameSite: 'strict',
             maxAge: this.config.get<number>('COOKIE_MAX_AGE', 15 * 24 * 3600 * 1000) // 15 days
           }

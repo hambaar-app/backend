@@ -4,7 +4,7 @@ volumes:
   redis_data:
 
 networks:
-  hambaar-network:
+  hambaar-network-dev:
     driver: bridge
     driver_opts:
       com.docker.network.enable_ipv6: 'false'
@@ -41,7 +41,7 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      hambaar-network:
+      hambaar-network-dev:
 
   redis:
     image: redis:8-alpine
@@ -66,14 +66,13 @@ services:
       retries: 5
       start_period: 5s
     networks:
-      hambaar-network:
+      hambaar-network-dev:
 
   api-dev:
     build:
       context: .
       dockerfile: Dockerfile
       target: dev
-    image: 1mimhe/hambaar-backend-dev:latest
     container_name: hambaar-api-dev
     hostname: hambaar.api.dev
     restart: unless-stopped
@@ -101,7 +100,7 @@ services:
         npm run start:dev
       "
     networks:
-      - hambaar-network
+      - hambaar-network-dev
     profiles:
       - backend
 
@@ -114,7 +113,7 @@ services:
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
-      - api
+      - api-dev
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]
       interval: 30s
@@ -122,6 +121,6 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - hambaar-network
+      - hambaar-network-dev
     profiles:
       - frontend
