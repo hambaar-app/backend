@@ -118,13 +118,13 @@ export class VehicleService {
       await Promise.all(
         singleKeys.map(async (key) => {
           const newKey = key.replace('Key', '');
-          try {
-            if (documents[key]) {
-              presignedUrls[newKey] = this.s3Service.generateGetPresignedUrl(documents[key]);
+          if (documents[key]) {
+            try {
+              presignedUrls[newKey] = await this.s3Service.generateGetPresignedUrl(documents[key]);
+            } catch (urlError) {
+              console.error(`Failed to generate presigned URL for ${key}:`, urlError);
+              presignedUrls[newKey] = ''; // Set empty string for failed URLs
             }
-          } catch (urlError) {
-            console.error(`Failed to generate presigned URL for ${key}:`, urlError);
-            presignedUrls[newKey] = ''; // Set empty string for failed URLs
           }
         })
       );
