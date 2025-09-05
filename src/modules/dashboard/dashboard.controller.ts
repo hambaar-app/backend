@@ -1,10 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { AuthResponses } from 'src/common/api-docs.decorators';
+import { AuthResponses } from '../../common/api-docs.decorators';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CurrentUser } from '../user/current-user.middleware';
-import { Serialize } from 'src/common/serialize.interceptor';
+import { Serialize } from '../../common/serialize.interceptor';
 import { DashboardResponseDto } from './dashboard.dto';
 
 @Controller('dashboard')
