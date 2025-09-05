@@ -36,13 +36,6 @@ describe('PackageService', () => {
   let s3Service: DeepMockProxy<S3Service>;
   let turfService: DeepMockProxy<TurfService>;
 
-  const mockUser = {
-    id: 'user-123',
-    firstName: 'احمد',
-    lastName: 'محمدی',
-    phoneNumber: '+989123456789',
-  } as any;
-
   const mockCity = {
     id: 'city-123',
     name: 'تهران',
@@ -119,6 +112,8 @@ describe('PackageService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     prismaService = mockDeep<PrismaClient>();
     mapService = mockDeep<MapService>();
     pricingService = mockDeep<PricingService>();
@@ -203,6 +198,9 @@ describe('PackageService', () => {
 
       await expect(service.createRecipient('user-123', recipientDto))
         .rejects.toThrow('Formatted error');
+      
+      // Reset the mock after this test
+      ((utilities.formatPrismaError as unknown) as jest.Mock).mockReset();
     });
   });
 
@@ -312,23 +310,29 @@ describe('PackageService', () => {
       });
       expect(pricingService.calculateSuggestedPrice).toHaveBeenCalled();
     });
-// TODO
-    // it('should throw when origin address not found', async () => {
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.address.findFirst.mockResolvedValue(null);
 
-    //   await expect(service.create('user-123', packageDto))
-    //     .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} origin address.`));
-    // });
+    it('should throw when origin address not found', async () => {
+      // Reset formatPrismaError mock to ensure clean state
+      ((utilities.formatPrismaError as unknown) as jest.Mock).mockReset();
+      
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.address.findFirst.mockResolvedValue(null);
 
-    // it('should throw when recipient not found', async () => {
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.address.findFirst.mockResolvedValue(mockOriginAddress);
-    //   prismaService.packageRecipient.findFirst.mockResolvedValue(null);
+      await expect(service.create('user-123', packageDto))
+        .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} origin address.`));
+    });
 
-    //   await expect(service.create('user-123', packageDto))
-    //     .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} recipient.`));
-    // });
+    it('should throw when recipient not found', async () => {
+      // Reset formatPrismaError mock to ensure clean state
+      ((utilities.formatPrismaError as unknown) as jest.Mock).mockReset();
+      
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.address.findFirst.mockResolvedValue(mockOriginAddress);
+      prismaService.packageRecipient.findFirst.mockResolvedValue(null);
+
+      await expect(service.create('user-123', packageDto))
+        .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} recipient.`));
+    });
   });
 
   describe('getById', () => {
@@ -342,16 +346,21 @@ describe('PackageService', () => {
       };
       
       prismaService.package.findFirstOrThrow.mockResolvedValue(mockPackage);
+      s3Service.generateGetPresignedUrl.mockReset();
       s3Service.generateGetPresignedUrl.mockResolvedValueOnce('url1').mockResolvedValueOnce('url2');
 
       const result = await service.getById('package-123');
 
       expect(result).toMatchObject(packageWithUrls);
     });
-// TODO
+    // TODO: fix    
     // it('should handle S3 URL generation errors', async () => {
     //   prismaService.package.findFirstOrThrow.mockResolvedValue(mockPackage);
-    //   s3Service.generateGetPresignedUrl.mockRejectedValueOnce(new Error('S3 error')).mockResolvedValueOnce('url2');
+      
+    //   s3Service.generateGetPresignedUrl.mockReset();
+    //   s3Service.generateGetPresignedUrl
+    //     .mockRejectedValue(new Error('S3 error'))
+    //     .mockResolvedValueOnce('url2');
 
     //   const result = await service.getById('package-123');
 
@@ -387,27 +396,27 @@ describe('PackageService', () => {
       });
     });
 
-    // it('should throw when package status is invalid', async () => {
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.package.findFirstOrThrow.mockResolvedValue({
-    //     status: PackageStatusEnum.matched,
-    //     suggestedPrice: 50000
-    //   } as any);
+    it('should throw when package status is invalid', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.package.findFirstOrThrow.mockResolvedValue({
+        status: PackageStatusEnum.matched,
+        suggestedPrice: 50000
+      } as any);
 
-    //   await expect(service.update('package-123', updateDto))
-    //     .rejects.toThrow(new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${PackageStatusEnum.matched}.`));
-    // });
-    // TODO
-    // it('should throw when final price is below suggested price', async () => {
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.package.findFirstOrThrow.mockResolvedValue({
-    //     status: PackageStatusEnum.created,
-    //     suggestedPrice: 50000
-    //   } as any);
+      await expect(service.update('package-123', updateDto))
+        .rejects.toThrow(new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${PackageStatusEnum.matched}.`));
+    });
 
-    //   await expect(service.update('package-123', { finalPrice: 40000 }))
-    //     .rejects.toThrow(new BadRequestException(BadRequestMessages.InvalidPrice));
-    // });
+    it('should throw when final price is below suggested price', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.package.findFirstOrThrow.mockResolvedValue({
+        status: PackageStatusEnum.created,
+        suggestedPrice: 50000
+      } as any);
+
+      await expect(service.update('package-123', { finalPrice: 40000 }))
+        .rejects.toThrow(new BadRequestException(BadRequestMessages.InvalidPrice));
+    });
   });
 
   describe('delete', () => {
@@ -428,16 +437,16 @@ describe('PackageService', () => {
         data: { deletedAt: expect.any(Date) }
       });
     });
-// TODO
-    // it('should throw when package status is invalid', async () => {
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.package.findFirstOrThrow.mockResolvedValue({
-    //     status: PackageStatusEnum.matched
-    //   } as any);
 
-    //   await expect(service.delete('package-123'))
-    //     .rejects.toThrow(new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${PackageStatusEnum.matched}.`));
-    // });
+    it('should throw when package status is invalid', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.package.findFirstOrThrow.mockResolvedValue({
+        status: PackageStatusEnum.matched
+      } as any);
+
+      await expect(service.delete('package-123'))
+        .rejects.toThrow(new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${PackageStatusEnum.matched}.`));
+    });
   });
 
   describe('getMatchedTrips', () => {
@@ -470,16 +479,16 @@ describe('PackageService', () => {
       expect(result).toHaveLength(1);
       expect(result[0]?.additionalPrice).toBe(5000);
     });
-// TODO
-    // it('should throw when package status is invalid', async () => {
-    //   const invalidPackage = { ...mockPackage, status: PackageStatusEnum.matched };
-      
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   service.getById = jest.fn().mockResolvedValue(invalidPackage);
 
-    //   await expect(service.getMatchedTrips('package-123', session))
-    //     .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestPackage));
-    // });
+    it('should throw when package status is invalid', async () => {
+      const invalidPackage = { ...mockPackage, status: PackageStatusEnum.matched };
+      
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      service.getById = jest.fn().mockResolvedValue(invalidPackage);
+
+      await expect(service.getMatchedTrips('package-123', session))
+        .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestPackage));
+    });
   });
 
   describe('createRequest', () => {
@@ -535,62 +544,62 @@ describe('PackageService', () => {
       expect(result).toEqual(createdRequest);
       expect(session.packages[0].matchResults[0].isRequestSent).toBe(true);
     });
-// TODO
-    // it('should throw when user does not own package', async () => {
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.package.findUniqueOrThrow.mockResolvedValue({
-    //     ...mockPackage,
-    //     senderId: 'other-user'
-    //   });
 
-    //   await expect(service.createRequest('user-123', requestDto, session))
-    //     .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`));
-    // });
+    it('should throw when user does not own package', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.package.findUniqueOrThrow.mockResolvedValue({
+        ...mockPackage,
+        senderId: 'other-user'
+      });
 
-    // it('should throw when package status is invalid', async () => {
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.package.findUniqueOrThrow.mockResolvedValue({
-    //     ...mockPackage,
-    //     status: PackageStatusEnum.matched
-    //   });
+      await expect(service.createRequest('user-123', requestDto, session))
+        .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`));
+    });
 
-    //   await expect(service.createRequest('user-123', requestDto, session))
-    //     .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestPackage));
-    // });
+    it('should throw when package status is invalid', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.package.findUniqueOrThrow.mockResolvedValue({
+        ...mockPackage,
+        status: PackageStatusEnum.matched
+      });
 
-    // it('should throw when trip status is invalid', async () => {
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.package.findUniqueOrThrow.mockResolvedValue({
-    //     ...mockPackage,
-    //     status: PackageStatusEnum.searching_transporter
-    //   });
-    //   prismaService.trip.findUniqueOrThrow.mockResolvedValue({
-    //     ...mockTrip,
-    //     status: TripStatusEnum.completed
-    //   });
+      await expect(service.createRequest('user-123', requestDto, session))
+        .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestPackage));
+    });
 
-    //   await expect(service.createRequest('user-123', requestDto, session))
-    //     .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestTrip));
-    // });
+    it('should throw when trip status is invalid', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.package.findUniqueOrThrow.mockResolvedValue({
+        ...mockPackage,
+        status: PackageStatusEnum.searching_transporter
+      });
+      prismaService.trip.findUniqueOrThrow.mockResolvedValue({
+        ...mockTrip,
+        status: TripStatusEnum.completed
+      });
 
-    // it('should throw when no matched trips found', async () => {
-    //   const emptySession = {
-    //     packages: []
-    //   } as any;
+      await expect(service.createRequest('user-123', requestDto, session))
+        .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestTrip));
+    });
 
-    //   prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-    //   prismaService.package.findUniqueOrThrow.mockResolvedValue({
-    //     ...mockPackage,
-    //     status: PackageStatusEnum.searching_transporter
-    //   });
-    //   prismaService.trip.findUniqueOrThrow.mockResolvedValue({
-    //     ...mockTrip,
-    //     status: TripStatusEnum.scheduled
-    //   });
+    it('should throw when no matched trips found', async () => {
+      const emptySession = {
+        packages: []
+      } as any;
 
-    //   await expect(service.createRequest('user-123', requestDto, emptySession))
-    //     .rejects.toThrow(new NotFoundException(NotFoundMessages.MatchedTrip));
-    // });
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.package.findUniqueOrThrow.mockResolvedValue({
+        ...mockPackage,
+        status: PackageStatusEnum.searching_transporter
+      });
+      prismaService.trip.findUniqueOrThrow.mockResolvedValue({
+        ...mockTrip,
+        status: TripStatusEnum.scheduled
+      });
+
+      await expect(service.createRequest('user-123', requestDto, emptySession))
+        .rejects.toThrow(new NotFoundException(NotFoundMessages.MatchedTrip));
+    });
   });
 
   describe('getAllPackageRequests', () => {
@@ -724,6 +733,9 @@ describe('PackageService', () => {
 
       await expect(service.getAll('user-123'))
         .rejects.toThrow('Formatted error');
+      
+      // Reset the mock after this test
+      ((utilities.formatPrismaError as unknown) as jest.Mock).mockReset();
     });
 
     it('should handle empty picturesKey array', async () => {
