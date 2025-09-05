@@ -15,6 +15,7 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { isAfter, isValid } from 'date-fns';
+import moment from 'moment';
 
 export const generateCode = () => {
   return crypto.randomInt(11_111, 99_999);
@@ -197,4 +198,18 @@ export function IsValidS3Key(validationOptions?: ValidationOptions) {
       validator: IsValidS3KeyConstraint,
     });
   };
+}
+
+// Function to convert numbers to Persian digits
+export function toPersianDigits(number) {
+  const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return number.toString().replace(/[0-9]/g, (digit) => persianDigits[parseInt(digit)]);
+}
+
+// Function to calculate date difference and return in Persian format
+export function getDateDifference(startDate: Date, endDate: Date) {
+  const duration = moment.duration(moment(endDate).diff(moment(startDate)));
+  const years = Math.floor(duration.asYears());
+  const months = Math.floor(duration.asMonths() % 12);
+  return `${toPersianDigits(years)} سال و ${toPersianDigits(months)} ماه`;
 }
