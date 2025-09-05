@@ -460,12 +460,9 @@ async function seedVehicleBrandsAndModels() {
   }
 }
 
-if (import.meta.url.endsWith(process.argv[1])) {
-  seedVehicleBrandsAndModels()
-    .catch((error) => {
-      console.error(error);
-      process.exit(0);
-    });
-}
+seedVehicleBrandsAndModels().catch((error) => {
+  console.error(error);
+  process.exit(0);
+});
 
 export default seedVehicleBrandsAndModels;

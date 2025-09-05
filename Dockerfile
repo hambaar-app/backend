@@ -9,7 +9,7 @@ RUN apt-get update -y && \
     apt-get upgrade -y && \
     apt-get install -y openssl && \
     apt-get install -y bash && \
-    npm install -g ts-node && \
+    npm install -g tsx && \
     npm install -g @nestjs/cli && \
     npm install -g prisma && \
     npm install -g concurrently
