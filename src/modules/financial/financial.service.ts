@@ -100,7 +100,8 @@ export class FinancialService {
               }
             }
           }
-        }
+        },
+        request: true
       }
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -112,6 +113,7 @@ export class FinancialService {
     }
 
     const senderId = matchedRequest.package.senderId;
+    const transporterId = matchedRequest.trip.transporter.userId;
     const finalPrice = matchedRequest.package.finalPrice;
     
     const senderWallet = await this.getWallet(senderId, 1, 0);    
@@ -119,6 +121,7 @@ export class FinancialService {
       throw new BadRequestException(BadRequestMessages.NotEnoughBalance);
     }
 
+    const transporterWallet = await this.getWallet(transporterId, 1, 0);  
     return this.prisma.$transaction(async (tx) => {
       // Escrow funds from sender
       await tx.wallet.update({
@@ -140,6 +143,17 @@ export class FinancialService {
           transactionType: TransactionTypeEnum.escrow,
           amount: finalPrice,
           balanceBefore: senderWallet.balance,
+          reason: `Escrowed payment for package ${matchedRequest.package.id}.`,
+          matchedRequestId: matchedRequest.id
+        }
+      });
+
+      await tx.transaction.create({
+        data: {
+          walletId: transporterWallet.id,
+          transactionType: TransactionTypeEnum.escrow,
+          amount: matchedRequest.request.offeredPrice,
+          balanceBefore: transporterWallet.balance,
           reason: `Escrowed payment for package ${matchedRequest.package.id}.`,
           matchedRequestId: matchedRequest.id
         }
@@ -218,7 +232,7 @@ export class FinancialService {
     const escrowedAmount = matchedRequest.package.finalPrice;
     const transporterEarnings = matchedRequest.request.offeredPrice;
     
-    const transporterWallet = await this.getWallet(transporterId, 1, 0,tx);
+    const transporterWallet = await this.getWallet(transporterId, 1, 0, tx);
 
     // Release escrow from sender
     await tx.wallet.update({

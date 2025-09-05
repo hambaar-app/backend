@@ -21,6 +21,7 @@ import { TripModule } from '../trip/trip.module';
 import { FinancialModule } from '../financial/financial.module';
 import { MapModule } from '../map/map.module';
 import { HealthModule } from '../health/health.module';
+import { DashboardModule } from '../dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -40,14 +41,15 @@ import { HealthModule } from '../health/health.module';
     }),
     AuthModule,
     UserModule,
+    DashboardModule,
     VehicleModule,
     S3Module,
-    SupportModule,
     AddressModule,
     PackageModule,
     TripModule,
     MapModule,
     FinancialModule,
+    SupportModule,
     HealthModule,
   ],
   controllers: [AppController],

@@ -45,12 +45,9 @@ async function seedTestAdminUser() {
   }
 }
 
-if (import.meta.url.endsWith(process.argv[1])) {
-  seedTestAdminUser()
-    .catch((error) => {
-      console.error(error);
-      process.exit(0);
-    });
-}
+seedTestAdminUser().catch((error) => {
+  console.error(error);
+  process.exit(0);
+});
 
 export default seedTestAdminUser;
