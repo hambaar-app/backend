@@ -45,7 +45,7 @@ export class DashboardService {
       throw error;
     });
 
-    const totalBalance = (wallet?.balance ?? BigInt(0)) + BigInt(wallet?.escrowedAmount ?? 0);
+    const totalWalletBalance = (wallet?.balance ?? BigInt(0)) + BigInt(wallet?.escrowedAmount ?? 0);
 
     let experience: string | undefined;
     if (
@@ -67,7 +67,7 @@ export class DashboardService {
 
     return {
       fullName: `${user.firstName} ${user.lastName}`,
-      totalBalance,
+      totalBalance: totalWalletBalance,
       role,
       profilePictureUrl: await this.s3Service.generateGetPresignedUrl(transporter?.profilePictureKey),
       rate: transporter?.rate,
