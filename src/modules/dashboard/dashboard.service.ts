@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatPrismaError, getDateDifference } from 'src/common/utilities';
-import { PackageStatusEnum, PaymentStatusEnum, RequestStatusEnum, RolesEnum, TransactionTypeEnum, TripStatusEnum } from 'generated/prisma';
+import { formatPrismaError, getDateDifference } from '../../common/utilities';
+import { PackageStatusEnum, PaymentStatusEnum, RequestStatusEnum, RolesEnum, TransactionTypeEnum, TripStatusEnum } from '../../../generated/prisma';
 import { S3Service } from '../s3/s3.service';
 import { SenderStatistics, TransporterStatistics } from './dashboard.types';
 
