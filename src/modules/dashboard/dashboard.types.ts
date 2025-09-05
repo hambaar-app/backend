@@ -4,3 +4,10 @@ export interface TransporterStatistics {
   notDeliveredPackages: number;
   totalEscrowedAmount: bigint;
 }
+
+export interface SenderStatistics {
+  notPickedUpPackages: number;
+  inTransitPackages: number;
+  deliveredPackages: number;
+  totalUnpaidAmount: number;
+}

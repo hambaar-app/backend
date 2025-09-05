@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, getDateDifference } from 'src/common/utilities';
-import { PackageStatusEnum, RequestStatusEnum, RolesEnum, TransactionTypeEnum, TripStatusEnum } from 'generated/prisma';
+import { PackageStatusEnum, PaymentStatusEnum, RequestStatusEnum, RolesEnum, TransactionTypeEnum, TripStatusEnum } from 'generated/prisma';
 import { S3Service } from '../s3/s3.service';
-import { TransporterStatistics } from './dashboard.types';
+import { SenderStatistics, TransporterStatistics } from './dashboard.types';
 
 @Injectable()
 export class DashboardService {
@@ -57,9 +57,12 @@ export class DashboardService {
       experience = getDateDifference(transporter.firstTripDate, transporter.lastTripDate);
     }
 
-    let statistics: TransporterStatistics | undefined;
+    let statistics: TransporterStatistics | SenderStatistics | undefined;
     if (role === RolesEnum.transporter) {
       statistics = await this.getTransporterStatistics(userId);
+    }
+    if (role === RolesEnum.sender) {
+      statistics = await this.getSenderStatistics(userId);
     }
 
     return {
@@ -156,6 +159,53 @@ export class DashboardService {
       pendingRequests,
       notDeliveredPackages,
       totalEscrowedAmount: totalEscrowedAmount ?? BigInt(0),
+    };
+  }
+
+  private async getSenderStatistics(userId: string): Promise<SenderStatistics> {
+    const notPickedUpPackages = await this.prisma.package.count({
+      where: {
+        senderId: userId,
+        status: PackageStatusEnum.matched
+      }
+    });
+
+    const inTransitPackages = await this.prisma.package.count({
+      where: {
+        senderId: userId,
+        status: {
+          in: [
+            PackageStatusEnum.picked_up,
+            PackageStatusEnum.in_transit,
+          ]
+        }
+      }
+    });
+
+    const deliveredPackages = await this.prisma.package.count({
+      where: {
+        senderId: userId,
+        status: PackageStatusEnum.delivered
+      }
+    });
+
+    const { _sum: { finalPrice: totalUnpaidAmount } } = await this.prisma.package.aggregate({
+      where: {
+        senderId: userId,
+        matchedRequest: {
+          paymentStatus: PaymentStatusEnum.unpaid,
+        }
+      },
+      _sum: {
+        finalPrice: true
+      }
+    });
+
+    return {
+      notPickedUpPackages,
+      inTransitPackages,
+      deliveredPackages,
+      totalUnpaidAmount: totalUnpaidAmount ?? 0
     };
   }
 }
