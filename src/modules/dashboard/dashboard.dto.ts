@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { AuthRoles } from 'src/common/enums/auth.enum';
+import { AuthRoles } from '../../common/enums/auth.enum';
 
 class Statistics {
   @Expose()
