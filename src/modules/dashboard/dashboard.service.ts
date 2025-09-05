@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, getDateDifference } from 'src/common/utilities';
-import { RolesEnum } from 'generated/prisma';
+import { PackageStatusEnum, RequestStatusEnum, RolesEnum, TransactionTypeEnum, TripStatusEnum } from 'generated/prisma';
 import { S3Service } from '../s3/s3.service';
+import { TransporterStatistics } from './dashboard.types';
 
 @Injectable()
 export class DashboardService {
@@ -56,6 +57,11 @@ export class DashboardService {
       experience = getDateDifference(transporter.firstTripDate, transporter.lastTripDate);
     }
 
+    let statistics: TransporterStatistics | undefined;
+    if (role === RolesEnum.transporter) {
+      statistics = await this.getTransporterStatistics(userId);
+    }
+
     return {
       fullName: `${user.firstName} ${user.lastName}`,
       totalBalance,
@@ -64,6 +70,92 @@ export class DashboardService {
       rate: transporter?.rate,
       experience,
       bio: transporter?.bio,
+      statistics
+    };
+  }
+
+  private async getTransporterStatistics(userId: string): Promise<TransporterStatistics> {
+    const completedTrips = await this.prisma.trip.count({
+      where: {
+        transporter: {
+          userId
+        }
+      }
+    });
+
+    const pendingRequests = await this.prisma.tripRequest.count({
+      where: {
+        trip: {
+          transporter: {
+            userId
+          },
+          status: {
+            in: [
+              TripStatusEnum.scheduled,
+              TripStatusEnum.delayed
+            ]
+          },
+        },
+        status: RequestStatusEnum.pending
+      }
+    });
+
+    const notDeliveredPackages = await this.prisma.package.count({
+      where: {
+        matchedRequest: {
+          trip: {
+            transporter: {
+              userId
+            }
+          }
+        },
+        status: {
+          in: [
+            PackageStatusEnum.matched,
+            PackageStatusEnum.in_transit,
+            PackageStatusEnum.picked_up,
+          ]
+        }
+      }
+    });
+
+    const { _sum: { amount: totalEscrowedAmount } } = await this.prisma.transaction.aggregate({
+      where: {
+        wallet: {
+          userId
+        },
+        transactionType: TransactionTypeEnum.escrow,
+        matchedRequestId: {
+          notIn: (await this.prisma.transaction.findMany({
+            where: {
+              wallet: {
+                userId
+              },
+              transactionType: {
+                in: [
+                  TransactionTypeEnum.release,
+                  TransactionTypeEnum.refund
+                ]
+              }
+            },
+            select: {
+              matchedRequestId: true
+            }
+          }))
+          .map(t => t.matchedRequestId)
+          .filter(i => i !== null)
+        }
+      },
+      _sum: {
+        amount: true
+      }
+    });
+
+    return {
+      completedTrips,
+      pendingRequests,
+      notDeliveredPackages,
+      totalEscrowedAmount: totalEscrowedAmount ?? BigInt(0),
     };
   }
 }
