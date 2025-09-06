@@ -56,6 +56,8 @@ describe('AuthService', () => {
   } as any;
 
   beforeEach(async () => {
+    jest.resetAllMocks();
+
     tokenService = mockDeep<TokenService>();
     userService = mockDeep<UserService>();
     vehicleService = mockDeep<VehicleService>();
@@ -77,6 +79,9 @@ describe('AuthService', () => {
       return config[key] || defaultValue;
     });
 
+    // Reset utility mocks to default values
+    (utilities.generateCode as jest.Mock).mockReturnValue(12345);
+    
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,

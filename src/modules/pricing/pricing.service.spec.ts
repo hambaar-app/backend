@@ -40,6 +40,8 @@ describe('PricingService', () => {
   };
 
   beforeEach(async () => {
+    jest.resetAllMocks();
+
     configService = mockDeep<ConfigService>();
 
     configService.get.mockImplementation((key: string, defaultValue?: any) => {
@@ -117,12 +119,11 @@ describe('PricingService', () => {
     });
 
     it('should calculate weight cost correctly', async () => {
-      const lightInput = { ...mockPricingInput, weightGr: 400 }; // 400gr, should be 0 cost
-      const heavyInput = { ...mockPricingInput, weightGr: 5000 }; // 5000gr
+      const lightInput = { ...mockPricingInput, weightGr: 400 };
+      const heavyInput = { ...mockPricingInput, weightGr: 5000 };
 
       const lightResult = service.calculateSuggestedPrice(lightInput);
       const heavyResult = service.calculateSuggestedPrice(heavyInput);
-      console.log(heavyResult);
       
       expect(lightResult.breakdown.weightCost).toBe(0);
       expect(heavyResult.breakdown.weightCost).toBeGreaterThan(0);
@@ -169,7 +170,7 @@ describe('PricingService', () => {
       const cost = service.calculateDistanceCost(200);
       const expectedCost = (200 * defaultConfig.PRICING_FUEL_RATE)
         + (100 * defaultConfig.PRICING_TIER_1_RATE)
-        + (100 * defaultConfig.PRICING_TIER_2_RATE); // fuel + tier1 + tier2
+        + (100 * defaultConfig.PRICING_TIER_2_RATE);
 
       expect(cost).toBe(expectedCost);
     });
@@ -271,7 +272,7 @@ describe('PricingService', () => {
         destinationCity: 'مشهد'
       });
 
-      expect(majorToMajor.breakdown.cityPremiumCost).toBe(0); // Both major cities multiplier is 1.0
+      expect(majorToMajor.breakdown.cityPremiumCost).toBe(0); // Both major cities
     });
 
     it('should handle case insensitive city names', async () => {
@@ -379,7 +380,7 @@ describe('PricingService', () => {
       const earnings = customService.calculateTransporterEarnings(100000);
 
       expect(result.breakdown.basePrice).toBe(100000);
-      expect(earnings).toBe(80000); // 80% driver share
+      expect(earnings).toBe(80000);
     });
 
     it('should use default values when config is missing', async () => {
@@ -428,7 +429,7 @@ describe('PricingService', () => {
         destinationCity: 'تبریز'
       });
 
-      expect(shirazToTabriz.breakdown.cityPremiumCost).toBe(0); // Both are major cities in custom config
+      expect(shirazToTabriz.breakdown.cityPremiumCost).toBe(0);
     });
   });
 
@@ -460,7 +461,6 @@ describe('PricingService', () => {
                             result.breakdown.distanceCost + 
                             result.breakdown.weightCost;
 
-      // The actual price should be close to calculated total after applying multipliers
       expect(result.suggestedPrice).toBeGreaterThan(calculatedTotal);
     });
   });

@@ -112,7 +112,7 @@ describe('PackageService', () => {
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
 
     prismaService = mockDeep<PrismaClient>();
     mapService = mockDeep<MapService>();
@@ -198,9 +198,6 @@ describe('PackageService', () => {
 
       await expect(service.createRecipient('user-123', recipientDto))
         .rejects.toThrow('Formatted error');
-      
-      // Reset the mock after this test
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockReset();
     });
   });
 
@@ -311,10 +308,7 @@ describe('PackageService', () => {
       expect(pricingService.calculateSuggestedPrice).toHaveBeenCalled();
     });
 
-    it('should throw when origin address not found', async () => {
-      // Reset formatPrismaError mock to ensure clean state
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockReset();
-      
+    it('should throw when origin address not found', async () => {      
       prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
       prismaService.address.findFirst.mockResolvedValue(null);
 
@@ -322,10 +316,7 @@ describe('PackageService', () => {
         .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} origin address.`));
     });
 
-    it('should throw when recipient not found', async () => {
-      // Reset formatPrismaError mock to ensure clean state
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockReset();
-      
+    it('should throw when recipient not found', async () => {      
       prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
       prismaService.address.findFirst.mockResolvedValue(mockOriginAddress);
       prismaService.packageRecipient.findFirst.mockResolvedValue(null);
@@ -346,7 +337,6 @@ describe('PackageService', () => {
       };
       
       prismaService.package.findFirstOrThrow.mockResolvedValue(mockPackage);
-      s3Service.generateGetPresignedUrl.mockReset();
       s3Service.generateGetPresignedUrl.mockResolvedValueOnce('url1').mockResolvedValueOnce('url2');
 
       const result = await service.getById('package-123');
@@ -719,7 +709,6 @@ describe('PackageService', () => {
       const result = await service.updateRequest('request-123', session);
 
       expect(result).toEqual(canceledRequest);
-      // Should not throw error when session data is missing
     });
   });
 
@@ -733,9 +722,6 @@ describe('PackageService', () => {
 
       await expect(service.getAll('user-123'))
         .rejects.toThrow('Formatted error');
-      
-      // Reset the mock after this test
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockReset();
     });
 
     it('should handle empty picturesKey array', async () => {
