@@ -476,9 +476,9 @@ export class TripService {
       throw error;
     });
 
-    if (tripStatus !== TripStatusEnum.scheduled 
-      && tripStatus !== TripStatusEnum.closed 
-    ) {
+    const isValidStatus = tripStatus === TripStatusEnum.scheduled 
+      || tripStatus === TripStatusEnum.closed;
+    if (!isValidStatus) {
       throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
     }
 
@@ -708,7 +708,7 @@ export class TripService {
       throw error;
     });
 
-    if (tripStatus === TripStatusEnum.in_progress) {
+    if (tripStatus !== TripStatusEnum.in_progress) {
       throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
     }
 
@@ -792,12 +792,6 @@ export class TripService {
       formatPrismaError(error);
       throw error;
     });
-
-    const isValidStatus = trip.status !== TripStatusEnum.scheduled
-     && trip.status !== TripStatusEnum.closed;
-    if (!isValidStatus) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
-    }
 
     const trackingUpdates = trip.matchedRequests.map(m => ({
       matchedRequestId: m.id,
