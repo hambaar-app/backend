@@ -1,6 +1,6 @@
 export interface PricingInput {
   distanceKm: number;
-  weightKg: number;
+  weightGr: number;
   isFragile?: boolean;
   isPerishable?: boolean;
   additionalKm?: number;

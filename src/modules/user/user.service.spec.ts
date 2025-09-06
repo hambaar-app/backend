@@ -82,6 +82,8 @@ describe('UserService', () => {
   };
 
   beforeEach(async () => {
+    jest.resetAllMocks();
+
     prismaService = mockDeep<PrismaClient>();
     s3Service = mockDeep<S3Service>();
 
@@ -410,7 +412,6 @@ describe('UserService', () => {
       prismaService.user.findUniqueOrThrow.mockResolvedValue(mockProfile);
       s3Service.generateGetPresignedUrl.mockResolvedValue('');
 
-      // Should not throw, but handle gracefully
       const result = await service.getProfile('user-123');
       expect(result).toBeDefined();
       expect(result.transporter.profilePictureUrl).toBe('');

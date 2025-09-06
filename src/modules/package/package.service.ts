@@ -155,7 +155,7 @@ export class PackageService {
 
       const { suggestedPrice, breakdown } = this.pricingService.calculateSuggestedPrice({
           distanceKm: distance,
-          weightKg: packageDto.weight,
+          weightGr: packageDto.weight,
           isFragile: packageDto.isFragile ?? false,
           isPerishable: packageDto.isPerishable ?? false,
           originCity: originAddress.city!,

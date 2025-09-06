@@ -495,7 +495,6 @@ describe('TripService', () => {
         origin: mockCity
       } as any);
       
-      // Mock for updateTracking call inside startTrip
       prisma.trip.findUniqueOrThrow.mockResolvedValueOnce({
         status: TripStatusEnum.scheduled,
         matchedRequests: [{ id: 'matched-1' }, { id: 'matched-2' }]
@@ -752,7 +751,7 @@ describe('TripService', () => {
       expect(prisma.transporter.update).toHaveBeenCalledWith({
         where: { id: 'transporter-123' },
         data: {
-          rate: (4.5 * 10 + 5) / 11, // New average calculation
+          rate: (4.5 * 10 + 5) / 11, // New average
           rateCount: 11
         }
       });
@@ -933,10 +932,8 @@ describe('TripService', () => {
       } as any);
       prisma.package.update.mockResolvedValue({ status: PackageStatusEnum.matched } as any);
       
-      // Simulate escrow creation failure
       financialService.createEscrow.mockRejectedValue(new Error('Insufficient balance'));
 
-      // Should not throw error, should handle gracefully
       const result = await service.updateRequest('request-123', {
         status: RequestStatusEnum.accepted
       } as any);
@@ -1012,7 +1009,6 @@ describe('TripService', () => {
     });
 
     it('should handle partial delivery failures in getAllMatchedRequests', async () => {
-      // Mock Promise.allSettled behavior
       jest.spyOn(Promise, 'allSettled').mockResolvedValue([
         { status: 'fulfilled', value: { id: 'matched-1' } as any },
         { status: 'rejected', reason: new Error('Database error') },
@@ -1032,9 +1028,8 @@ describe('TripService', () => {
 
       const result = await service.addTripNote('trip-123', 'Broadcast note');
 
-      expect(result.count).toBe(2); // Only successful updates counted
+      expect(result.count).toBe(2);
 
-      // Restore original Promise.allSettled
       jest.restoreAllMocks();
     });
   });
@@ -1044,8 +1039,7 @@ describe('TripService', () => {
       const updatedPackage = { id: 'package-123', status: PackageStatusEnum.in_transit };
       prisma.package.update.mockResolvedValue(updatedPackage as any);
 
-      // Access private method for testing
-      const result = await (service as any).updatePackageStatus('package-123', PackageStatusEnum.in_transit);
+      const result = await service['updatePackageStatus']('package-123', PackageStatusEnum.in_transit);
 
       expect(result).toEqual(updatedPackage);
       expect(prisma.package.update).toHaveBeenCalledWith({
@@ -1058,8 +1052,7 @@ describe('TripService', () => {
       const updatedTrip = { ...mockTrip, status: TripStatusEnum.completed };
       prisma.trip.update.mockResolvedValue(updatedTrip);
 
-      // Access private method for testing
-      const result = await (service as any).updateStatus('trip-123', TripStatusEnum.completed);
+      const result = await service['updateStatus']('trip-123', TripStatusEnum.completed);
 
       expect(result).toEqual(updatedTrip);
       expect(prisma.trip.update).toHaveBeenCalledWith({

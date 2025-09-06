@@ -90,7 +90,7 @@ export class PricingService {
     // Base components
     const basePrice = this.basePrice;
     const distanceCost = this.calculateDistanceCost(input.distanceKm);
-    const weightCost = this.calculateWeightCost(input.weightKg);
+    const weightCost = this.calculateWeightCost(input.weightGr);
 
     // Calculate subtotal before multipliers
     let subtotal = basePrice + distanceCost + weightCost;
@@ -138,7 +138,7 @@ export class PricingService {
         break;
       }
 
-      const tierCapacity = tier.maxKm - tier.minKm + 1;
+      const tierCapacity = tier.maxKm - tier.minKm + (tier.minKm ? 1 : 0);
       const applicableDistance = Math.min(remainingDistance, tierCapacity);
       
       totalCost += applicableDistance * tier.ratePerKm;
