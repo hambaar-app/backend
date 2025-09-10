@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { PackageStatusEnum, PaymentStatusEnum } from 'generated/prisma';
-import { AddressCompactDto } from 'src/modules/address/dto/address-response.dto';
-import { RecipientResponseDto } from 'src/modules/package/dto/recipient-response.dto';
-import { UserCompactDto } from 'src/modules/user/dto/user-response.dto';
+import { PackageStatusEnum, PaymentStatusEnum } from '../../../../generated/prisma';
+import { AddressCompactDto } from '../../address/dto/address-response.dto';
+import { RecipientResponseDto } from '../../package/dto/recipient-response.dto';
+import { UserCompactDto } from '../../user/dto/user-response.dto';
 
 class MatchedPackageDto {
   @Expose()

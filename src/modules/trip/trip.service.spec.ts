@@ -861,8 +861,10 @@ describe('TripService', () => {
             id: 'package-123',
             sender: { firstName: 'Ahmad', lastName: 'Mohammadi' },
             items: ['Electronics'],
-            weight: 2.5
+            weight: 2.5,
+            picturesKey: ['key-1']
           },
+          request: { offeredPrice: 75000 },
           transporterNotes: ['Handle with care'],
           pickupTime: null,
           deliveryTime: null,
@@ -871,12 +873,28 @@ describe('TripService', () => {
       ];
       
       prisma.matchedRequest.findMany.mockResolvedValue(matchedRequests as any);
+      s3Service.generateGetPresignedUrl.mockResolvedValue('https://s3.example.com/key-1');
 
       const result = await service.getAllMatchedRequests('trip-123');
 
-      expect(result).toEqual(matchedRequests);
+      expect(result).toEqual([
+        {
+          package: {
+            ...matchedRequests[0].package,
+            picturesUrl: ['https://s3.example.com/key-1'],
+            offeredPrice: 75000,
+            picturesKey: undefined
+          },
+          transporterNotes: ['Handle with care'],
+          pickupTime: null,
+          deliveryTime: null,
+          paymentStatus: 'pending',
+          request: undefined
+        }
+      ]);
       expect(prisma.matchedRequest.findMany).toHaveBeenCalledWith({
         where: { tripId: 'trip-123' },
+        orderBy: { updatedAt: 'desc' },
         select: {
           package: {
             select: {
@@ -894,6 +912,7 @@ describe('TripService', () => {
               recipient: true,
               weight: true,
               dimensions: true,
+              status: true,
               packageValue: true,
               isFragile: true,
               isPerishable: true,
@@ -905,6 +924,7 @@ describe('TripService', () => {
               picturesKey: true
             }
           },
+          request: true,
           transporterNotes: true,
           pickupTime: true,
           deliveryTime: true,

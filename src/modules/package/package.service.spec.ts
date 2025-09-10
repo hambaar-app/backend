@@ -330,10 +330,8 @@ describe('PackageService', () => {
     it('should return package with presigned URLs', async () => {
       const packageWithUrls = {
         ...mockPackage,
-        picturesKey: {
-          keys: ['pic1.jpg', 'pic2.jpg'],
-          presignedUrls: ['url1', 'url2']
-        }
+        picturesKey: ['pic1.jpg', 'pic2.jpg'],
+        picturesUrl: ['url1', 'url2']
       };
       
       prismaService.package.findFirstOrThrow.mockResolvedValue(mockPackage);

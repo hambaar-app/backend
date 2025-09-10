@@ -1,9 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { LicenseTypeEnum } from '../../../../generated/prisma';
+import { GendersEnum, LicenseTypeEnum } from '../../../../generated/prisma';
 import { VerificationStatusDto } from '../../auth/dto/verification-status.dto';
 import { VehicleCompactResponseDto, VehicleResponseDto } from '../../vehicle/dto/vehicle-response.dto';
-import { UserCompactDto } from './user-response.dto';
 
 export class TransporterCompactDto {
   @Expose()
@@ -72,7 +71,20 @@ export class TransporterResponseDto extends TransporterCompactDto {
 }
 
 // For package response
-export class TransporterInfoResponseDto extends UserCompactDto {
+export class TransporterInfoResponseDto {
+  @Expose()
+  firstName: string;
+
+  @Expose()
+  lastName: string;
+
+  @Expose()
+  phoneNumber: string;
+
+  @ApiProperty({ enum: GendersEnum })
+  @Expose()
+  gender: GendersEnum;
+
   @Expose()
   rate: number;
 
