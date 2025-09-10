@@ -505,7 +505,7 @@ describe('PackageService', () => {
       service.getById = jest.fn().mockResolvedValue(mockPackage);
       matchingService.findMatchedTrips.mockResolvedValue(matchResults);
       tripService.getMultipleById.mockResolvedValue([mockTrip]);
-      turfService.sortLocationsByRoute.mockReturnValue([]);
+      turfService.sortLocationsByRoute.mockReturnValue([] as any);
       mapService.calculateDistance.mockResolvedValue({ distance: 12, duration: 35 });
       pricingService.calculateDeviationCost.mockReturnValue(5000);
 

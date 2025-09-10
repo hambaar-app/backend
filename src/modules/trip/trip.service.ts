@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from '../../common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
 import { AuthMessages, BadRequestMessages, TrackingMessages } from '../../common/enums/messages.enum';
-import { MatchedRequest, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from '../../../generated/prisma';
+import { MatchedRequest, Package, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from '../../../generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
@@ -15,6 +15,9 @@ import { FinancialService } from '../financial/financial.service';
 import { RateTripDto } from './dto/rate-trip.dto';
 import { isNumber } from 'class-validator';
 import { S3Service } from '../s3/s3.service';
+import { TurfService } from '../turf/turf.service';
+import { Location } from '../map/map.types';
+import { MatchedRequestResponseDto } from './dto/matched-request-response.dto';
 
 @Injectable()
 export class TripService {
@@ -22,7 +25,8 @@ export class TripService {
     private prisma: PrismaService,
     private mapService: MapService,
     private financialService: FinancialService,
-    private s3Service: S3Service
+    private s3Service: S3Service,
+    private turfService: TurfService
   ) {}
 
   async create(
@@ -461,7 +465,25 @@ export class TripService {
       throw error;
     });
 
-    return Promise.all(matchedRequests.map((async m => {
+    let sortedMatchedRequests = matchedRequests.map(m => ({
+      ...m,
+      package: {
+        ...m.package,
+        items: instanceToPlain(m.package.items) as string[]
+      }
+    }));
+    if (matchedRequests.length > 0 && inOrder) {
+      const trip = await this.prisma.trip.findFirstOrThrow({
+        where: { id: tripId },
+        select: {
+          origin: true,
+          destination: true
+        }
+      });
+      sortedMatchedRequests = await this.sortMatchedPackages(trip.origin, trip.destination, sortedMatchedRequests);
+    }
+
+    return Promise.all(sortedMatchedRequests.map((async m => {
       const picturesKey = instanceToPlain(m.package.picturesKey) as string[];
       const picturePromises = picturesKey?.map(k => this.s3Service.generateGetPresignedUrl(k));
       const picturesUrl = await Promise.all(picturePromises);
@@ -478,8 +500,43 @@ export class TripService {
     })));
   }
 
-  private async sortMatchedPackages() {
+  private async sortMatchedPackages(
+    origin: Location,
+    destination: Location,
+    matchedRequests: any[]
+  ) {
+    const locationsMap = new Map(
+      matchedRequests
+        .map(m => [
+          m.package.id,
+          m.package.pickupAtOrigin
+          && m.package.status !== PackageStatusEnum.delivered
+          && m.package.status !== PackageStatusEnum.returned
+          && m.package.status !== PackageStatusEnum.cancelled ? {
+            latitude: m.package.originAddress.latitude,
+            longitude: m.package.originAddress.longitude
+          } : m.package.deliveryAtDestination
+          && m.package.status === PackageStatusEnum.matched ? {
+            latitude: m.package.recipient.address.latitude,
+            longitude: m.package.recipient.address.longitude
+          } : undefined
+        ])
+        .filter(([_, location]) => location !== undefined) as [string, Location][]
+    );
 
+    const sortedLocations = this.turfService.sortLocationsByRoute(origin, destination, locationsMap);
+    const sortedPackageIds = Array.from(sortedLocations.keys());
+    
+    // Create the sorted array
+    const sortedRequests: any[] = [];
+    sortedPackageIds.forEach(packageId => {
+      const request = matchedRequests.find(m => m.package.id === packageId);
+      if (request) {
+        sortedRequests.push(request);
+      }
+    });
+
+    return sortedRequests;
   }
 
   private async updateStatus(

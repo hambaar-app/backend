@@ -4,6 +4,7 @@ import { PackageStatusEnum, PaymentStatusEnum } from '../../../../generated/pris
 import { AddressCompactDto } from '../../address/dto/address-response.dto';
 import { RecipientResponseDto } from '../../package/dto/recipient-response.dto';
 import { UserCompactDto } from '../../user/dto/user-response.dto';
+import { JsonValue } from 'generated/prisma/runtime/library';
 
 class MatchedPackageDto {
   @Expose()
@@ -18,7 +19,7 @@ class MatchedPackageDto {
   status: PackageStatusEnum;
 
   @Expose()
-  items: string[];
+  items: string[] | JsonValue | null;
 
   @Type(() => AddressCompactDto)
   @Expose()
@@ -59,10 +60,10 @@ class MatchedPackageDto {
   preferredDeliveryTime: [Date, Date];
 
   @Expose()
-  picturesUrl: string[];
+  picturesUrl?: string[];
 
   @Expose()
-  offeredPrice: number;
+  offeredPrice?: number;
 }
 
 export class MatchedRequestResponseDto {
