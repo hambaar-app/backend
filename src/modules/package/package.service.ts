@@ -312,13 +312,10 @@ export class PackageService {
       packages.map(async (packageData) => {
         const keys = packageData.picturesKey;
         if (keys && Array.isArray(keys)) {
-          const presignedUrls = await this.generatePackagePicPresignedUrl(keys);
           return {
             ...packageData,
-            picturesKey: {
-              keys,
-              presignedUrls
-            }
+            picturesUrl: await this.generatePackagePicPresignedUrl(keys),
+            picturesKey: undefined
           };
         }
       })
