@@ -257,17 +257,16 @@ export class PackageService {
       throw error;
     });
 
+    const keys = packageData.picturesKey;
+    let picturesUrl: string[] | undefined;
     if (packageData.picturesKey && Array.isArray(packageData.picturesKey)) {
-      const keys = packageData.picturesKey;
-      const presignedUrls = await this.generatePackagePicPresignedUrl(keys);
-
-      packageData.picturesKey = {
-        keys,
-        presignedUrls
-      };
+      picturesUrl = await this.generatePackagePicPresignedUrl(keys as any);
     }
 
-    return packageData;
+    return {
+      ...packageData,
+      picturesUrl,
+    };
   }
 
   async getAll(
