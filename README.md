@@ -15,6 +15,7 @@
 [![AWS S3](https://img.shields.io/badge/AWS%20S3-FF9900?style=for-the-badge&logo=amazon-s3&logoColor=white)](https://aws.amazon.com/s3/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)
 [![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=fff)](https://jestjs.io/)
+[![Turf.js](https://img.shields.io/badge/Turf.js-32a852?style=for-the-badge&logoColor=fff)](https://jestjs.io/)
 
 [![](https://img.shields.io/badge/Full%20Documentation-red?style=for-the-badge)](https://drive.google.com/file/d/1nSIkxipE-sYVW1Y3W7HRrLI6RB_UFHfb/view?usp=sharing)
 [![](https://img.shields.io/badge/Database%20Schema-8A2BE2?style=for-the-badge)](https://dbdiagram.io/d/hambaar-db-686b7b0cf413ba350893efca)
