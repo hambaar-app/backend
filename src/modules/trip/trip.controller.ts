@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseBoolPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -196,8 +197,9 @@ export class TripController {
   @Get(':id/matched-requests')
   async getAllTripMatchedRequests(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query('inOrder', new ParseBoolPipe({ optional: true })) inOrder: boolean = false
   ) {
-    return this.tripService.getAllMatchedRequests(id);
+    return this.tripService.getAllMatchedRequests(id, inOrder);
   }
 
   @ApiOperation({
