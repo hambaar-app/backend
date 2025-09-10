@@ -4,7 +4,7 @@
 
 # Hambaar - Package Delivery Platform
 
-**A modern, scalable package delivery platform that connects package senders with transporters, built with Node.js, NestJS, PostgreSQL, and Redis.**
+**A modern, scalable package delivery platform that matches package senders with transporters, built with Node.js, NestJS, PostgreSQL, and Redis.**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
