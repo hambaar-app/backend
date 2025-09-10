@@ -410,7 +410,10 @@ export class TripService {
     });
   }
 
-  async getAllMatchedRequests(tripId: string) {
+  async getAllMatchedRequests(
+    tripId: string,
+    inOrder = false
+  ) {
     const matchedRequests = await this.prisma.matchedRequest.findMany({
       where: {
         tripId
@@ -449,6 +452,9 @@ export class TripService {
         pickupTime: true,
         deliveryTime: true,
         paymentStatus: true,
+      },
+      orderBy: {
+        updatedAt: 'desc'
       }
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -457,7 +463,7 @@ export class TripService {
 
     return Promise.all(matchedRequests.map((async m => {
       const picturesKey = instanceToPlain(m.package.picturesKey) as string[];
-      const picturePromises = picturesKey.map(k => this.s3Service.generateGetPresignedUrl(k));
+      const picturePromises = picturesKey?.map(k => this.s3Service.generateGetPresignedUrl(k));
       const picturesUrl = await Promise.all(picturePromises);
       return {
         ...m,
@@ -470,6 +476,10 @@ export class TripService {
         request: undefined
       };
     })));
+  }
+
+  private async sortMatchedPackages() {
+
   }
 
   private async updateStatus(
@@ -839,89 +849,6 @@ export class TripService {
       formatPrismaError(error);
       throw error;
     });
-  }
-
-  async getTripTrackingByCode(trackingCode: string) {
-    const matchedRequest = await this.prisma.matchedRequest.findUniqueOrThrow({
-      where: {
-        trackingCode,
-        deletedAt: null
-      },
-      include: {
-        trackingUpdates: {
-          orderBy: {
-            createdAt: 'desc'
-          }
-        },
-        package: {
-          select: {
-            sender: {
-              select: {
-                firstName: true,
-                lastName: true,
-                phoneNumber: true
-              }
-            },
-            recipient: {
-              include: {
-                address: true
-              }
-            },
-            items: true,
-            weight: true,
-            dimensions: true,
-            finalPrice: true,
-            breakdown: true,
-            status: true,
-            packageValue: true,
-            deliveryAtDestination: true,
-          }
-        },
-        trip: {
-          select: {
-            transporter: {
-              select: {
-                profilePictureKey: true,
-                rate: true,
-                user: {
-                  select: {
-                    firstName: true,
-                    lastName: true,
-                    phoneNumber: true,
-                  }
-                }
-              }
-            },
-            vehicle: {
-              select: {
-                vehicleType: true,
-                model: {
-                  select: {
-                    brand: true
-                  }
-                },
-                manufactureYear: true,
-                color: true,
-              }
-            }
-          }
-        }
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-
-    return {
-      trackingUpdates: matchedRequest.trackingUpdates,
-      package: matchedRequest.package,
-      transporter: {
-        profilePictureUrl: await this.s3Service.generateGetPresignedUrl(matchedRequest.trip.transporter.profilePictureKey!),
-        ...matchedRequest.trip.transporter,
-        ...matchedRequest.trip.transporter.user,
-        vehicle: matchedRequest.trip.vehicle
-      }
-    };
   }
 
   async rateTrip(

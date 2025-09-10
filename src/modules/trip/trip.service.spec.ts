@@ -697,25 +697,6 @@ describe('TripService', () => {
     });
   });
 
-  describe('getTripTrackingByCode', () => {
-    it('should get trip tracking by code successfully', async () => {
-      const matchedRequestWithTracking = {
-        ...mockMatchedRequest,
-        trackingUpdates: [{ city: 'Tehran', createdAt: new Date() }]
-      };
-      
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(matchedRequestWithTracking);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://s3.example.com/profile.jpg');
-
-      const result = await service.getTripTrackingByCode('TRK123456789');
-
-      expect(result.trackingUpdates).toBeDefined();
-      expect(result.package).toBeDefined();
-      expect(result.transporter).toBeDefined();
-      expect(result.transporter.profilePictureUrl).toBe('https://s3.example.com/profile.jpg');
-    });
-  });
-
   describe('rateTrip', () => {
     const rateDto = {
       tripId: 'trip-123',

@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform, Type } from 'class-transformer';
 import { PackageStatusEnum } from '../../../../generated/prisma';
 import { AddressCompactDto } from '../../address/dto/address-response.dto';
-import { PriceBreakdownDto } from '../../package/dto/package-response.dto';
+import { PriceBreakdownDto } from './package-response.dto';
 import { VehicleCompactResponseDto } from '../../vehicle/dto/vehicle-response.dto';
 
 export class TrackingUpdatesResponseDto {

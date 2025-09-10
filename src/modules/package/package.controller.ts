@@ -43,6 +43,7 @@ import { MatchedTripResponseDto } from '../trip/dto/trip-response.dto';
 import { BadRequestMessages, NotFoundMessages } from '../../common/enums/messages.enum';
 import { RequestStatusEnum } from '../../../generated/prisma';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
+import { TrackingResponseDto } from './dto/tracking-response.dto';
 
 @Controller('packages')
 export class PackageController {
@@ -291,5 +292,20 @@ export class PackageController {
     @Session() session: SessionData
   ) {
     return this.packageService.updateRequest(id, session);
+  }
+
+  @ApiOperation({
+    summary: 'Get tracking info by tracking code (Public)'
+  })
+  @ApiOkResponse({
+    type: TrackingResponseDto
+  })
+  @CrudResponses()
+  @Serialize(TrackingResponseDto)
+  @Get('tracking/:code')
+  async getTripTrackingByCode(
+    @Param('code') code: string,
+  ) {
+    return this.packageService.getTrackingByCode(code);
   }
 }
