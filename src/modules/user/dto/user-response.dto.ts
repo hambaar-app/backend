@@ -3,10 +3,7 @@ import { Expose, Type } from 'class-transformer';
 import { GendersEnum } from '../../../../generated/prisma';
 import { TransporterCompactDto } from './transporter-response.dto';
 
-export class UserResponseDto {
-  @Expose()
-  id: string;
-
+export class UserCompactDto {
   @Expose()
   firstName: string;
 
@@ -16,12 +13,17 @@ export class UserResponseDto {
   @Expose()
   phoneNumber: string;
 
-  @Expose()
-  email?: string;
-
   @ApiProperty({ enum: GendersEnum })
   @Expose()
   gender: GendersEnum;
+}
+
+export class UserResponseDto extends UserCompactDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  email?: string;
 
   @Expose()
   birthDate?: Date;

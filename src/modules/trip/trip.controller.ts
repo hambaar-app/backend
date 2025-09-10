@@ -27,10 +27,11 @@ import { TripCompactResponseDto, TripResponseDto } from './dto/trip-response.dto
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { AddNoteDto, BroadcastNoteDto } from './dto/add-note.dto';
 import { UpdateTrackingDto } from './dto/update-tracking.dto';
-import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-response.dto';
+import { TrackingResponseDto, TrackingUpdatesResponseDto } from '../package/dto/tracking-response.dto';
 import { DeliveryPackageDto } from './dto/delivery-package.dto';
 import { BadRequestMessages } from '../../common/enums/messages.enum';
 import { RateTripDto } from './dto/rate-trip.dto';
+import { MatchedRequestResponseDto } from './dto/matched-request-response.dto';
 
 @Controller('trips')
 export class TripController {
@@ -181,10 +182,13 @@ export class TripController {
   @ApiOperation({
     summary: 'Get all trip matched requests by its id'
   })
+  @ApiOkResponse({
+    type: MatchedRequestResponseDto
+  })
   @AuthResponses()
   @ValidationResponses()
   @CrudResponses()
-  // TODO: Serialize
+  @Serialize(MatchedRequestResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'
@@ -392,21 +396,6 @@ export class TripController {
     @Param('packageId', ParseUUIDPipe) packageId: string
   ) {
     return this.tripService.getTripTracking(tripId, packageId);
-  }
-
-  @ApiOperation({
-    summary: 'Get tracking info by tracking code (Public)'
-  })
-  @ApiOkResponse({
-    type: TrackingResponseDto
-  })
-  @CrudResponses()
-  @Serialize(TrackingResponseDto)
-  @Get('tracking/:code')
-  async getTripTrackingByCode(
-    @Param('code') code: string,
-  ) {
-    return this.tripService.getTripTrackingByCode(code);
   }
 
   @ApiOperation({

@@ -7,6 +7,7 @@ import { TokenModule } from '../token/token.module';
 import { UserModule } from '../user/user.module';
 import { FinancialModule } from '../financial/financial.module';
 import { S3Module } from '../s3/s3.module';
+import { TurfModule } from '../turf/turf.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { S3Module } from '../s3/s3.module';
     UserModule,
     FinancialModule,
     S3Module,
+    TurfModule
   ],
   controllers: [TripController],
   providers: [TripService],

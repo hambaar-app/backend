@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { BadRequestMessages, AuthMessages, TrackingMessages } from '../../common/enums/messages.enum';
 import * as utilities from '../../common/utilities';
+import { TurfService } from '../turf/turf.service';
 
 jest.mock('../../common/utilities', () => ({
   generateCode: jest.fn(() => 12345),
@@ -22,6 +23,7 @@ describe('TripService', () => {
   let mapService: DeepMockProxy<MapService>;
   let financialService: DeepMockProxy<FinancialService>;
   let s3Service: DeepMockProxy<S3Service>;
+  let turfService: DeepMockProxy<TurfService>;
 
   const mockVehicle = {
     id: 'vehicle-123',
@@ -137,6 +139,7 @@ describe('TripService', () => {
     mapService = mockDeep<MapService>();
     financialService = mockDeep<FinancialService>();
     s3Service = mockDeep<S3Service>();
+    turfService = mockDeep<TurfService>();
 
     // Reset utility mocks to default values
     (utilities.generateCode as jest.Mock).mockReturnValue(12345);
@@ -149,6 +152,7 @@ describe('TripService', () => {
         { provide: MapService, useValue: mapService },
         { provide: FinancialService, useValue: financialService },
         { provide: S3Service, useValue: s3Service },
+        { provide: TurfService, useValue: turfService },
       ],
     }).compile();
 
@@ -697,25 +701,6 @@ describe('TripService', () => {
     });
   });
 
-  describe('getTripTrackingByCode', () => {
-    it('should get trip tracking by code successfully', async () => {
-      const matchedRequestWithTracking = {
-        ...mockMatchedRequest,
-        trackingUpdates: [{ city: 'Tehran', createdAt: new Date() }]
-      };
-      
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(matchedRequestWithTracking);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://s3.example.com/profile.jpg');
-
-      const result = await service.getTripTrackingByCode('TRK123456789');
-
-      expect(result.trackingUpdates).toBeDefined();
-      expect(result.package).toBeDefined();
-      expect(result.transporter).toBeDefined();
-      expect(result.transporter.profilePictureUrl).toBe('https://s3.example.com/profile.jpg');
-    });
-  });
-
   describe('rateTrip', () => {
     const rateDto = {
       tripId: 'trip-123',
@@ -861,8 +846,10 @@ describe('TripService', () => {
             id: 'package-123',
             sender: { firstName: 'Ahmad', lastName: 'Mohammadi' },
             items: ['Electronics'],
-            weight: 2.5
+            weight: 2.5,
+            picturesKey: ['key-1']
           },
+          request: { offeredPrice: 75000 },
           transporterNotes: ['Handle with care'],
           pickupTime: null,
           deliveryTime: null,
@@ -871,12 +858,28 @@ describe('TripService', () => {
       ];
       
       prisma.matchedRequest.findMany.mockResolvedValue(matchedRequests as any);
+      s3Service.generateGetPresignedUrl.mockResolvedValue('https://s3.example.com/key-1');
 
       const result = await service.getAllMatchedRequests('trip-123');
 
-      expect(result).toEqual(matchedRequests);
+      expect(result).toEqual([
+        {
+          package: {
+            ...matchedRequests[0].package,
+            picturesUrl: ['https://s3.example.com/key-1'],
+            offeredPrice: 75000,
+            picturesKey: undefined
+          },
+          transporterNotes: ['Handle with care'],
+          pickupTime: null,
+          deliveryTime: null,
+          paymentStatus: 'pending',
+          request: undefined
+        }
+      ]);
       expect(prisma.matchedRequest.findMany).toHaveBeenCalledWith({
         where: { tripId: 'trip-123' },
+        orderBy: { updatedAt: 'desc' },
         select: {
           package: {
             select: {
@@ -894,6 +897,7 @@ describe('TripService', () => {
               recipient: true,
               weight: true,
               dimensions: true,
+              status: true,
               packageValue: true,
               isFragile: true,
               isPerishable: true,
@@ -905,6 +909,7 @@ describe('TripService', () => {
               picturesKey: true
             }
           },
+          request: true,
           transporterNotes: true,
           pickupTime: true,
           deliveryTime: true,

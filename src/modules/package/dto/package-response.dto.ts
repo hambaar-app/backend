@@ -1,7 +1,7 @@
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { AddressResponseDto } from '../../address/dto/address-response.dto';
 import { RecipientResponseDto } from './recipient-response.dto';
-import { PaymentStatusEnum, TripStatusEnum } from '../../../../generated/prisma';
+import { PackageStatusEnum, PaymentStatusEnum } from '../../../../generated/prisma';
 import { ApiProperty } from '@nestjs/swagger';
 import { TransporterInfoResponseDto } from '../../user/dto/transporter-response.dto';
 import { PriceBreakdown } from '../../pricing/pricing.types';
@@ -30,9 +30,9 @@ export class PackageCompactResponseDto {
   @Expose()
   finalPrice: number;
 
-  @ApiProperty({ enum: TripStatusEnum })
+  @ApiProperty({ enum: PackageStatusEnum })
   @Expose()
-  status: TripStatusEnum;
+  status: PackageStatusEnum;
 
   @Expose()
   packageValue?: number;
@@ -59,17 +59,10 @@ export class PackageCompactResponseDto {
   preferredDeliveryTime: [Date, Date];
 
   @Expose()
-  @Type((options) => {
-    const data = options?.object.data;
-    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
-      return String;
-    }
-    return PackagePicturesResponse;
-  })
-  picturesKey: string[] | PackagePicturesResponse;
+  picturesKey: string[];
 
   @Expose()
-  pictures: string[];
+  picturesUrl?: string[];
 
   @Expose()
   createdAt: Date;
@@ -79,14 +72,6 @@ export class PackageCompactResponseDto {
 
   @Expose()
   deletedAt: Date;
-}
-
-class PackagePicturesResponse {
-  @Expose()
-  keys: string[];
-
-  @Expose()
-  presignedUrls: string[];
 }
 
 class MatchedRequestDto {

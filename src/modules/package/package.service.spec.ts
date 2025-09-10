@@ -111,6 +111,53 @@ describe('PackageService', () => {
     cityPremiumCost: 5000
   };
 
+
+  const mockMatchedRequest = {
+    id: 'matched-123',
+    tripId: 'trip-123',
+    packageId: 'package-123',
+    trackingCode: '17571445988911932924',
+    deliveryCode: '12345',
+    transporterNotes: [],
+    pickupTime: null,
+    deliveryTime: null,
+    package: {
+      id: 'package-123',
+      status: PackageStatusEnum.matched,
+      senderId: 'user-123',
+      originAddress: {
+        latitude: '35.6892',
+        longitude: '51.3890',
+        city: 'Tehran'
+      },
+      recipient: {
+        address: {
+          latitude: '35.7219',
+          longitude: '51.3347',
+          city: 'Tehran'
+        }
+      },
+      breakdown: { baseCost: 100000, deviationCost: 0 }
+    },
+    trip: {
+      status: TripStatusEnum.in_progress,
+      transporter: {
+        rate: 4.5,
+        rateCount: 10,
+        profilePictureKey: 'profile-pic-key',
+        user: {
+          firstName: 'Ahmad',
+          lastName: 'Mohammadi',
+          phoneNumber: '+989123456789'
+        }
+      },
+      vehicle: {
+        vehicleType: 'truck',
+        model: { brand: { name: 'Volvo' } }
+      }
+    }
+  } as any;
+
   beforeEach(async () => {
     jest.resetAllMocks();
 
@@ -330,10 +377,8 @@ describe('PackageService', () => {
     it('should return package with presigned URLs', async () => {
       const packageWithUrls = {
         ...mockPackage,
-        picturesKey: {
-          keys: ['pic1.jpg', 'pic2.jpg'],
-          presignedUrls: ['url1', 'url2']
-        }
+        picturesKey: ['pic1.jpg', 'pic2.jpg'],
+        picturesUrl: ['url1', 'url2']
       };
       
       prismaService.package.findFirstOrThrow.mockResolvedValue(mockPackage);
@@ -460,7 +505,7 @@ describe('PackageService', () => {
       service.getById = jest.fn().mockResolvedValue(mockPackage);
       matchingService.findMatchedTrips.mockResolvedValue(matchResults);
       tripService.getMultipleById.mockResolvedValue([mockTrip]);
-      turfService.sortLocationsByRoute.mockReturnValue([]);
+      turfService.sortLocationsByRoute.mockReturnValue([] as any);
       mapService.calculateDistance.mockResolvedValue({ distance: 12, duration: 35 });
       pricingService.calculateDeviationCost.mockReturnValue(5000);
 
@@ -709,6 +754,25 @@ describe('PackageService', () => {
       const result = await service.updateRequest('request-123', session);
 
       expect(result).toEqual(canceledRequest);
+    });
+  });
+
+  describe('getTripTrackingByCode', () => {
+    it('should get trip tracking by code successfully', async () => {
+      const matchedRequestWithTracking = {
+        ...mockMatchedRequest,
+        trackingUpdates: [{ city: 'Tehran', createdAt: new Date() }]
+      };
+      
+      prismaService.matchedRequest.findUniqueOrThrow.mockResolvedValue(matchedRequestWithTracking);
+      s3Service.generateGetPresignedUrl.mockResolvedValue('https://s3.example.com/profile.jpg');
+
+      const result = await service.getTrackingByCode('TRK123456789');
+
+      expect(result.trackingUpdates).toBeDefined();
+      expect(result.package).toBeDefined();
+      expect(result.transporter).toBeDefined();
+      expect(result.transporter.profilePictureUrl).toBe('https://s3.example.com/profile.jpg');
     });
   });
 
