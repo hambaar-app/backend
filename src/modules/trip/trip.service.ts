@@ -17,7 +17,6 @@ import { isNumber } from 'class-validator';
 import { S3Service } from '../s3/s3.service';
 import { TurfService } from '../turf/turf.service';
 import { Location } from '../map/map.types';
-import { MatchedRequestResponseDto } from './dto/matched-request-response.dto';
 
 @Injectable()
 export class TripService {

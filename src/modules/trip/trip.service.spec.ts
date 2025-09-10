@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { BadRequestMessages, AuthMessages, TrackingMessages } from '../../common/enums/messages.enum';
 import * as utilities from '../../common/utilities';
+import { TurfService } from '../turf/turf.service';
 
 jest.mock('../../common/utilities', () => ({
   generateCode: jest.fn(() => 12345),
@@ -22,6 +23,7 @@ describe('TripService', () => {
   let mapService: DeepMockProxy<MapService>;
   let financialService: DeepMockProxy<FinancialService>;
   let s3Service: DeepMockProxy<S3Service>;
+  let turfService: DeepMockProxy<TurfService>;
 
   const mockVehicle = {
     id: 'vehicle-123',
@@ -137,6 +139,7 @@ describe('TripService', () => {
     mapService = mockDeep<MapService>();
     financialService = mockDeep<FinancialService>();
     s3Service = mockDeep<S3Service>();
+    turfService = mockDeep<TurfService>();
 
     // Reset utility mocks to default values
     (utilities.generateCode as jest.Mock).mockReturnValue(12345);
@@ -149,6 +152,7 @@ describe('TripService', () => {
         { provide: MapService, useValue: mapService },
         { provide: FinancialService, useValue: financialService },
         { provide: S3Service, useValue: s3Service },
+        { provide: TurfService, useValue: turfService },
       ],
     }).compile();
 
