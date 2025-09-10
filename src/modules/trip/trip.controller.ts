@@ -31,6 +31,7 @@ import { TrackingResponseDto, TrackingUpdatesResponseDto } from './dto/tracking-
 import { DeliveryPackageDto } from './dto/delivery-package.dto';
 import { BadRequestMessages } from '../../common/enums/messages.enum';
 import { RateTripDto } from './dto/rate-trip.dto';
+import { MatchedRequestResponseDto } from './dto/matched-request-response.dto';
 
 @Controller('trips')
 export class TripController {
@@ -181,10 +182,13 @@ export class TripController {
   @ApiOperation({
     summary: 'Get all trip matched requests by its id'
   })
+  @ApiOkResponse({
+    type: MatchedRequestResponseDto
+  })
   @AuthResponses()
   @ValidationResponses()
   @CrudResponses()
-  // TODO: Serialize
+  @Serialize(MatchedRequestResponseDto)
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'trip'

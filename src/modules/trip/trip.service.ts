@@ -411,7 +411,7 @@ export class TripService {
   }
 
   async getAllMatchedRequests(tripId: string) {
-    return this.prisma.matchedRequest.findMany({
+    const matchedRequests = await this.prisma.matchedRequest.findMany({
       where: {
         tripId
       },
@@ -427,6 +427,7 @@ export class TripService {
                 phoneNumber: true,
               }
             },
+            status: true,
             items: true,
             originAddress: true,
             recipient: true,
@@ -440,9 +441,10 @@ export class TripService {
             deliveryAtDestination: true,
             preferredPickupTime: true,
             preferredDeliveryTime: true,
-            picturesKey: true, // TODO: HANDLE THIS
+            picturesKey: true
           }
         },
+        request: true,
         transporterNotes: true,
         pickupTime: true,
         deliveryTime: true,
@@ -452,6 +454,22 @@ export class TripService {
       formatPrismaError(error);
       throw error;
     });
+
+    return Promise.all(matchedRequests.map((async m => {
+      const picturesKey = instanceToPlain(m.package.picturesKey) as string[];
+      const picturePromises = picturesKey.map(k => this.s3Service.generateGetPresignedUrl(k));
+      const picturesUrl = await Promise.all(picturePromises);
+      return {
+        ...m,
+        package: {
+          ...m.package,
+          picturesUrl,
+          offeredPrice: m.request.offeredPrice,
+          picturesKey: undefined
+        },
+        request: undefined
+      };
+    })));
   }
 
   private async updateStatus(
