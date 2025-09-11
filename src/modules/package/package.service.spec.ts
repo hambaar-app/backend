@@ -703,6 +703,7 @@ describe('PackageService', () => {
 
   describe('updateRequest', () => {
     it('should cancel request and update session', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
       const canceledRequest = {
         id: 'request-123',
         packageId: 'package-123',
@@ -724,7 +725,10 @@ describe('PackageService', () => {
         }]
       } as any;
 
-      prismaService.tripRequest.update.mockResolvedValue(canceledRequest as any);
+      prismaService.tripRequest.update.mockResolvedValue({
+        ...canceledRequest,
+        package: { id: 'package-123', senderId: 'user-123' }
+      } as any);
 
       const result = await service.updateRequest('request-123', session);
 
@@ -737,11 +741,20 @@ describe('PackageService', () => {
         },
         data: {
           status: RequestStatusEnum.canceled
+        },
+        include: {
+          package: {
+            select: {
+              id: true,
+              senderId: true
+            }
+          }
         }
       });
     });
 
     it('should handle missing session data gracefully', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
       const canceledRequest = {
         id: 'request-123',
         packageId: 'package-456',
@@ -753,7 +766,10 @@ describe('PackageService', () => {
         packages: []
       } as any;
 
-      prismaService.tripRequest.update.mockResolvedValue(canceledRequest as any);
+      prismaService.tripRequest.update.mockResolvedValue({
+        ...canceledRequest,
+        package: { id: 'package-456', senderId: 'user-456' }
+      } as any);
 
       const result = await service.updateRequest('request-123', session);
 
