@@ -508,7 +508,7 @@ export class PackageService {
           duration: deviationDuration,
           additionalPrice
         };
-  
+
         return {
           ...trip,
           additionalPrice
@@ -585,6 +585,13 @@ export class PackageService {
 
       // Update session
       matchedTrip.isRequestSent = true;
+
+      // Add create request notification
+      await this.notificationService.create(
+        userId,
+        NotificationMessages.TripRequestCreated,
+        tx
+      );
 
       return request;
     }).catch((error: Error) => {
