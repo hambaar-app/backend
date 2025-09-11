@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { TokenService } from '../token/token.service';
 import { UserService } from '../user/user.service';
 import { VehicleService } from '../vehicle/vehicle.service';
+import { NotificationService } from '../notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
 import { TooManyRequestsException } from '../../common/custom.exceptions';
@@ -31,6 +32,7 @@ describe('AuthService', () => {
   let smsService: DeepMockProxy<SmsService>;
   let configService: DeepMockProxy<ConfigService>;
   let keyvMock: DeepMockProxy<Keyv>;
+  let notificationService: DeepMockProxy<NotificationService>;
 
   const mockUser = {
     id: 'user-123',
@@ -65,6 +67,7 @@ describe('AuthService', () => {
     smsService = mockDeep<SmsService>();
     configService = mockDeep<ConfigService>();
     keyvMock = mockDeep<Keyv>();
+    notificationService = mockDeep<NotificationService>();
 
     const cacheManager = { stores: [null, keyvMock] };
 
@@ -92,6 +95,7 @@ describe('AuthService', () => {
         { provide: SmsService, useValue: smsService },
         { provide: ConfigService, useValue: configService },
         { provide: CACHE_MANAGER, useValue: cacheManager },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compile();
 
@@ -237,6 +241,7 @@ describe('AuthService', () => {
     };
 
     it('should create sender successfully', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
       prismaService.user.create.mockResolvedValue(mockUser);
       (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue('access-token');
 
@@ -271,6 +276,7 @@ describe('AuthService', () => {
     };
 
     it('should create transporter successfully', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
       const createdTransporter = {
         ...mockUser,
         role: RolesEnum.transporter,
@@ -434,6 +440,7 @@ describe('AuthService', () => {
 
     it('should handle Prisma errors', async () => {
       const error = new Error('DB error');
+      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
       prismaService.user.create.mockRejectedValue(error);
       ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
         throw new Error('Formatted error');

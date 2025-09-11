@@ -22,6 +22,7 @@ import { FinancialModule } from '../financial/financial.module';
 import { MapModule } from '../map/map.module';
 import { HealthModule } from '../health/health.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { DashboardModule } from '../dashboard/dashboard.module';
     AuthModule,
     UserModule,
     DashboardModule,
+    NotificationModule,
     VehicleModule,
     S3Module,
     AddressModule,

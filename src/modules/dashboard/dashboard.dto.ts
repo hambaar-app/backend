@@ -2,6 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { AuthRoles } from '../../common/enums/auth.enum';
 
 class Statistics {
+  // For transporters
   @Expose()
   completedTrips: number;
   @Expose()
@@ -11,6 +12,7 @@ class Statistics {
   @Expose()
   totalEscrowedAmount: bigint;
 
+  // For senders
   @Expose()
   notPickedUpPackages: number;
   @Expose()

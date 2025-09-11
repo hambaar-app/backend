@@ -3,7 +3,7 @@ import { MapService } from '../map/map.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from '../../common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages, TrackingMessages } from '../../common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, NotificationMessages, TrackingMessages } from '../../common/enums/messages.enum';
 import { MatchedRequest, Package, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from '../../../generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -17,6 +17,7 @@ import { isNumber } from 'class-validator';
 import { S3Service } from '../s3/s3.service';
 import { TurfService } from '../turf/turf.service';
 import { Location } from '../map/map.types';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class TripService {
@@ -25,7 +26,8 @@ export class TripService {
     private mapService: MapService,
     private financialService: FinancialService,
     private s3Service: S3Service,
-    private turfService: TurfService
+    private turfService: TurfService,
+    private notificationService: NotificationService
   ) {}
 
   async create(
@@ -93,9 +95,21 @@ export class TripService {
         };
       }
 
-      return tx.trip.create({
+      const trip = await tx.trip.create({
         data: tripData
       });
+
+      // Add create trip notification
+      await this.notificationService.create(
+        userId,
+        {
+          tripId: trip.id,
+          content: NotificationMessages.TripCreated
+        },
+        tx
+      );
+
+      return trip;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
@@ -311,9 +325,34 @@ export class TripService {
     }: UpdateRequestDto
   ) {
     if (status === RequestStatusEnum.rejected) {
-      return this.prisma.tripRequest.update({
-        where: { id: requestId },
-        data: { status }
+      return this.prisma.$transaction(async tx => {
+        const {
+          package: { senderId },
+          ...request
+        } = await this.prisma.tripRequest.update({
+          where: { id: requestId },
+          data: { status },
+          include: {
+            package: {
+              select: {
+                senderId: true
+              }
+            }
+          }
+        });
+
+        // Add reject request notification
+        await this.notificationService.create(
+          senderId,
+          {
+            packageId: request.packageId,
+            tripId: request.tripId,
+            content: NotificationMessages.TripRequestRejected
+          },
+          tx
+        );
+
+        return request
       }).catch((error: Error) => {
         formatPrismaError(error);
         throw error;
@@ -349,7 +388,7 @@ export class TripService {
           tripId: request.tripId,
           trackingCode,
           deliveryCode,
-          transporterNotes, // TODO: Improve it
+          transporterNotes,
         }
       });
 
@@ -373,10 +412,11 @@ export class TripService {
       });
 
       // Get package and Update its status and breakdown
-      const packageData = await tx.package.findFirst({
+      const packageData = await tx.package.findFirstOrThrow({
         where: { id: request.packageId },
         select: {
-          breakdown: true
+          breakdown: true,
+          senderId: true
         }
       });
 
@@ -405,6 +445,17 @@ export class TripService {
           tripId: request.tripId
         });
       } catch(error) {}
+
+      // Add accept request notification
+      await this.notificationService.create(
+        packageData.senderId,
+        {
+          packageId: request.packageId,
+          tripId: request.tripId,
+          content: NotificationMessages.TripRequestAccepted
+        },
+        tx
+      );
 
       return request;
     }).catch((error: Error) => {
@@ -624,6 +675,7 @@ export class TripService {
         id: true,
         package: {
           select: {
+            senderId: true,
             status: true,
             originAddress: true
           }
@@ -675,6 +727,17 @@ export class TripService {
         }
       });
 
+      // Add pickup package notification
+      await this.notificationService.create(
+        packageData.senderId,
+        {
+          packageId,
+          tripId,
+          content: TrackingMessages.PackagePickedUp
+        },
+        tx
+      );
+
       return {
         packageStatus,
         pickupTime
@@ -701,6 +764,7 @@ export class TripService {
         id: true,
         package: {
           select: {
+            senderId: true,
             status: true,
             recipient: {
               include: {
@@ -766,6 +830,17 @@ export class TripService {
 
       // TODO: Send SMS
 
+      // Add delivery package notification
+      await this.notificationService.create(
+        packageData.senderId,
+        {
+          packageId,
+          tripId,
+          content: TrackingMessages.PackageDelivered
+        },
+        tx
+      );
+
       return {
         packageStatus,
         deliveryTime
@@ -818,6 +893,13 @@ export class TripService {
         matchedRequests: {
           where: {
             packageId
+          },
+          include: {
+            package: {
+              select: {
+                senderId: true
+              }
+            }
           }
         }
       }
@@ -831,11 +913,22 @@ export class TripService {
     }
 
     // If packageId included, the note will send for all matched requests within a trip.
-    const updatedMatchedRequestsPromises = trip.matchedRequests.map(m => {
+    const updatedMatchedRequestsPromises = trip.matchedRequests.map(async m => {
       // Push note
       const oldNotes = plainToInstance(Array<String>, m.transporterNotes) ?? [];
       oldNotes.push(note);
       const plainNewNotes = instanceToPlain(oldNotes);
+
+      // Add create package notification
+      await this.notificationService.create(
+        m.package.senderId,
+        {
+          packageId: m.packageId,
+          tripId: m.tripId,
+          content: NotificationMessages.NewTransporterNote
+        },
+        tx
+      );
 
       return tx.matchedRequest.update({
         where: {

@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
-import { AuthMessages, BadRequestMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, NotFoundMessages, NotificationMessages } from '../../common/enums/messages.enum';
 import { formatPrismaError } from '../../common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { PackageStatusEnum, RequestStatusEnum, TripStatusEnum } from '../../../generated/prisma';
@@ -13,10 +13,11 @@ import { SessionData } from 'express-session';
 import { MatchingService } from './matching.service';
 import { TripService } from '../trip/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
-import { JsonArray } from 'generated/prisma/runtime/library';
+import { JsonArray } from '../../../generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
 import { instanceToPlain } from 'class-transformer';
 import { TurfService } from '../turf/turf.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class PackageService {
@@ -28,6 +29,7 @@ export class PackageService {
     private tripService: TripService,
     private s3Service: S3Service,
     private turfService: TurfService,
+    private notificationService: NotificationService
   ) {}
 
   async createRecipient(
@@ -164,7 +166,7 @@ export class PackageService {
 
       const plainBreakdown = instanceToPlain(breakdown);
 
-      return tx.package.create({
+      const packageData = await tx.package.create({
         data: {
           senderId: userId,
           items,
@@ -184,6 +186,18 @@ export class PackageService {
           }
         }
       });
+
+      // Add create package notification
+      await this.notificationService.create(
+        userId,
+        {
+          packageId: packageData.id,
+          content: NotificationMessages.PackageCreated
+        },
+        tx
+      );
+
+      return packageData;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
@@ -499,7 +513,7 @@ export class PackageService {
           duration: deviationDuration,
           additionalPrice
         };
-  
+
         return {
           ...trip,
           additionalPrice
@@ -577,6 +591,16 @@ export class PackageService {
       // Update session
       matchedTrip.isRequestSent = true;
 
+      // Add create request notification
+      await this.notificationService.create(
+        userId,
+        {
+          packageId,
+          content: NotificationMessages.TripRequestCreated
+        },
+        tx
+      );
+
       return request;
     }).catch((error: Error) => {
       formatPrismaError(error);
@@ -605,27 +629,50 @@ export class PackageService {
     requestId: string,
     session: SessionData
   ) {
-    const request = await this.prisma.tripRequest.update({
-      where: {
-        id: requestId,
-        status: RequestStatusEnum.pending
-      },
-      data: {
-        status: RequestStatusEnum.canceled
-      }
+    return this.prisma.$transaction(async tx => {
+      const {
+        package: packageData,
+        ...request
+      } = await tx.tripRequest.update({
+        where: {
+          id: requestId,
+          status: RequestStatusEnum.pending
+        },
+        data: {
+          status: RequestStatusEnum.canceled
+        },
+        include: {
+          package: {
+            select: {
+              id: true,
+              senderId: true
+            }
+          }
+        }
+      })
+  
+      // Update session
+      const matchedTrip = session.packages
+        .find(p => p.id === request.packageId)?.matchResults
+        .find(m => m.tripId === request.tripId);
+  
+      if (matchedTrip) matchedTrip.isRequestSent = false;
+  
+      // Add create package notification
+      await this.notificationService.create(
+        packageData.senderId,
+        {
+          packageId: packageData.id,
+          content: NotificationMessages.TripRequestCanceled
+        },
+        tx
+      );
+  
+      return request;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
     });
-
-    // Update session
-    const matchedTrip = session.packages
-      .find(p => p.id === request.packageId)?.matchResults
-      .find(m => m.tripId === request.tripId);
-
-    if (matchedTrip) matchedTrip.isRequestSent = false;
-
-    return request;
   }
 
   async getTrackingByCode(trackingCode: string) {

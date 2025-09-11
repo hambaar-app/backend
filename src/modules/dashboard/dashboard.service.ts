@@ -168,7 +168,7 @@ export class DashboardService {
       completedTrips,
       pendingRequests,
       notDeliveredPackages,
-      totalEscrowedAmount: totalEscrowedAmount ?? BigInt(0),
+      totalEscrowedAmount: totalEscrowedAmount ? totalEscrowedAmount.toString() : '0',
     };
   }
 

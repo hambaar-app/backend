@@ -10,6 +10,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { BadRequestMessages, AuthMessages, TrackingMessages } from '../../common/enums/messages.enum';
 import * as utilities from '../../common/utilities';
 import { TurfService } from '../turf/turf.service';
+import { NotificationService } from '../notification/notification.service';
 
 jest.mock('../../common/utilities', () => ({
   generateCode: jest.fn(() => 12345),
@@ -24,6 +25,7 @@ describe('TripService', () => {
   let financialService: DeepMockProxy<FinancialService>;
   let s3Service: DeepMockProxy<S3Service>;
   let turfService: DeepMockProxy<TurfService>;
+  let notificationService: DeepMockProxy<NotificationService>;
 
   const mockVehicle = {
     id: 'vehicle-123',
@@ -140,6 +142,7 @@ describe('TripService', () => {
     financialService = mockDeep<FinancialService>();
     s3Service = mockDeep<S3Service>();
     turfService = mockDeep<TurfService>();
+    notificationService = mockDeep<NotificationService>();
 
     // Reset utility mocks to default values
     (utilities.generateCode as jest.Mock).mockReturnValue(12345);
@@ -153,6 +156,7 @@ describe('TripService', () => {
         { provide: FinancialService, useValue: financialService },
         { provide: S3Service, useValue: s3Service },
         { provide: TurfService, useValue: turfService },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compile();
 
@@ -400,7 +404,11 @@ describe('TripService', () => {
   describe('updateRequest', () => {
     it('should reject request', async () => {
       const updatedRequest = { ...mockTripRequest, status: RequestStatusEnum.rejected };
-      prisma.tripRequest.update.mockResolvedValue(updatedRequest);
+      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.tripRequest.update.mockResolvedValue({
+        ...updatedRequest,
+        package: { senderId: 'user-123' }
+      } as any);
 
       const result = await service.updateRequest('request-123', {
         status: RequestStatusEnum.rejected
@@ -409,7 +417,14 @@ describe('TripService', () => {
       expect(result).toEqual(updatedRequest);
       expect(prisma.tripRequest.update).toHaveBeenCalledWith({
         where: { id: 'request-123' },
-        data: { status: RequestStatusEnum.rejected }
+        data: { status: RequestStatusEnum.rejected },
+        include: {
+          package: {
+            select: {
+              senderId: true
+            }
+          }
+        }
       });
     });
 
@@ -425,8 +440,9 @@ describe('TripService', () => {
         totalDeviationDurationMin: 0
       } as any);
       prisma.trip.update.mockResolvedValue(mockTrip);
-      prisma.package.findFirst.mockResolvedValue({
-        breakdown: { baseCost: 100000, deviationCost: 0 }
+      prisma.package.findFirstOrThrow.mockResolvedValue({
+        breakdown: { baseCost: 100000, deviationCost: 0 },
+        senderId: 'user-123'
       } as any);
       prisma.package.update.mockResolvedValue({ status: PackageStatusEnum.matched } as any);
       financialService.createEscrow.mockResolvedValue({} as any);
@@ -651,7 +667,7 @@ describe('TripService', () => {
     it('should add note to specific package', async () => {
       const tripWithMatches = {
         ...mockTrip,
-        matchedRequests: [{ packageId: 'package-123', transporterNotes: [] }]
+        matchedRequests: [{ packageId: 'package-123', transporterNotes: [], package: { senderId: 'user-123' } }]
       };
       
       prisma.trip.findUniqueOrThrow.mockResolvedValue(tripWithMatches);
@@ -932,8 +948,9 @@ describe('TripService', () => {
         totalDeviationDurationMin: 0
       } as any);
       prisma.trip.update.mockResolvedValue(mockTrip);
-      prisma.package.findFirst.mockResolvedValue({
-        breakdown: { baseCost: 100000, deviationCost: 0 }
+      prisma.package.findFirstOrThrow.mockResolvedValue({
+        breakdown: { baseCost: 100000, deviationCost: 0 },
+        senderId: 'user-123'
       } as any);
       prisma.package.update.mockResolvedValue({ status: PackageStatusEnum.matched } as any);
       
@@ -982,7 +999,7 @@ describe('TripService', () => {
         totalDeviationDurationMin: null
       } as any);
       prisma.trip.update.mockResolvedValue(mockTrip);
-      prisma.package.findFirst.mockResolvedValue({ breakdown: null } as any);
+      prisma.package.findFirstOrThrow.mockResolvedValue({ breakdown: null, senderId: 'user-123' } as any);
       prisma.package.update.mockResolvedValue({ status: PackageStatusEnum.matched } as any);
       financialService.createEscrow.mockResolvedValue({} as any);
 
@@ -1023,9 +1040,9 @@ describe('TripService', () => {
       const tripWithMatches = {
         ...mockTrip,
         matchedRequests: [
-          { packageId: 'package-1', transporterNotes: [] },
-          { packageId: 'package-2', transporterNotes: [] },
-          { packageId: 'package-3', transporterNotes: [] }
+          { packageId: 'package-1', transporterNotes: [], package: { senderId: 'user-1' } },
+          { packageId: 'package-2', transporterNotes: [], package: { senderId: 'user-2' } },
+          { packageId: 'package-3', transporterNotes: [], package: { senderId: 'user-3' } }
         ]
       };
       

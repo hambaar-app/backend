@@ -5,7 +5,7 @@ import { Cache } from 'cache-manager';
 import { Keyv } from '@keyv/redis';
 import { CheckOtpDto } from './dto/check-otp.dto';
 import { ConfigService } from '@nestjs/config';
-import { AuthMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import { AuthMessages, NotFoundMessages, NotificationMessages } from '../../common/enums/messages.enum';
 import { TokenService } from '../token/token.service';
 import { UserService } from '../user/user.service';
 import { AuthTokens } from '../../common/enums/auth.enum';
@@ -22,6 +22,7 @@ import { SessionData } from 'express-session';
 import { UserStatesEnum } from './types/auth.enums';
 import { TransporterResponseDto } from '../user/dto/transporter-response.dto';
 import { SmsService } from '../sms/sms.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AuthService {
@@ -39,6 +40,7 @@ export class AuthService {
     private prisma: PrismaService,
     @Inject(CACHE_MANAGER) cacheManager: Cache,
     private smsService: SmsService,
+    private notificationService: NotificationService,
     config: ConfigService,
   ) {
     this.cacheManager = cacheManager.stores[1];
@@ -231,30 +233,41 @@ export class AuthService {
   }
 
   async signupSender(senderDto: SignupSenderDto) {
-    const sender = await this.prisma.user.create({
-      data: {
-        ...senderDto,
-        wallet: {
-          create: {}
+    return this.prisma.$transaction(async tx => {
+      const sender = await tx.user.create({
+        data: {
+          ...senderDto,
+          wallet: {
+            create: {}
+          },
+          role: RolesEnum.sender,
+          phoneVerifiedAt: new Date()
+        }
+      });
+  
+      const payload = {
+        sub: sender.id,
+        phoneNumber: sender.phoneNumber
+      };
+      const accessToken = this.tokenService['generateAccessToken'](payload);
+  
+      // Add welcome notification
+      await this.notificationService.create(
+        sender.id,
+        {
+          content: NotificationMessages.Welcome
         },
-        role: RolesEnum.sender,
-        phoneVerifiedAt: new Date()
-      }
+        tx
+      );
+
+      return {
+        sender,
+        accessToken
+      };
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
     });
-
-    const payload = {
-      sub: sender.id,
-      phoneNumber: sender.phoneNumber
-    };
-    const accessToken = this.tokenService['generateAccessToken'](payload);
-
-    return {
-      sender,
-      accessToken
-    };
   }
 
   async signupTransporter(
@@ -267,54 +280,65 @@ export class AuthService {
       ...transporterDto
     }: SignupTransporterDto
   ) {
-    const user = await this.prisma.user.create({
-      data: {
-        ...transporterDto,
-        wallet: {
-          create: {}
+    return this.prisma.$transaction(async tx => {
+      const transporter = await tx.user.create({
+        data: {
+          ...transporterDto,
+          wallet: {
+            create: {}
+          },
+          role: RolesEnum.transporter,
+          transporter: {
+            create: {
+              nationalId,
+              licenseNumber,
+              licenseExpiryDate,
+              licenseType,
+              profilePictureKey,
+              nationalIdStatus: {
+                create: {}
+              },
+              licenseStatus: {
+                create: {}
+              },
+              verificationStatus: {
+                create: {}
+              },
+            }
+          },
         },
-        role: RolesEnum.transporter,
+        include: {
+          transporter: true
+        }
+      });
+  
+      const payload = {
+        sub: transporter.id,
+        phoneNumber: transporter.phoneNumber
+      };
+      const progressToken = this.tokenService['generateProgressToken'](payload);
+  
+      // Add welcome notification
+      await this.notificationService.create(
+        transporter.id,
+        {
+          content: NotificationMessages.Welcome
+        },
+        tx
+      );
+
+      return {
         transporter: {
-          create: {
-            nationalId,
-            licenseNumber,
-            licenseExpiryDate,
-            licenseType,
-            profilePictureKey,
-            nationalIdStatus: {
-              create: {}
-            },
-            licenseStatus: {
-              create: {}
-            },
-            verificationStatus: {
-              create: {}
-            },
-          }
+          ...transporter,
+          ...transporter.transporter,
+          transporter: undefined
         },
-      },
-      include: {
-        transporter: true
-      }
+        progressToken
+      };
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
     });
-
-    const payload = {
-      sub: user.id,
-      phoneNumber: user.phoneNumber
-    };
-    const progressToken = this.tokenService['generateProgressToken'](payload);
-
-    return {
-      transporter: {
-        ...user,
-        ...user.transporter,
-        transporter: undefined
-      },
-      progressToken
-    };
   }
 
   async submitDocuments(

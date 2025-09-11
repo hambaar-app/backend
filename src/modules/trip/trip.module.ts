@@ -8,6 +8,7 @@ import { UserModule } from '../user/user.module';
 import { FinancialModule } from '../financial/financial.module';
 import { S3Module } from '../s3/s3.module';
 import { TurfModule } from '../turf/turf.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { TurfModule } from '../turf/turf.module';
     UserModule,
     FinancialModule,
     S3Module,
-    TurfModule
+    TurfModule,
+    NotificationModule,
   ],
   controllers: [TripController],
   providers: [TripService],
