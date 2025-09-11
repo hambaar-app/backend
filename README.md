@@ -9,9 +9,11 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![NestJS](https://img.shields.io/badge/Nest.js-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)](https://prisma.io/)
 [![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+
 [![AWS S3](https://img.shields.io/badge/AWS%20S3-FF9900?style=for-the-badge&logo=amazon-s3&logoColor=white)](https://aws.amazon.com/s3/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com/)
 [![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=fff)](https://jestjs.io/)
@@ -363,6 +365,66 @@ Revenue Distribution:
 ├── Transporter Share (70%)
 └── Deviation Fees (100% to Transporter)
 ```
+
+### 9. Geographic Integration
+Advanced geographic features using Neshan Maps API:
+
+#### Core Functions
+- Distance/Time Calculation: Route analysis for pricing
+- Intermediate Cities: Waypoint discovery for better matching
+- Coordinate Management: GPS-based location handling
+- Reverse Geocoding: Address extraction from coordinates
+- Static Maps: Route visualization
+- Navigation: Real-time routing for transporters
+
+#### Geographic Matching
+- Corridor System: Route deviation tolerance (configurable width)
+- GeoJSON Integration: Standard geographic data format
+- Turf.js Library: Advanced geospatial calculations
+
+## 10. 📊 Dashboard
+
+Our dashboard provides real-time insights and statistics tailored for each user role:
+
+### 📈 Dashboard Statistics
+
+#### 🚚 Transporter Metrics
+
+| **Metric** | **Description** |
+|:---|:---|
+| **🚛 Completed Trips** | Successfully finished journeys |
+| **⏳ Pending Requests** | Trip requests awaiting response |
+| **📦 Not Delivered Packages** | Packages awaiting delivery |
+| **💰 Total Escrowed Amount** | Funds held in escrow for active deliveries |
+
+#### 📦 Sender Metrics
+
+| **Metric** | **Description** |
+|:---|:---|
+| **📥 Not Picked Up Packages** | Packages awaiting collection |
+| **🚚 In Transit Packages** | Packages currently being delivered |
+| **✅ Delivered Packages** | Successfully completed deliveries |
+| **💵 Total Unpaid Amount** | Outstanding payment amounts |
+
+### 👤 Dashboard Profile
+
+- **Personal Details**: Full name and profile picture
+- **Transporter Info**: Experience, rate and bio
+- **Financial Status**: Wallet balance
+
+## 11. 🔔 Notification System
+
+Our notification system keeps users informed about critical events and updates:
+
+### System Event Notifications
+
+- **Welcome**
+- **Package Created**
+- **Trip Created**
+- **Trip Request Created, Canceled, Accepted and Rejected**
+- **New Transporter Note**
+- **Trip Started and Delayed**
+- **Package Picked Up and Delivered**
 
 ---
 
