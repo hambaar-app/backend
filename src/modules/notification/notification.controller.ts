@@ -1,7 +1,7 @@
 import { Controller, DefaultValuePipe, Get, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { ApiOperation } from '@nestjs/swagger';
-import { ApiQueryPagination, AuthResponses } from 'src/common/api-docs.decorators';
+import { ApiQueryPagination, AuthResponses } from '../../common/api-docs.decorators';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CurrentUser } from '../user/current-user.middleware';
 
