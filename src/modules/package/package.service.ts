@@ -621,27 +621,46 @@ export class PackageService {
     requestId: string,
     session: SessionData
   ) {
-    const request = await this.prisma.tripRequest.update({
-      where: {
-        id: requestId,
-        status: RequestStatusEnum.pending
-      },
-      data: {
-        status: RequestStatusEnum.canceled
-      }
+    return this.prisma.$transaction(async tx => {
+      const {
+        package: { senderId },
+        ...request
+      } = await tx.tripRequest.update({
+        where: {
+          id: requestId,
+          status: RequestStatusEnum.pending
+        },
+        data: {
+          status: RequestStatusEnum.canceled
+        },
+        include: {
+          package: {
+            select: {
+              senderId: true
+            }
+          }
+        }
+      })
+  
+      // Update session
+      const matchedTrip = session.packages
+        .find(p => p.id === request.packageId)?.matchResults
+        .find(m => m.tripId === request.tripId);
+  
+      if (matchedTrip) matchedTrip.isRequestSent = false;
+  
+      // Add create package notification
+      await this.notificationService.create(
+        senderId,
+        NotificationMessages.TripRequestCanceled,
+        tx
+      );
+  
+      return request;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
     });
-
-    // Update session
-    const matchedTrip = session.packages
-      .find(p => p.id === request.packageId)?.matchResults
-      .find(m => m.tripId === request.tripId);
-
-    if (matchedTrip) matchedTrip.isRequestSent = false;
-
-    return request;
   }
 
   async getTrackingByCode(trackingCode: string) {
