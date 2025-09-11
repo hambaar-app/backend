@@ -127,8 +127,8 @@ enum TransactionTypeEnum {
 
 model User {
   id              String       @id @default(uuid()) @db.Uuid
-  firstName       String      @map("first_name") @db.VarChar
-  lastName        String      @map("last_name") @db.VarChar
+  firstName       String       @map("first_name") @db.VarChar
+  lastName        String       @map("last_name") @db.VarChar
   gender          GendersEnum?
   phoneNumber     String       @unique @map("phone_number") @db.VarChar
   phoneVerifiedAt DateTime?    @map("phone_verified_at") @db.Timestamp
@@ -144,9 +144,10 @@ model User {
   addresses   Address[]
   wallet      Wallet?
 
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime?     @map("deleted_at") @db.Timestamptz()
+  Notification Notification?
 
   @@map("users")
 }
@@ -202,6 +203,22 @@ model VerificationStatus {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@map("verification_status")
+}
+
+model Notification {
+  id      String  @id @default(uuid()) @db.Uuid
+  userId  String  @unique @map("user_id") @db.Uuid
+  content String  @db.Text
+  isSeen  Boolean @default(false)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@map("notifications")
 }
 
 model Vehicle {
