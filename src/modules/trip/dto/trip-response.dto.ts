@@ -1,12 +1,15 @@
 import { TripStatusEnum, TripTypeEnum } from '../../../../generated/prisma';
 import { CityDto } from '../../map/dto/city.dto';
-import { Expose, Transform, Type } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { VehicleCompactResponseDto } from '../../vehicle/dto/vehicle-response.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class TripCompactResponseDto {
   @Expose()
   id: string;
+
+  @Expose()
+  code: number;
 
   @ApiProperty({ type: CityDto })
   @Expose()

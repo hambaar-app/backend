@@ -642,19 +642,55 @@ describe('TripService', () => {
     it('should finish trip successfully', async () => {
       prisma.trip.findUniqueOrThrow.mockResolvedValueOnce({
         status: TripStatusEnum.in_progress,
-        matchedRequests: [{ deliveryTime: new Date() }]
+        matchedRequests: [{ deliveryTime: new Date() }],
+        transporter: {
+          id: 'transporter-123',
+          firstTripDate: null
+        }
       } as any);
+      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
       prisma.trip.update.mockResolvedValue({ ...mockTrip, status: TripStatusEnum.completed });
+      prisma.transporter.update.mockResolvedValue({} as any);
 
       const result = await service.finishTrip('trip-123');
 
       expect(result).toEqual({ ...mockTrip, status: TripStatusEnum.completed });
+      expect(prisma.transporter.update).toHaveBeenCalledWith({
+        where: { id: 'transporter-123' },
+        data: { firstTripDate: expect.any(Date) }
+      });
+    });
+
+    it('should finish trip successfully when transporter has firstTripDate', async () => {
+      prisma.trip.findUniqueOrThrow.mockResolvedValueOnce({
+        status: TripStatusEnum.in_progress,
+        matchedRequests: [{ deliveryTime: new Date() }],
+        transporter: {
+          id: 'transporter-123',
+          firstTripDate: new Date('2023-01-01')
+        }
+      } as any);
+      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.trip.update.mockResolvedValue({ ...mockTrip, status: TripStatusEnum.completed });
+      prisma.transporter.update.mockResolvedValue({} as any);
+
+      const result = await service.finishTrip('trip-123');
+
+      expect(result).toEqual({ ...mockTrip, status: TripStatusEnum.completed });
+      expect(prisma.transporter.update).toHaveBeenCalledWith({
+        where: { id: 'transporter-123' },
+        data: { lastTripDate: expect.any(Date) }
+      });
     });
 
     it('should throw when not all packages are delivered', async () => {
       prisma.trip.findUniqueOrThrow.mockResolvedValueOnce({
         status: TripStatusEnum.in_progress,
-        matchedRequests: [{ deliveryTime: null }]
+        matchedRequests: [{ deliveryTime: null }],
+        transporter: {
+          id: 'transporter-123',
+          firstTripDate: null
+        }
       } as any);
 
       await expect(service.finishTrip('trip-123')).rejects.toThrow(
@@ -900,6 +936,7 @@ describe('TripService', () => {
           package: {
             select: {
               id: true,
+              code: true,
               sender: {
                 select: {
                   firstName: true,
@@ -908,12 +945,12 @@ describe('TripService', () => {
                   phoneNumber: true
                 }
               },
+              status: true,
               items: true,
               originAddress: true,
               recipient: true,
               weight: true,
               dimensions: true,
-              status: true,
               packageValue: true,
               isFragile: true,
               isPerishable: true,

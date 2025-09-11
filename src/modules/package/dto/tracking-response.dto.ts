@@ -51,6 +51,9 @@ class PackageTrackingDto {
   @Expose()
   sender: SenderDto;
 
+  @Expose()
+  code: number;
+  
   @Type(() => RecipientDto)
   @Expose()
   recipient: RecipientDto;
