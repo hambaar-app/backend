@@ -366,7 +366,7 @@ Revenue Distribution:
 └── Deviation Fees (100% to Transporter)
 ```
 
-### 9. Geographic Integration
+### 9. 🧭 Geographic Integration
 Advanced geographic features using Neshan Maps API:
 
 #### Core Functions
@@ -382,13 +382,13 @@ Advanced geographic features using Neshan Maps API:
 - GeoJSON Integration: Standard geographic data format
 - Turf.js Library: Advanced geospatial calculations
 
-## 10. 📊 Dashboard
+### 10. 📊 Dashboard
 
 Our dashboard provides real-time insights and statistics tailored for each user role:
 
-### 📈 Dashboard Statistics
+#### 📈 Dashboard Statistics
 
-#### 🚚 Transporter Metrics
+##### 🚚 Transporter Metrics
 
 | **Metric** | **Description** |
 |:---|:---|
@@ -397,7 +397,7 @@ Our dashboard provides real-time insights and statistics tailored for each user 
 | **📦 Not Delivered Packages** | Packages awaiting delivery |
 | **💰 Total Escrowed Amount** | Funds held in escrow for active deliveries |
 
-#### 📦 Sender Metrics
+##### 📦 Sender Metrics
 
 | **Metric** | **Description** |
 |:---|:---|
@@ -406,17 +406,17 @@ Our dashboard provides real-time insights and statistics tailored for each user 
 | **✅ Delivered Packages** | Successfully completed deliveries |
 | **💵 Total Unpaid Amount** | Outstanding payment amounts |
 
-### 👤 Dashboard Profile
+#### 👤 Dashboard Profile
 
 - **Personal Details**: Full name and profile picture
 - **Transporter Info**: Experience, rate and bio
 - **Financial Status**: Wallet balance
 
-## 11. 🔔 Notification System
+### 11. 🔔 Notification System
 
 Our notification system keeps users informed about critical events and updates:
 
-### System Event Notifications
+#### System Event Notifications
 
 - **Welcome**
 - **Package Created**
