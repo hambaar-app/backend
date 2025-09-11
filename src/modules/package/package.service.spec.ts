@@ -21,6 +21,7 @@ import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
 import * as utilities from '../../common/utilities';
+import { NotificationService } from '../notification/notification.service';
 
 jest.mock('../../common/utilities', () => ({
   formatPrismaError: jest.fn(),
@@ -35,6 +36,7 @@ describe('PackageService', () => {
   let tripService: DeepMockProxy<TripService>;
   let s3Service: DeepMockProxy<S3Service>;
   let turfService: DeepMockProxy<TurfService>;
+  let notificationService: DeepMockProxy<NotificationService>;
 
   const mockCity = {
     id: 'city-123',
@@ -168,6 +170,7 @@ describe('PackageService', () => {
     tripService = mockDeep<TripService>();
     s3Service = mockDeep<S3Service>();
     turfService = mockDeep<TurfService>();
+    notificationService = mockDeep<NotificationService>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -179,6 +182,7 @@ describe('PackageService', () => {
         { provide: TripService, useValue: tripService },
         { provide: S3Service, useValue: s3Service },
         { provide: TurfService, useValue: turfService },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compile();
 

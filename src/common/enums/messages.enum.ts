@@ -45,5 +45,7 @@ export enum TrackingMessages {
 }
 
 export enum NotificationMessages {
-  Welcome = 'به پلتفرم هم‌بار خوش آمدید.'
+  Welcome = 'به پلتفرم هم‌بار خوش آمدید.',
+  PackageCreated = 'بسته شما با موفقیت ایجاد شد.',
+  TripCreated = 'سفر شما با موفقیت ایجاد شد.',
 }

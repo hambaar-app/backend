@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
-import { AuthMessages, BadRequestMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, NotFoundMessages, NotificationMessages } from '../../common/enums/messages.enum';
 import { formatPrismaError } from '../../common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { PackageStatusEnum, RequestStatusEnum, TripStatusEnum } from '../../../generated/prisma';
@@ -17,6 +17,7 @@ import { JsonArray } from 'generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
 import { instanceToPlain } from 'class-transformer';
 import { TurfService } from '../turf/turf.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class PackageService {
@@ -28,6 +29,7 @@ export class PackageService {
     private tripService: TripService,
     private s3Service: S3Service,
     private turfService: TurfService,
+    private notificationService: NotificationService
   ) {}
 
   async createRecipient(
@@ -163,6 +165,13 @@ export class PackageService {
       });
 
       const plainBreakdown = instanceToPlain(breakdown);
+
+      // Add create package notification
+      await this.notificationService.create(
+        userId,
+        NotificationMessages.PackageCreated,
+        tx
+      );
 
       return tx.package.create({
         data: {
