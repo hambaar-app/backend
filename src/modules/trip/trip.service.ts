@@ -476,6 +476,7 @@ export class TripService {
         package: {
           select: {
             id: true,
+            code: true,
             sender: {
               select: {
                 firstName: true,
@@ -892,7 +893,8 @@ export class TripService {
     }
 
     return this.prisma.$transaction(async tx => {
-      tx.transporter.update({
+      // Update transporter
+      await tx.transporter.update({
         where: { id: transporter.id },
         data: updateTransporter
       });

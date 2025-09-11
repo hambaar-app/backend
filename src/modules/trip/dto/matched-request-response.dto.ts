@@ -10,6 +10,9 @@ class MatchedPackageDto {
   @Expose()
   id: string;
 
+  @Expose()
+  code: number;
+
   @Type(() => UserCompactDto)
   @Expose()
   sender: UserCompactDto;
