@@ -243,9 +243,6 @@ export class AuthService {
           role: RolesEnum.sender,
           phoneVerifiedAt: new Date()
         }
-      }).catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
       });
   
       const payload = {
@@ -265,6 +262,9 @@ export class AuthService {
         sender,
         accessToken
       };
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
     });
   }
 
@@ -278,54 +278,63 @@ export class AuthService {
       ...transporterDto
     }: SignupTransporterDto
   ) {
-    const user = await this.prisma.user.create({
-      data: {
-        ...transporterDto,
-        wallet: {
-          create: {}
+    return this.prisma.$transaction(async tx => {
+      const transporter = await tx.user.create({
+        data: {
+          ...transporterDto,
+          wallet: {
+            create: {}
+          },
+          role: RolesEnum.transporter,
+          transporter: {
+            create: {
+              nationalId,
+              licenseNumber,
+              licenseExpiryDate,
+              licenseType,
+              profilePictureKey,
+              nationalIdStatus: {
+                create: {}
+              },
+              licenseStatus: {
+                create: {}
+              },
+              verificationStatus: {
+                create: {}
+              },
+            }
+          },
         },
-        role: RolesEnum.transporter,
+        include: {
+          transporter: true
+        }
+      });
+  
+      const payload = {
+        sub: transporter.id,
+        phoneNumber: transporter.phoneNumber
+      };
+      const progressToken = this.tokenService['generateProgressToken'](payload);
+  
+      // Add welcome notification
+      await this.notificationService.create(
+        transporter.id,
+        NotificationMessages.Welcome,
+        tx
+      );
+
+      return {
         transporter: {
-          create: {
-            nationalId,
-            licenseNumber,
-            licenseExpiryDate,
-            licenseType,
-            profilePictureKey,
-            nationalIdStatus: {
-              create: {}
-            },
-            licenseStatus: {
-              create: {}
-            },
-            verificationStatus: {
-              create: {}
-            },
-          }
+          ...transporter,
+          ...transporter.transporter,
+          transporter: undefined
         },
-      },
-      include: {
-        transporter: true
-      }
+        progressToken
+      };
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });
-
-    const payload = {
-      sub: user.id,
-      phoneNumber: user.phoneNumber
-    };
-    const progressToken = this.tokenService['generateProgressToken'](payload);
-
-    return {
-      transporter: {
-        ...user,
-        ...user.transporter,
-        transporter: undefined
-      },
-      progressToken
-    };
+    });;
   }
 
   async submitDocuments(
