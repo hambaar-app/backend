@@ -29,6 +29,9 @@ export class DashboardResponseDto {
   
   @Expose()
   totalWalletBalance: number;
+
+  @Expose()
+  notificationCount: number;
   
   @Expose()
   role?: AuthRoles;
