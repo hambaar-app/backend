@@ -20,7 +20,12 @@ export class DashboardService {
   ) {}
 
   async getDashboard(userId: string) {
-    const { transporter, wallet, role, ...user } = await this.prisma.user
+    const {
+      transporter,
+      wallet,
+      role,
+      ...user
+    } = await this.prisma.user
       .findFirstOrThrow({
         where: { id: userId },
         select: {
@@ -42,9 +47,17 @@ export class DashboardService {
             },
           },
           role: true,
+          _count: {
+            select: {
+              notifications: {
+                where: {
+                  unread: true
+                }
+              }
+            }
+          }
         },
-      })
-      .catch((error: Error) => {
+      }).catch((error: Error) => {
         formatPrismaError(error);
         throw error;
       });
@@ -84,6 +97,7 @@ export class DashboardService {
       experience,
       bio: transporter?.bio,
       statistics,
+      notificationCount: user._count.notifications
     };
   }
 

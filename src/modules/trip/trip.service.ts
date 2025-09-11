@@ -851,7 +851,8 @@ export class TripService {
   async finishTrip(id: string) {
     const {
       status: tripStatus,
-      matchedRequests
+      matchedRequests,
+      transporter
     } = await this.prisma.trip.findUniqueOrThrow({
       where: { id },
       select: {
@@ -859,6 +860,12 @@ export class TripService {
         matchedRequests: {
           select: {
             deliveryTime: true
+          }
+        },
+        transporter: {
+          select: {
+            id: true,
+            firstTripDate: true,
           }
         }
       }
@@ -876,7 +883,22 @@ export class TripService {
       throw new BadRequestException(BadRequestMessages.CannotFinishTrip);
     }
 
-    return this.updateStatus(id, TripStatusEnum.completed);
+    // Update firstTripDate/lastTripDate
+    const updateTransporter: Prisma.TransporterUpdateInput = {};
+    if (!transporter.firstTripDate) {
+      updateTransporter.firstTripDate = new Date();
+    } else {
+      updateTransporter.lastTripDate = new Date();
+    }
+
+    return this.prisma.$transaction(async tx => {
+      tx.transporter.update({
+        where: { id: transporter.id },
+        data: updateTransporter
+      });
+      
+      return this.updateStatus(id, TripStatusEnum.completed, tx);
+    });
   }
 
   async addTripNote(

@@ -143,11 +143,11 @@ model User {
   packages    Package[]
   addresses   Address[]
   wallet      Wallet?
+  notifications Notification[]
 
   createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt    DateTime?     @map("deleted_at") @db.Timestamptz()
-  Notification Notification?
 
   @@map("users")
 }
@@ -207,11 +207,11 @@ model VerificationStatus {
 
 model Notification {
   id        String  @id @default(uuid()) @db.Uuid
-  userId    String  @unique @map("user_id") @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
   packageId String? @map("package_id") @db.Uuid
   tripId    String? @map("trip_id") @db.Uuid
   content   String  @db.Text
-  isSeen    Boolean @default(false)
+  unread    Boolean @default(true)
 
   // Relations
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)

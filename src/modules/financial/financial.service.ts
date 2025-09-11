@@ -20,7 +20,8 @@ export class FinancialService {
     tx: PrismaTransaction = this.prisma
   ) {
     const skip = (page - 1) * limit;
-    return tx.wallet.findUniqueOrThrow({
+    
+    const wallet = await tx.wallet.findUniqueOrThrow({
       where: { userId },
       include: {
         transactions: {
@@ -35,6 +36,18 @@ export class FinancialService {
       formatPrismaError(error);
       throw error;
     });
+
+    return {
+      ...wallet,
+      balance: wallet.balance.toString(),
+      totalEarned: wallet.totalEarned.toString(),
+      totalSpent: wallet.totalSpent.toString(),
+      transactions: wallet.transactions.map(transaction => ({
+        ...transaction,
+        amount: transaction.amount.toString(),
+        balanceBefore: transaction.balanceBefore?.toString(),
+      }))
+    };
   }
 
   async addFunds(
@@ -62,7 +75,7 @@ export class FinancialService {
           walletId: wallet.id,
           transactionType: TransactionTypeEnum.deposit,
           amount: BigInt(amount),
-          balanceBefore: wallet.balance,
+          balanceBefore: BigInt(wallet.balance),
           reason: 'Funds added to wallet.',
           gatewayTransactionId
         }
@@ -117,7 +130,7 @@ export class FinancialService {
     const finalPrice = matchedRequest.package.finalPrice;
     
     const senderWallet = await this.getWallet(senderId, 1, 0);    
-    if (senderWallet.balance < BigInt(finalPrice)) {
+    if (Number(senderWallet.balance) < finalPrice) {
       throw new BadRequestException(BadRequestMessages.NotEnoughBalance);
     }
 
@@ -142,7 +155,7 @@ export class FinancialService {
           walletId: senderWallet.id,
           transactionType: TransactionTypeEnum.escrow,
           amount: finalPrice,
-          balanceBefore: senderWallet.balance,
+          balanceBefore: BigInt(senderWallet.balance),
           reason: `Escrowed payment for package ${matchedRequest.package.id}.`,
           matchedRequestId: matchedRequest.id
         }
@@ -153,7 +166,7 @@ export class FinancialService {
           walletId: transporterWallet.id,
           transactionType: TransactionTypeEnum.escrow,
           amount: matchedRequest.request.offeredPrice,
-          balanceBefore: transporterWallet.balance,
+          balanceBefore: BigInt(transporterWallet.balance),
           reason: `Escrowed payment for package ${matchedRequest.package.id}.`,
           matchedRequestId: matchedRequest.id
         }
@@ -263,7 +276,7 @@ export class FinancialService {
         walletId: transporterWallet.id,
         transactionType: TransactionTypeEnum.release,
         amount: BigInt(transporterEarnings),
-        balanceBefore: transporterWallet.balance,
+        balanceBefore: BigInt(transporterWallet.balance),
         reason: `Payment received for package ${matchedRequest.packageId}.`,
         matchedRequestId: matchedRequest.id,
       }
