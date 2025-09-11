@@ -476,6 +476,7 @@ export class TripService {
         package: {
           select: {
             id: true,
+            code: true,
             sender: {
               select: {
                 firstName: true,

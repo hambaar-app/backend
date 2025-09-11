@@ -689,6 +689,7 @@ export class PackageService {
         },
         package: {
           select: {
+            code: true,
             sender: {
               select: {
                 firstName: true,
