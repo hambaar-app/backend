@@ -8,13 +8,23 @@ export class NotificationService {
 
   async create(
     userId: string,
-    content: string,
+    {
+      content,
+      packageId,
+      tripId
+    }: {
+      content: string;
+      packageId?: string;
+      tripId?: string
+    },
     tx: PrismaTransaction = this.prisma
   ) {
     return tx.notification.create({
       data: {
         userId,
-        content
+        content,
+        packageId,
+        tripId
       }
     });
   }

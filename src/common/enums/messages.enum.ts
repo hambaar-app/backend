@@ -47,9 +47,10 @@ export enum TrackingMessages {
 export enum NotificationMessages {
   Welcome = 'به پلتفرم هم‌بار خوش آمدید.',
   PackageCreated = 'بسته شما با موفقیت ایجاد شد.',
+  TripCreated = 'سفر شما با موفقیت ایجاد شد.',
   TripRequestCreated = 'درخواست شما برای سفیر موردنظر با موفقیت ارسال شد.',
   TripRequestCanceled = 'درخواست ارسالی شما برای سفیر موردنظر با موفقیت کنسل شد.',
   TripRequestAccepted = 'درخواست ارسالی شما برای سفیر موردنظر قبول شد.',
   TripRequestRejected = 'درخواست ارسالی شما برای سفیر موردنظر رد شد.',
-  TripCreated = 'سفر شما با موفقیت ایجاد شد.',
+  NewTransporterNote = 'سفیر برای شما یک یادداشت ارسال کرد.' 
 }

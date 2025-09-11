@@ -95,16 +95,21 @@ export class TripService {
         };
       }
 
+      const trip = await tx.trip.create({
+        data: tripData
+      });
+
       // Add create trip notification
       await this.notificationService.create(
         userId,
-        NotificationMessages.TripCreated,
+        {
+          tripId: trip.id,
+          content: NotificationMessages.TripCreated
+        },
         tx
       );
 
-      return tx.trip.create({
-        data: tripData
-      });
+      return trip;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
@@ -336,10 +341,14 @@ export class TripService {
           }
         });
 
-        // Add cancel request notification
+        // Add reject request notification
         await this.notificationService.create(
           senderId,
-          NotificationMessages.TripRequestRejected,
+          {
+            packageId: request.packageId,
+            tripId: request.tripId,
+            content: NotificationMessages.TripRequestRejected
+          },
           tx
         );
 
@@ -437,10 +446,14 @@ export class TripService {
         });
       } catch(error) {}
 
-      // Add cancel request notification
+      // Add accept request notification
       await this.notificationService.create(
         packageData.senderId,
-        NotificationMessages.TripRequestAccepted,
+        {
+          packageId: request.packageId,
+          tripId: request.tripId,
+          content: NotificationMessages.TripRequestAccepted
+        },
         tx
       );
 
@@ -662,6 +675,7 @@ export class TripService {
         id: true,
         package: {
           select: {
+            senderId: true,
             status: true,
             originAddress: true
           }
@@ -713,6 +727,17 @@ export class TripService {
         }
       });
 
+      // Add pickup package notification
+      await this.notificationService.create(
+        packageData.senderId,
+        {
+          packageId,
+          tripId,
+          content: TrackingMessages.PackagePickedUp
+        },
+        tx
+      );
+
       return {
         packageStatus,
         pickupTime
@@ -739,6 +764,7 @@ export class TripService {
         id: true,
         package: {
           select: {
+            senderId: true,
             status: true,
             recipient: {
               include: {
@@ -804,6 +830,17 @@ export class TripService {
 
       // TODO: Send SMS
 
+      // Add delivery package notification
+      await this.notificationService.create(
+        packageData.senderId,
+        {
+          packageId,
+          tripId,
+          content: TrackingMessages.PackageDelivered
+        },
+        tx
+      );
+
       return {
         packageStatus,
         deliveryTime
@@ -856,6 +893,13 @@ export class TripService {
         matchedRequests: {
           where: {
             packageId
+          },
+          include: {
+            package: {
+              select: {
+                senderId: true
+              }
+            }
           }
         }
       }
@@ -869,11 +913,22 @@ export class TripService {
     }
 
     // If packageId included, the note will send for all matched requests within a trip.
-    const updatedMatchedRequestsPromises = trip.matchedRequests.map(m => {
+    const updatedMatchedRequestsPromises = trip.matchedRequests.map(async m => {
       // Push note
       const oldNotes = plainToInstance(Array<String>, m.transporterNotes) ?? [];
       oldNotes.push(note);
       const plainNewNotes = instanceToPlain(oldNotes);
+
+      // Add create package notification
+      await this.notificationService.create(
+        m.package.senderId,
+        {
+          packageId: m.packageId,
+          tripId: m.tripId,
+          content: NotificationMessages.NewTransporterNote
+        },
+        tx
+      );
 
       return tx.matchedRequest.update({
         where: {

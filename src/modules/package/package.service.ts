@@ -13,7 +13,7 @@ import { SessionData } from 'express-session';
 import { MatchingService } from './matching.service';
 import { TripService } from '../trip/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
-import { JsonArray } from 'generated/prisma/runtime/library';
+import { JsonArray } from '../../../generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
 import { instanceToPlain } from 'class-transformer';
 import { TurfService } from '../turf/turf.service';
@@ -166,14 +166,7 @@ export class PackageService {
 
       const plainBreakdown = instanceToPlain(breakdown);
 
-      // Add create package notification
-      await this.notificationService.create(
-        userId,
-        NotificationMessages.PackageCreated,
-        tx
-      );
-
-      return tx.package.create({
+      const packageData = await tx.package.create({
         data: {
           senderId: userId,
           items,
@@ -193,6 +186,18 @@ export class PackageService {
           }
         }
       });
+
+      // Add create package notification
+      await this.notificationService.create(
+        userId,
+        {
+          packageId: packageData.id,
+          content: NotificationMessages.PackageCreated
+        },
+        tx
+      );
+
+      return packageData;
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
@@ -589,7 +594,10 @@ export class PackageService {
       // Add create request notification
       await this.notificationService.create(
         userId,
-        NotificationMessages.TripRequestCreated,
+        {
+          packageId,
+          content: NotificationMessages.TripRequestCreated
+        },
         tx
       );
 
@@ -623,7 +631,7 @@ export class PackageService {
   ) {
     return this.prisma.$transaction(async tx => {
       const {
-        package: { senderId },
+        package: packageData,
         ...request
       } = await tx.tripRequest.update({
         where: {
@@ -636,6 +644,7 @@ export class PackageService {
         include: {
           package: {
             select: {
+              id: true,
               senderId: true
             }
           }
@@ -651,8 +660,11 @@ export class PackageService {
   
       // Add create package notification
       await this.notificationService.create(
-        senderId,
-        NotificationMessages.TripRequestCanceled,
+        packageData.senderId,
+        {
+          packageId: packageData.id,
+          content: NotificationMessages.TripRequestCanceled
+        },
         tx
       );
   

@@ -254,7 +254,9 @@ export class AuthService {
       // Add welcome notification
       await this.notificationService.create(
         sender.id,
-        NotificationMessages.Welcome,
+        {
+          content: NotificationMessages.Welcome
+        },
         tx
       );
 
@@ -319,7 +321,9 @@ export class AuthService {
       // Add welcome notification
       await this.notificationService.create(
         transporter.id,
-        NotificationMessages.Welcome,
+        {
+          content: NotificationMessages.Welcome
+        },
         tx
       );
 
@@ -334,7 +338,7 @@ export class AuthService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
-    });;
+    });
   }
 
   async submitDocuments(
