@@ -320,9 +320,30 @@ export class TripService {
     }: UpdateRequestDto
   ) {
     if (status === RequestStatusEnum.rejected) {
-      return this.prisma.tripRequest.update({
-        where: { id: requestId },
-        data: { status }
+      return this.prisma.$transaction(async tx => {
+        const {
+          package: { senderId },
+          ...request
+        } = await this.prisma.tripRequest.update({
+          where: { id: requestId },
+          data: { status },
+          include: {
+            package: {
+              select: {
+                senderId: true
+              }
+            }
+          }
+        });
+
+        // Add cancel request notification
+        await this.notificationService.create(
+          senderId,
+          NotificationMessages.TripRequestRejected,
+          tx
+        );
+
+        return request
       }).catch((error: Error) => {
         formatPrismaError(error);
         throw error;
@@ -358,7 +379,7 @@ export class TripService {
           tripId: request.tripId,
           trackingCode,
           deliveryCode,
-          transporterNotes, // TODO: Improve it
+          transporterNotes,
         }
       });
 
@@ -382,10 +403,11 @@ export class TripService {
       });
 
       // Get package and Update its status and breakdown
-      const packageData = await tx.package.findFirst({
+      const packageData = await tx.package.findFirstOrThrow({
         where: { id: request.packageId },
         select: {
-          breakdown: true
+          breakdown: true,
+          senderId: true
         }
       });
 
@@ -414,6 +436,13 @@ export class TripService {
           tripId: request.tripId
         });
       } catch(error) {}
+
+      // Add cancel request notification
+      await this.notificationService.create(
+        packageData.senderId,
+        NotificationMessages.TripRequestAccepted,
+        tx
+      );
 
       return request;
     }).catch((error: Error) => {
