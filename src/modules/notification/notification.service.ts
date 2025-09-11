@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PrismaTransaction } from '../prisma/prisma.types';
 
 @Injectable()
 export class NotificationService {
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: string, content: string) {
-    return this.prisma.notification.create({
+  async create(
+    userId: string,
+    content: string,
+    tx: PrismaTransaction = this.prisma
+  ) {
+    return tx.notification.create({
       data: {
         userId,
         content

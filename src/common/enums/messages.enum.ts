@@ -43,3 +43,7 @@ export enum TrackingMessages {
   PackageDelivered = 'بسته شما با موفقیت تحویل داده شد.',
   TripDelayed = 'سفر با تأخیر مواجه شده است. لطفاً برای اطلاعات بیشتر با سفیر تماس بگیرید.',
 }
+
+export enum NotificationMessages {
+  Welcome = 'به پلتفرم هم‌بار خوش آمدید.'
+}

@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { TokenService } from '../token/token.service';
 import { UserService } from '../user/user.service';
 import { VehicleService } from '../vehicle/vehicle.service';
+import { NotificationService } from '../notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
 import { TooManyRequestsException } from '../../common/custom.exceptions';
@@ -31,6 +32,7 @@ describe('AuthService', () => {
   let smsService: DeepMockProxy<SmsService>;
   let configService: DeepMockProxy<ConfigService>;
   let keyvMock: DeepMockProxy<Keyv>;
+  let notificationService: DeepMockProxy<NotificationService>;
 
   const mockUser = {
     id: 'user-123',
@@ -65,6 +67,7 @@ describe('AuthService', () => {
     smsService = mockDeep<SmsService>();
     configService = mockDeep<ConfigService>();
     keyvMock = mockDeep<Keyv>();
+    notificationService = mockDeep<NotificationService>();
 
     const cacheManager = { stores: [null, keyvMock] };
 
@@ -92,6 +95,7 @@ describe('AuthService', () => {
         { provide: SmsService, useValue: smsService },
         { provide: ConfigService, useValue: configService },
         { provide: CACHE_MANAGER, useValue: cacheManager },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compile();
 
