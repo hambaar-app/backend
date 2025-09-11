@@ -11,9 +11,6 @@ export class PackageCompactResponseDto {
   id: string;
 
   @Expose()
-  code: number;
-
-  @Expose()
   items: string[];
 
   @Expose()

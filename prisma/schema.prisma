@@ -139,15 +139,15 @@ model User {
   isActive        Boolean      @default(true) @map("is_active")
 
   // Relations
-  transporter   Transporter?
-  packages      Package[]
-  addresses     Address[]
-  wallet        Wallet?
+  transporter Transporter?
+  packages    Package[]
+  addresses   Address[]
+  wallet      Wallet?
   notifications Notification[]
 
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime?     @map("deleted_at") @db.Timestamptz()
 
   @@map("users")
 }
@@ -366,7 +366,6 @@ model PackageRecipient {
 model Package {
   id                    String            @id @default(uuid()) @db.Uuid
   senderId              String            @map("sender_id") @db.Uuid
-  code                  Int               @default(autoincrement())
   items                 Json?             @map("items_description") @db.JsonB
   originAddressId       String            @map("origin_address_id") @db.Uuid
   recipientId           String            @map("recipient_id") @db.Uuid
@@ -404,7 +403,6 @@ model Package {
 model Trip {
   id                        String         @id @default(uuid()) @db.Uuid
   transporterId             String         @map("transporter_id") @db.Uuid
-  code                      Int            @default(autoincrement())
   originId                  String         @map("origin_id") @db.Uuid
   destinationId             String         @map("destination_id") @db.Uuid
   tripType                  TripTypeEnum   @map("trip_type")
