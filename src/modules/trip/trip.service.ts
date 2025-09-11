@@ -3,7 +3,7 @@ import { MapService } from '../map/map.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from '../../common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages, TrackingMessages } from '../../common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, NotificationMessages, TrackingMessages } from '../../common/enums/messages.enum';
 import { MatchedRequest, Package, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from '../../../generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -17,6 +17,7 @@ import { isNumber } from 'class-validator';
 import { S3Service } from '../s3/s3.service';
 import { TurfService } from '../turf/turf.service';
 import { Location } from '../map/map.types';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class TripService {
@@ -25,7 +26,8 @@ export class TripService {
     private mapService: MapService,
     private financialService: FinancialService,
     private s3Service: S3Service,
-    private turfService: TurfService
+    private turfService: TurfService,
+    private notificationService: NotificationService
   ) {}
 
   async create(
@@ -92,6 +94,13 @@ export class TripService {
           }
         };
       }
+
+      // Add create trip notification
+      await this.notificationService.create(
+        userId,
+        NotificationMessages.TripCreated,
+        tx
+      );
 
       return tx.trip.create({
         data: tripData

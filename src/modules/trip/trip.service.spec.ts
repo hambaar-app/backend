@@ -10,6 +10,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { BadRequestMessages, AuthMessages, TrackingMessages } from '../../common/enums/messages.enum';
 import * as utilities from '../../common/utilities';
 import { TurfService } from '../turf/turf.service';
+import { NotificationService } from '../notification/notification.service';
 
 jest.mock('../../common/utilities', () => ({
   generateCode: jest.fn(() => 12345),
@@ -24,6 +25,7 @@ describe('TripService', () => {
   let financialService: DeepMockProxy<FinancialService>;
   let s3Service: DeepMockProxy<S3Service>;
   let turfService: DeepMockProxy<TurfService>;
+  let notificationService: DeepMockProxy<NotificationService>;
 
   const mockVehicle = {
     id: 'vehicle-123',
@@ -140,6 +142,7 @@ describe('TripService', () => {
     financialService = mockDeep<FinancialService>();
     s3Service = mockDeep<S3Service>();
     turfService = mockDeep<TurfService>();
+    notificationService = mockDeep<NotificationService>();
 
     // Reset utility mocks to default values
     (utilities.generateCode as jest.Mock).mockReturnValue(12345);
@@ -153,6 +156,7 @@ describe('TripService', () => {
         { provide: FinancialService, useValue: financialService },
         { provide: S3Service, useValue: s3Service },
         { provide: TurfService, useValue: turfService },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compile();
 
