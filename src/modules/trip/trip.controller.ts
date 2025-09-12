@@ -33,6 +33,8 @@ import { DeliveryPackageDto } from './dto/delivery-package.dto';
 import { BadRequestMessages } from '../../common/enums/messages.enum';
 import { RateTripDto } from './dto/rate-trip.dto';
 import { MatchedRequestResponseDto } from './dto/matched-request-response.dto';
+import { IsLatLong } from 'class-validator';
+import { CoordinateQueryDto } from '../map/coordinates-query.dto';
 
 @Controller('trips')
 export class TripController {
@@ -181,7 +183,8 @@ export class TripController {
   }
 
   @ApiOperation({
-    summary: 'Get all trip matched requests by its id'
+    summary: 'Get all trip matched requests by its id',
+    description: 'When `inOrder` is true, results are returned in the sequence of each package’s pickup or delivery.'
   })
   @ApiOkResponse({
     type: MatchedRequestResponseDto
@@ -418,5 +421,29 @@ export class TripController {
     @CurrentUser('id') userId: string
   ) {
     return this.tripService.rateTrip(userId, body);
+  }
+
+  
+  @ApiOperation({
+    summary: 'Get directions for a trip',
+    description: `Retrieves directions from the transporter's current location
+      to the next pickup or delivery point for all packages in the trip,
+      followed by the trip's final destination.`,
+  })
+  @AuthResponses()
+  @CrudResponses()
+  @UseGuards(AccessTokenGuard, OwnershipGuard)
+  @CheckOwnership({
+    entity: 'trip'
+  })
+  @Get(':id/directions')
+  async getTripDirections(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() origin: CoordinateQueryDto
+  ) {
+    return this.tripService.getDirections(id, {
+      latitude: origin.lat,
+      longitude: origin.lng
+    });
   }
 }

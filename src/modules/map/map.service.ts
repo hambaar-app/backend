@@ -146,7 +146,7 @@ export class MapService {
     );
   }
 
-  private async getDirections(
+  async getDirections(
     {
       vehicleType = 'car',
       tripType = 'intercity',

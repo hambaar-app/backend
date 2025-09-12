@@ -485,7 +485,7 @@ export class PackageService {
           ].filter(v => v !== undefined)
         );
   
-        const sortedWaypoints = this.turfService.sortLocationsByRoute(trip.origin, trip.destination, waypoints)
+        const sortedWaypoints = this.turfService.sortLocationsByRoute(trip.origin, trip.destination, waypoints);
 
         const { distance, duration } = await this.mapService.calculateDistance({
           origin: {
