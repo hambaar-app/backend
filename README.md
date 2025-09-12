@@ -250,6 +250,10 @@ sequenceDiagram
 - Real-time status updates during trip
 - Package pickup and delivery confirmations
 - Post-trip settlement and ratings
+- Get directions to pickup/delivery each 
+
+- **Get Trip Directions**:
+  - Retrieve directions from the transporter’s current location to the next pickup or delivery point for all packages, then to the trip’s final destination.
 
 </details>
 
