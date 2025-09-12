@@ -43,14 +43,3 @@ export enum TrackingMessages {
   PackageDelivered = 'بسته شما با موفقیت تحویل داده شد.',
   TripDelayed = 'سفر با تأخیر مواجه شده است. لطفاً برای اطلاعات بیشتر با سفیر تماس بگیرید.',
 }
-
-export enum NotificationMessages {
-  Welcome = 'به پلتفرم هم‌بار خوش آمدید.',
-  PackageCreated = 'بسته شما با موفقیت ایجاد شد.',
-  TripCreated = 'سفر شما با موفقیت ایجاد شد.',
-  TripRequestCreated = 'درخواست شما برای سفیر موردنظر با موفقیت ارسال شد.',
-  TripRequestCanceled = 'درخواست ارسالی شما برای سفیر موردنظر با موفقیت کنسل شد.',
-  TripRequestAccepted = 'درخواست ارسالی شما برای سفیر موردنظر قبول شد.',
-  TripRequestRejected = 'درخواست ارسالی شما برای سفیر موردنظر رد شد.',
-  NewTransporterNote = 'سفیر برای شما یک یادداشت ارسال کرد.' 
-}

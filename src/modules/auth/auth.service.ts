@@ -5,7 +5,7 @@ import { Cache } from 'cache-manager';
 import { Keyv } from '@keyv/redis';
 import { CheckOtpDto } from './dto/check-otp.dto';
 import { ConfigService } from '@nestjs/config';
-import { AuthMessages, NotFoundMessages, NotificationMessages } from '../../common/enums/messages.enum';
+import { AuthMessages, NotFoundMessages } from '../../common/enums/messages.enum';
 import { TokenService } from '../token/token.service';
 import { UserService } from '../user/user.service';
 import { AuthTokens } from '../../common/enums/auth.enum';
@@ -23,6 +23,7 @@ import { UserStatesEnum } from './types/auth.enums';
 import { TransporterResponseDto } from '../user/dto/transporter-response.dto';
 import { SmsService } from '../sms/sms.service';
 import { NotificationService } from '../notification/notification.service';
+import { NotificationMessages } from '../notification/notification-messages';
 
 @Injectable()
 export class AuthService {

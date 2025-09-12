@@ -407,7 +407,8 @@ describe('TripService', () => {
       prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
       prisma.tripRequest.update.mockResolvedValue({
         ...updatedRequest,
-        package: { senderId: 'user-123' }
+        package: { code: 'PKG-123', senderId: 'user-123' },
+        trip: { code: 'TRIP-123' }
       } as any);
 
       const result = await service.updateRequest('request-123', {
@@ -421,7 +422,13 @@ describe('TripService', () => {
         include: {
           package: {
             select: {
+              code: true,
               senderId: true
+            }
+          },
+          trip: {
+            select: {
+              code: true
             }
           }
         }

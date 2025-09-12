@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
-import { AuthMessages, BadRequestMessages, NotFoundMessages, NotificationMessages } from '../../common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, NotFoundMessages } from '../../common/enums/messages.enum';
 import { formatPrismaError } from '../../common/utilities';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { PackageStatusEnum, RequestStatusEnum, TripStatusEnum } from '../../../generated/prisma';
@@ -18,6 +18,7 @@ import { CreateRequestDto } from '../trip/dto/create-request.dto';
 import { instanceToPlain } from 'class-transformer';
 import { TurfService } from '../turf/turf.service';
 import { NotificationService } from '../notification/notification.service';
+import { getNotificationMessage, NotificationMessages } from '../notification/notification-messages';
 
 @Injectable()
 export class PackageService {
@@ -192,7 +193,7 @@ export class PackageService {
         userId,
         {
           packageId: packageData.id,
-          content: NotificationMessages.PackageCreated
+          content: getNotificationMessage(NotificationMessages.PackageCreated, { packageCode: packageData.code })
         },
         tx
       );
@@ -518,9 +519,9 @@ export class PackageService {
           ...trip,
           additionalPrice
         };
-      }).filter(Boolean));
+      }));
   
-      return matchingResult;
+      return matchingResult.filter(Boolean);
     });
   }
 
@@ -596,7 +597,10 @@ export class PackageService {
         userId,
         {
           packageId,
-          content: NotificationMessages.TripRequestCreated
+          content: getNotificationMessage(NotificationMessages.TripRequestCreated, {
+            packageCode: packageData.code,
+            tripCode: tripData.code,
+          })
         },
         tx
       );
