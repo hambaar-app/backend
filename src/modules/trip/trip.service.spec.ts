@@ -955,7 +955,7 @@ describe('TripService', () => {
               status: true,
               items: true,
               originAddress: true,
-              recipient: true,
+              recipient: { select: { address: true } },
               weight: true,
               dimensions: true,
               packageValue: true,
@@ -976,6 +976,149 @@ describe('TripService', () => {
           paymentStatus: true
         }
       });
+    });
+
+    it('should return matched requests in route order when inOrder is true', async () => {
+      const matchedRequests = [
+        {
+          package: {
+            id: 'package-1',
+            code: 'PKG-1',
+            sender: { firstName: 'A', lastName: 'A', gender: 'male', phoneNumber: '+1' },
+            status: PackageStatusEnum.matched,
+            items: ['Item1'],
+            originAddress: { latitude: '35.7', longitude: '51.4', city: 'Tehran' },
+            recipient: { address: { latitude: '35.8', longitude: '51.5', city: 'Tehran' } },
+            weight: 1,
+            dimensions: { w: 1, h: 1, l: 1 } as any,
+            packageValue: 100,
+            isFragile: false,
+            isPerishable: false,
+            description: 'desc1',
+            pickupAtOrigin: true,
+            deliveryAtDestination: true,
+            preferredPickupTime: null,
+            preferredDeliveryTime: null,
+            picturesKey: ['k1']
+          },
+          request: { offeredPrice: 10000 },
+          transporterNotes: [],
+          pickupTime: null,
+          deliveryTime: null,
+          paymentStatus: 'pending'
+        },
+        {
+          package: {
+            id: 'package-2',
+            code: 'PKG-2',
+            sender: { firstName: 'B', lastName: 'B', gender: 'female', phoneNumber: '+2' },
+            status: PackageStatusEnum.matched,
+            items: ['Item2'],
+            originAddress: { latitude: '35.6', longitude: '51.3', city: 'Tehran' },
+            recipient: { address: { latitude: '35.9', longitude: '51.6', city: 'Tehran' } },
+            weight: 2,
+            dimensions: { w: 2, h: 2, l: 2 } as any,
+            packageValue: 200,
+            isFragile: true,
+            isPerishable: false,
+            description: 'desc2',
+            pickupAtOrigin: true,
+            deliveryAtDestination: true,
+            preferredPickupTime: null,
+            preferredDeliveryTime: null,
+            picturesKey: ['k2']
+          },
+          request: { offeredPrice: 20000 },
+          transporterNotes: [],
+          pickupTime: null,
+          deliveryTime: null,
+          paymentStatus: 'pending'
+        }
+      ];
+
+      prisma.matchedRequest.findMany.mockResolvedValue(matchedRequests as any);
+      prisma.trip.findFirstOrThrow.mockResolvedValue({
+        origin: { latitude: '35.65', longitude: '51.35', name: 'Origin' },
+        destination: { latitude: '35.95', longitude: '51.65', name: 'Destination' }
+      } as any);
+
+      // First call: sortLocationsByRoute for map of package locations -> returns Map ordering by package-2 then package-1
+      (turfService.sortLocationsByRoute as any).mockImplementationOnce((_o, _d, _locationsMap: Map<string, any>) =>
+        new Map<string, any>([
+          ['package-2', { latitude: '35.6', longitude: '51.3' }],
+          ['package-1', { latitude: '35.7', longitude: '51.4' }]
+        ])
+      );
+
+      s3Service.generateGetPresignedUrl.mockImplementation(async (key: string) => `https://s3.example.com/${key}`);
+
+      const result = await service.getAllMatchedRequests('trip-123', true);
+
+      expect(result.map(r => r.package.id)).toEqual(['package-2', 'package-1']);
+      expect(result[0].package.picturesUrl).toEqual(['https://s3.example.com/k2']);
+      expect(result[1].package.picturesUrl).toEqual(['https://s3.example.com/k1']);
+    });
+  });
+
+  describe('getDirections', () => {
+    it('should build sorted waypoints and fetch directions', async () => {
+      const origin = { latitude: '35.60', longitude: '51.30', name: 'Start' } as any;
+
+      prisma.trip.findFirstOrThrow.mockResolvedValue({
+        destination: { latitude: '35.95', longitude: '51.65', name: 'End' }
+      } as any);
+
+      // Two matched requests with pickup and delivery points
+      prisma.matchedRequest.findMany.mockResolvedValue([
+        {
+          package: {
+            id: 'package-1',
+            status: PackageStatusEnum.matched,
+            originAddress: { latitude: '35.70', longitude: '51.40' },
+            recipient: { address: { latitude: '35.80', longitude: '51.50' } },
+            pickupAtOrigin: true,
+            deliveryAtDestination: true
+          }
+        },
+        {
+          package: {
+            id: 'package-2',
+            status: PackageStatusEnum.matched,
+            originAddress: { latitude: '35.65', longitude: '51.35' },
+            recipient: { address: { latitude: '35.90', longitude: '51.60' } },
+            pickupAtOrigin: true,
+            deliveryAtDestination: true
+          }
+        }
+      ] as any);
+
+      // First call used by sortMatchedPackages: return an ordering map keyed by package ids
+      (turfService.sortLocationsByRoute as any).mockImplementationOnce((_o, _d, _map) =>
+        new Map<string, any>([
+          ['package-2', { latitude: '35.65', longitude: '51.35' }],
+          ['package-1', { latitude: '35.70', longitude: '51.40' }]
+        ])
+      );
+
+      // Second call sorts the final waypoints array
+      (turfService.sortLocationsByRoute as any).mockImplementationOnce((_o, _d, waypoints: any[]) => waypoints);
+
+      const mockedDirections = { polyline: 'encoded-polyline' } as any;
+      mapService.getDirections.mockResolvedValue(mockedDirections);
+
+      const result = await service.getDirections('trip-123', origin);
+
+      expect(mapService.getDirections).toHaveBeenCalledWith({
+        origin,
+        destination: { latitude: '35.95', longitude: '51.65', name: 'End' },
+        waypoints: [
+          { latitude: '35.65', longitude: '51.35' },
+          { latitude: '35.90', longitude: '51.60' },
+          { latitude: '35.70', longitude: '51.40' },
+          { latitude: '35.80', longitude: '51.50' }
+        ]
+      });
+      expect(result).toBe(mockedDirections);
     });
   });
 
