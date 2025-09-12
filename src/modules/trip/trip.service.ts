@@ -3,7 +3,7 @@ import { MapService } from '../map/map.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError, generateCode, generateUniqueCode } from '../../common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages, NotificationMessages, TrackingMessages } from '../../common/enums/messages.enum';
+import { AuthMessages, BadRequestMessages, TrackingMessages } from '../../common/enums/messages.enum';
 import { MatchedRequest, Package, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from '../../../generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -18,6 +18,7 @@ import { S3Service } from '../s3/s3.service';
 import { TurfService } from '../turf/turf.service';
 import { Location } from '../map/map.types';
 import { NotificationService } from '../notification/notification.service';
+import { getNotificationMessage, NotificationMessages } from '../notification/notification-messages';
 
 @Injectable()
 export class TripService {
@@ -104,7 +105,7 @@ export class TripService {
         userId,
         {
           tripId: trip.id,
-          content: NotificationMessages.TripCreated
+          content: getNotificationMessage(NotificationMessages.TripCreated, { tripCode: trip.code })
         },
         tx
       );
@@ -327,7 +328,8 @@ export class TripService {
     if (status === RequestStatusEnum.rejected) {
       return this.prisma.$transaction(async tx => {
         const {
-          package: { senderId },
+          package: packageData,
+          trip,
           ...request
         } = await this.prisma.tripRequest.update({
           where: { id: requestId },
@@ -335,7 +337,13 @@ export class TripService {
           include: {
             package: {
               select: {
+                code: true,
                 senderId: true
+              }
+            },
+            trip: {
+              select: {
+                code: true
               }
             }
           }
@@ -343,11 +351,14 @@ export class TripService {
 
         // Add reject request notification
         await this.notificationService.create(
-          senderId,
+          packageData.senderId,
           {
             packageId: request.packageId,
             tripId: request.tripId,
-            content: NotificationMessages.TripRequestRejected
+            content: getNotificationMessage(NotificationMessages.TripRequestRejected, {
+              packageCode: packageData.code,
+              tripCode: trip.code
+            })
           },
           tx
         );
@@ -403,7 +414,7 @@ export class TripService {
       const newTotalDeviationDistance = (totalDeviationDistanceKm ?? 0) + request.deviationDistanceKm;
       const newTotalDeviationDuration = (totalDeviationDurationMin ?? 0) + request.deviationDurationMin;
 
-      await tx.trip.update({
+      const { code: tripCode } = await tx.trip.update({
         where: { id: request.tripId },
         data: {
           totalDeviationDistanceKm: newTotalDeviationDistance,
@@ -415,6 +426,7 @@ export class TripService {
       const packageData = await tx.package.findFirstOrThrow({
         where: { id: request.packageId },
         select: {
+          code: true,
           breakdown: true,
           senderId: true
         }
@@ -452,7 +464,10 @@ export class TripService {
         {
           packageId: request.packageId,
           tripId: request.tripId,
-          content: NotificationMessages.TripRequestAccepted
+          content: getNotificationMessage(NotificationMessages.TripRequestAccepted, {
+            packageCode: packageData.code,
+            tripCode
+          })
         },
         tx
       );
@@ -676,6 +691,7 @@ export class TripService {
         id: true,
         package: {
           select: {
+            code: true,
             senderId: true,
             status: true,
             originAddress: true
@@ -734,7 +750,7 @@ export class TripService {
         {
           packageId,
           tripId,
-          content: TrackingMessages.PackagePickedUp
+          content: getNotificationMessage(NotificationMessages.PackagePickedUp, { packageCode: packageData.code })
         },
         tx
       );
@@ -765,6 +781,7 @@ export class TripService {
         id: true,
         package: {
           select: {
+            code: true,
             senderId: true,
             status: true,
             recipient: {
@@ -837,7 +854,7 @@ export class TripService {
         {
           packageId,
           tripId,
-          content: TrackingMessages.PackageDelivered
+          content: getNotificationMessage(NotificationMessages.PackageDelivered, { packageCode: packageData.code })
         },
         tx
       );
@@ -921,7 +938,18 @@ export class TripService {
           include: {
             package: {
               select: {
+                code: true,
                 senderId: true
+              }
+            }
+          }
+        },
+        transporter: {
+          select: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
               }
             }
           }
@@ -949,7 +977,11 @@ export class TripService {
         {
           packageId: m.packageId,
           tripId: m.tripId,
-          content: NotificationMessages.NewTransporterNote
+          content: getNotificationMessage(NotificationMessages.NewTransporterNote, {
+            packageCode: m.package.code,
+            tripCode: trip.code,
+            noteContent: note
+          })
         },
         tx
       );
