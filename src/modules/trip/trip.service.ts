@@ -503,7 +503,11 @@ export class TripService {
             status: true,
             items: true,
             originAddress: true,
-            recipient: true,
+            recipient: {
+              select: {
+                address: true
+              }
+            },
             weight: true,
             dimensions: true,
             packageValue: true,
@@ -1141,6 +1145,69 @@ export class TripService {
     }).catch((error: Error) => {
       formatPrismaError(error);
       throw error;
+    });
+  }
+
+  async getDirections(tripId: string, origin: Location) {
+    const { destination } = await this.prisma.trip.findFirstOrThrow({
+      where: { id: tripId },
+      select: {
+        destination: true
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    let matchedRequests = await this.prisma.matchedRequest.findMany({
+      where: {
+        tripId
+      },
+      select: {
+        package: {
+          select: {
+            id: true,
+            status: true,
+            originAddress: true,
+            recipient: {
+              select: {
+                address: true
+              }
+            },
+            pickupAtOrigin: true,
+            deliveryAtDestination: true,
+          }
+        },
+      }
+    }).catch((error: Error) => {
+      formatPrismaError(error);
+      throw error;
+    });
+
+    if (matchedRequests.length < 1) {
+      return {};
+    }
+
+    matchedRequests = await this.sortMatchedPackages(origin, destination, matchedRequests);
+
+    const waypoints = matchedRequests.flatMap(m => ([
+        m.package.pickupAtOrigin ? {
+          latitude: m.package.originAddress.latitude,
+          longitude: m.package.originAddress.longitude
+        } : undefined,
+        m.package.deliveryAtDestination ? {
+          latitude: m.package.recipient.address.latitude,
+          longitude: m.package.recipient.address.longitude
+        } : undefined
+      ].filter(v => v !== undefined))
+    );
+
+    const sortedWaypoints = this.turfService.sortLocationsByRoute(origin, destination, waypoints);
+
+    return this.mapService.getDirections({
+      origin,
+      destination,
+      waypoints: sortedWaypoints
     });
   }
 
