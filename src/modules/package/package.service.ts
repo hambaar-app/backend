@@ -519,9 +519,9 @@ export class PackageService {
           ...trip,
           additionalPrice
         };
-      }).filter(Boolean));
+      }));
   
-      return matchingResult;
+      return matchingResult.filter(Boolean);
     });
   }
 
