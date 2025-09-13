@@ -12,19 +12,19 @@ help:
 
 # Development environment (full)
 dev:
-	docker compose -f .\docker-compose.dev.yml -p hambaar-app --profile frontend --profile backend up -d --build
+	docker compose -f docker-compose.dev.yml -p hambaar-app --profile frontend --profile backend up -d --build
 
 # Production environment (full)
 prod:
-	docker compose -f .\docker-compose.yml -p hambaar-app --profile frontend --profile backend up -d --build
+	docker compose -f docker-compose.yml -p hambaar-app --profile frontend --profile backend up -d --build
 
 # Development environment (just backend)
 dev-back:
-	docker compose -f .\docker-compose.dev.yml -p hambaar-app --profile backend up -d --build
+	docker compose -f docker-compose.dev.yml -p hambaar-app --profile backend up -d --build
 
 # Production environment (just backend)
 prod-back:
-	docker compose -f .\docker-compose.yml -p hambaar-app --profile backend up -d --build
+	docker compose -f docker-compose.yml -p hambaar-app --profile backend up -d --build
 
 # Build all services
 build:
@@ -32,7 +32,7 @@ build:
 
 # Push to docker registry
 push:
-	docker compose -f .\docker-compose.yml -p hambaar-app push
+	docker compose -f docker-compose.yml -p hambaar-app push
 
 # Show logs
 logs:
@@ -49,7 +49,7 @@ health:
 
 # Clean (down) service (For Development environment)
 clean:
-	docker compose -f .\docker-compose.dev.yml -p hambaar down
+	docker compose -f docker-compose.dev.yml -p hambaar down
 
 # Restart services
 restart:

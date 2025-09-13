@@ -97,7 +97,7 @@ class MatchedRequestDto {
   trackingCode: string;
 
   @Expose()
-  receiptCode: string;
+  deliveryCode: string;
 
   @Expose()
   transporterNote?: string;
