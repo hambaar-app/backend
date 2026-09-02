@@ -12,10 +12,10 @@ export class DashboardController {
   constructor(private dashboardService: DashboardService) {}
 
   @ApiOperation({
-    summary: 'Get user\'s main dashboard'
+    summary: "Get user's main dashboard",
   })
   @ApiOkResponse({
-    type: DashboardResponseDto
+    type: DashboardResponseDto,
   })
   @AuthResponses()
   @UseGuards(AccessTokenGuard)

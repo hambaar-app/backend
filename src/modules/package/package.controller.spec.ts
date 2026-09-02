@@ -20,13 +20,13 @@ describe('PackageController', () => {
       providers: [
         { provide: PackageService, useValue: service },
         { provide: MatchingService, useValue: matchingService },
-      ]
+      ],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .overrideGuard(OwnershipGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(OwnershipGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<PackageController>(PackageController);
   });

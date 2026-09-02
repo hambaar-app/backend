@@ -7,32 +7,29 @@ import { UserService } from '../user/user.service';
 export class SupportService {
   constructor(
     private prisma: PrismaService,
-    private userService: UserService
+    private userService: UserService,
   ) {}
 
   // TODO: GETs
 
-  async updateVerification(
-    id: string,
-    verificationDto: UpdateVerificationDto
-  ) {
+  async updateVerification(id: string, verificationDto: UpdateVerificationDto) {
     return this.prisma.verificationStatus.update({
       where: { id },
-      data: verificationDto
+      data: verificationDto,
     });
   }
 
   async updateTransporterVerification(
     userId: string,
-    verificationDto: UpdateVerificationDto
+    verificationDto: UpdateVerificationDto,
   ) {
-    return this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async (tx) => {
       const transporter = await this.userService.getTransporter({ userId });
       return tx.verificationStatus.update({
         where: {
-          id: transporter.verificationStatusId!
+          id: transporter.verificationStatusId!,
         },
-        data: verificationDto
+        data: verificationDto,
       });
     });
   }

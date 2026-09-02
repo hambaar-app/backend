@@ -9,17 +9,15 @@ describe('DashboardController', () => {
   let service: DeepMockProxy<DashboardService>;
 
   beforeEach(async () => {
-  service = mockDeep<DashboardService>();
+    service = mockDeep<DashboardService>();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DashboardController],
-      providers: [
-        { provide: DashboardService, useValue: service }
-      ]
+      providers: [{ provide: DashboardService, useValue: service }],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<DashboardController>(DashboardController);
   });

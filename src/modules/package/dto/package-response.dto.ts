@@ -1,7 +1,10 @@
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { AddressResponseDto } from '../../address/dto/address-response.dto';
 import { RecipientResponseDto } from './recipient-response.dto';
-import { PackageStatusEnum, PaymentStatusEnum } from '../../../../generated/prisma';
+import {
+  PackageStatusEnum,
+  PaymentStatusEnum,
+} from '../../../../generated/prisma';
 import { ApiProperty } from '@nestjs/swagger';
 import { TransporterInfoResponseDto } from '../../user/dto/transporter-response.dto';
 import { PriceBreakdown } from '../../pricing/pricing.types';
@@ -29,7 +32,7 @@ export class PackageCompactResponseDto {
   @Expose()
   @Type(() => RecipientResponseDto)
   recipient: RecipientResponseDto;
-  
+
   @Expose()
   finalPrice: number;
 
@@ -57,7 +60,7 @@ export class PackageCompactResponseDto {
 
   @Expose()
   preferredPickupTime: [Date, Date];
-  
+
   @Expose()
   preferredDeliveryTime: [Date, Date];
 
@@ -84,7 +87,7 @@ class MatchedRequestDto {
     gender: obj.trip?.transporter?.user?.gender,
     phoneNumber: obj.trip?.transporter?.user?.phoneNumber,
     rate: obj.trip?.transporter?.rate,
-    vehicle: obj.trip?.vehicle
+    vehicle: obj.trip?.vehicle,
   }))
   @Type(() => TransporterInfoResponseDto)
   @Expose()
@@ -111,7 +114,7 @@ class MatchedRequestDto {
 
   @Expose()
   deliveryTime: Date;
-  
+
   @Expose()
   senderRating?: number | null;
 
@@ -128,13 +131,13 @@ export class PriceBreakdownDto implements PriceBreakdown {
 
   @Expose()
   distanceCost: number;
-  
+
   @Expose()
   weightCost: number;
-  
+
   @Expose()
   specialHandlingCost: number;
-  
+
   @Expose()
   deviationCost?: number;
 

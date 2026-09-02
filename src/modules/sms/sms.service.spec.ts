@@ -12,10 +12,10 @@ describe('SmsService', () => {
   beforeEach(async () => {
     configService = mockDeep<ConfigService>();
     httpService = mockDeep<HttpService>();
-    
+
     configService.get.mockImplementation((key: string, defaultValue?: any) => {
       const config = {
-        SMS_API_KEY: 'key'
+        SMS_API_KEY: 'key',
       };
       return config[key] || defaultValue;
     });
@@ -24,7 +24,7 @@ describe('SmsService', () => {
       providers: [
         SmsService,
         { provide: ConfigService, useValue: configService },
-        { provide: HttpService, useValue: httpService }
+        { provide: HttpService, useValue: httpService },
       ],
     }).compile();
 

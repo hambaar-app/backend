@@ -5,7 +5,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { S3Service } from '../s3/s3.service';
 import { PrismaClient } from '../../../generated/prisma';
-import { VehicleTypeEnum, VerificationStatusEnum } from '../../../generated/prisma';
+import {
+  VehicleTypeEnum,
+  VerificationStatusEnum,
+} from '../../../generated/prisma';
 import * as utilities from '../../common/utilities';
 
 jest.mock('../../common/utilities', () => ({
@@ -114,11 +117,15 @@ describe('VehicleService', () => {
     it('should handle Prisma errors', async () => {
       const error = new Error('Unique constraint failed');
       prismaService.vehicleBrand.create.mockRejectedValue(error);
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
-        throw new Error('Formatted error');
-      });
+      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('Formatted error');
+        },
+      );
 
-      await expect(service.createBrand({ name: 'Toyota' })).rejects.toThrow('Formatted error');
+      await expect(service.createBrand({ name: 'Toyota' })).rejects.toThrow(
+        'Formatted error',
+      );
     });
   });
 
@@ -234,7 +241,9 @@ describe('VehicleService', () => {
       };
 
       userService.getTransporter.mockResolvedValue(mockTransporter as any);
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.verificationStatus.create.mockResolvedValue({
         id: 'status-123',
         createdAt: new Date(),
@@ -248,8 +257,13 @@ describe('VehicleService', () => {
       const result = await service.create('user-123', vehicleDto);
 
       expect(result).toEqual(mockVehicle);
-      expect(userService.getTransporter).toHaveBeenCalledWith({ userId: 'user-123' }, prismaService);
-      expect(prismaService.verificationStatus.create).toHaveBeenCalledWith({ data: {} });
+      expect(userService.getTransporter).toHaveBeenCalledWith(
+        { userId: 'user-123' },
+        prismaService,
+      );
+      expect(prismaService.verificationStatus.create).toHaveBeenCalledWith({
+        data: {},
+      });
       expect(prismaService.vehicle.create).toHaveBeenCalledWith({
         data: {
           vehicleType: VehicleTypeEnum.truck,
@@ -273,7 +287,9 @@ describe('VehicleService', () => {
   describe('getById', () => {
     it('should get vehicle by id successfully', async () => {
       prismaService.vehicle.findUniqueOrThrow.mockResolvedValue(mockVehicle);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://presigned-url.com');
+      s3Service.generateGetPresignedUrl.mockResolvedValue(
+        'https://presigned-url.com',
+      );
 
       const result = await service.getById('vehicle-123');
 
@@ -284,7 +300,10 @@ describe('VehicleService', () => {
         presignedUrls: {
           greenSheet: 'https://presigned-url.com',
           card: 'https://presigned-url.com',
-          vehiclePics: ['https://presigned-url.com', 'https://presigned-url.com'],
+          vehiclePics: [
+            'https://presigned-url.com',
+            'https://presigned-url.com',
+          ],
         },
       });
       expect(prismaService.vehicle.findUniqueOrThrow).toHaveBeenCalledWith({
@@ -304,8 +323,13 @@ describe('VehicleService', () => {
     });
 
     it('should handle vehicle without verification documents', async () => {
-      const vehicleWithoutDocs = { ...mockVehicle, verificationDocuments: null };
-      prismaService.vehicle.findUniqueOrThrow.mockResolvedValue(vehicleWithoutDocs);
+      const vehicleWithoutDocs = {
+        ...mockVehicle,
+        verificationDocuments: null,
+      };
+      prismaService.vehicle.findUniqueOrThrow.mockResolvedValue(
+        vehicleWithoutDocs,
+      );
 
       const result = await service.getById('vehicle-123');
 
@@ -336,7 +360,9 @@ describe('VehicleService', () => {
     it('should get all vehicles for a user successfully', async () => {
       const vehicles = [mockVehicle];
       prismaService.vehicle.findMany.mockResolvedValue(vehicles);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://presigned-url.com');
+      s3Service.generateGetPresignedUrl.mockResolvedValue(
+        'https://presigned-url.com',
+      );
 
       const result = await service.getAllVehicles('user-123');
 
@@ -364,7 +390,9 @@ describe('VehicleService', () => {
     });
 
     it('should handle vehicles without verification documents', async () => {
-      const vehiclesWithoutDocs = [{ ...mockVehicle, verificationDocuments: null }];
+      const vehiclesWithoutDocs = [
+        { ...mockVehicle, verificationDocuments: null },
+      ];
       prismaService.vehicle.findMany.mockResolvedValue(vehiclesWithoutDocs);
 
       const result = await service.getAllVehicles('user-123');
@@ -385,7 +413,10 @@ describe('VehicleService', () => {
       };
 
       prismaService.vehicle.findUniqueOrThrow.mockResolvedValue(mockVehicle);
-      prismaService.vehicle.update.mockResolvedValue({ ...mockVehicle, ...updateDto });
+      prismaService.vehicle.update.mockResolvedValue({
+        ...mockVehicle,
+        ...updateDto,
+      });
 
       const result = await service.update('vehicle-123', updateDto);
 

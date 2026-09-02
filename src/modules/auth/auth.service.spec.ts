@@ -11,9 +11,18 @@ import { NotificationService } from '../notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SmsService } from '../sms/sms.service';
 import { TooManyRequestsException } from '../../common/custom.exceptions';
-import { AuthMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import {
+  AuthMessages,
+  NotFoundMessages,
+} from '../../common/enums/messages.enum';
 import { AuthTokens } from '../../common/enums/auth.enum';
-import { RolesEnum, VerificationStatusEnum, GendersEnum, LicenseTypeEnum, PrismaClient, } from '../../../generated/prisma';
+import {
+  RolesEnum,
+  VerificationStatusEnum,
+  GendersEnum,
+  LicenseTypeEnum,
+  PrismaClient,
+} from '../../../generated/prisma';
 import { UserStatesEnum } from './types/auth.enums';
 import * as utilities from '../../common/utilities';
 import { Keyv } from '@keyv/redis';
@@ -43,9 +52,11 @@ describe('AuthService', () => {
   const mockTransporter = {
     id: 'trans-123',
     role: RolesEnum.transporter,
-    vehicles: [{ 
-      id: 'vehicle-123'
-    }],
+    vehicles: [
+      {
+        id: 'vehicle-123',
+      },
+    ],
     verificationStatus: { status: VerificationStatusEnum.pending },
   } as any;
 
@@ -55,7 +66,7 @@ describe('AuthService', () => {
     verificationStatus: { status: VerificationStatusEnum.pending },
     nationalIdDocumentKey: null,
     licenseDocumentKey: null,
-  } as any;
+  };
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -84,7 +95,7 @@ describe('AuthService', () => {
 
     // Reset utility mocks to default values
     (utilities.generateCode as jest.Mock).mockReturnValue(12345);
-    
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -116,32 +127,49 @@ describe('AuthService', () => {
 
     it('should throw when user is blocked', async () => {
       const blockedData = {
-        attempts: { blockedUntil: Date.now() + 600000, sendAttempts: 0, checkAttempts: 0, lastSendAttempt: 0 }
+        attempts: {
+          blockedUntil: Date.now() + 600000,
+          sendAttempts: 0,
+          checkAttempts: 0,
+          lastSendAttempt: 0,
+        },
       };
       keyvMock.get.mockResolvedValue(blockedData as any);
 
-      await expect(service.sendOtp({ phoneNumber: '+989123456789' })).rejects.toThrow(TooManyRequestsException);
+      await expect(
+        service.sendOtp({ phoneNumber: '+989123456789' }),
+      ).rejects.toThrow(TooManyRequestsException);
     });
 
     it('should throw when max send attempts exceeded', async () => {
       const userData = {
-        attempts: { sendAttempts: 5, checkAttempts: 0, lastSendAttempt: Date.now() - 60000 }
+        attempts: {
+          sendAttempts: 5,
+          checkAttempts: 0,
+          lastSendAttempt: Date.now() - 60000,
+        },
       };
       keyvMock.get.mockResolvedValue(userData as any);
 
-      await expect(service.sendOtp({ phoneNumber: '+989123456789' })).rejects.toThrow(TooManyRequestsException);
+      await expect(
+        service.sendOtp({ phoneNumber: '+989123456789' }),
+      ).rejects.toThrow(TooManyRequestsException);
     });
 
     it('should throw when OTP not expired', async () => {
       const userData = {
         otp: { expiresIn: Date.now() + 60000 },
-        attempts: { sendAttempts: 1, checkAttempts: 0, lastSendAttempt: Date.now() - 60000 }
+        attempts: {
+          sendAttempts: 1,
+          checkAttempts: 0,
+          lastSendAttempt: Date.now() - 60000,
+        },
       };
       keyvMock.get.mockResolvedValue(userData as any);
 
-      await expect(service.sendOtp({ phoneNumber: '+989123456789' })).rejects.toThrow(
-        new UnauthorizedException(AuthMessages.OtpNotExpired)
-      );
+      await expect(
+        service.sendOtp({ phoneNumber: '+989123456789' }),
+      ).rejects.toThrow(new UnauthorizedException(AuthMessages.OtpNotExpired));
     });
   });
 
@@ -151,14 +179,23 @@ describe('AuthService', () => {
     it('should verify OTP for new user', async () => {
       const validOtpData = {
         otp: { code: 12345, expiresIn: now + 60000, createdAt: now - 60000 },
-        attempts: { sendAttempts: 1, checkAttempts: 0, lastSendAttempt: now - 60000 }
+        attempts: {
+          sendAttempts: 1,
+          checkAttempts: 0,
+          lastSendAttempt: now - 60000,
+        },
       };
       keyvMock.get.mockResolvedValue(validOtpData as any);
       keyvMock.set.mockResolvedValue(true);
       userService.getByPhoneNumber.mockResolvedValue(null);
-      (tokenService['generateTempToken'] as jest.Mock).mockReturnValue('temp-token');
+      (tokenService['generateTempToken'] as jest.Mock).mockReturnValue(
+        'temp-token',
+      );
 
-      const result = await service.checkOtp({ phoneNumber: '+989123456789', code: validOtpData.otp.code });
+      const result = await service.checkOtp({
+        phoneNumber: '+989123456789',
+        code: validOtpData.otp.code,
+      });
 
       expect(result).toEqual({
         isNewUser: true,
@@ -170,14 +207,23 @@ describe('AuthService', () => {
     it('should verify OTP for existing sender', async () => {
       const validOtpData = {
         otp: { code: 12345, expiresIn: now + 60000, createdAt: now - 60000 },
-        attempts: { sendAttempts: 1, checkAttempts: 0, lastSendAttempt: now - 60000 }
+        attempts: {
+          sendAttempts: 1,
+          checkAttempts: 0,
+          lastSendAttempt: now - 60000,
+        },
       };
       keyvMock.get.mockResolvedValue(validOtpData as any);
       keyvMock.set.mockResolvedValue(true);
       userService.getByPhoneNumber.mockResolvedValue(mockUser);
-      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue('access-token');
+      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue(
+        'access-token',
+      );
 
-      const result = await service.checkOtp({ phoneNumber: '+989123456789', code: validOtpData.otp.code });
+      const result = await service.checkOtp({
+        phoneNumber: '+989123456789',
+        code: validOtpData.otp.code,
+      });
 
       expect(result).toEqual({
         isNewUser: false,
@@ -192,15 +238,27 @@ describe('AuthService', () => {
     it('should handle transporter in progress', async () => {
       const validOtpData = {
         otp: { code: 12345, expiresIn: now + 60000, createdAt: now - 60000 },
-        attempts: { sendAttempts: 1, checkAttempts: 0, lastSendAttempt: now - 60000 }
+        attempts: {
+          sendAttempts: 1,
+          checkAttempts: 0,
+          lastSendAttempt: now - 60000,
+        },
       };
       keyvMock.get.mockResolvedValue(validOtpData as any);
       keyvMock.set.mockResolvedValue(true);
-      userService.getByPhoneNumber.mockResolvedValue({ ...mockUser, role: RolesEnum.transporter });
+      userService.getByPhoneNumber.mockResolvedValue({
+        ...mockUser,
+        role: RolesEnum.transporter,
+      });
       userService.getTransporter.mockResolvedValue(mockTransporterInProgress);
-      (tokenService['generateProgressToken'] as jest.Mock).mockReturnValue('progress-token');
+      (tokenService['generateProgressToken'] as jest.Mock).mockReturnValue(
+        'progress-token',
+      );
 
-      const result = await service.checkOtp({ phoneNumber: '+989123456789', code: validOtpData.otp.code });
+      const result = await service.checkOtp({
+        phoneNumber: '+989123456789',
+        code: validOtpData.otp.code,
+      });
 
       expect(result.type).toBe(AuthTokens.Progress);
       expect(result.userState).toBe(UserStatesEnum.PersonalInfoSubmitted);
@@ -209,26 +267,34 @@ describe('AuthService', () => {
     it('should throw when OTP expired', async () => {
       const expiredData = {
         otp: { code: 12345, expiresIn: now - 60000 },
-        attempts: { sendAttempts: 1, checkAttempts: 0, lastSendAttempt: now - 60000 }
+        attempts: {
+          sendAttempts: 1,
+          checkAttempts: 0,
+          lastSendAttempt: now - 60000,
+        },
       };
       keyvMock.get.mockResolvedValue(expiredData as any);
 
-      await expect(service.checkOtp({ phoneNumber: '+989123456789', code: 12345 })).rejects.toThrow(
-        new UnauthorizedException(AuthMessages.OtpExpired)
-      );
+      await expect(
+        service.checkOtp({ phoneNumber: '+989123456789', code: 12345 }),
+      ).rejects.toThrow(new UnauthorizedException(AuthMessages.OtpExpired));
     });
 
     it('should throw when invalid OTP code', async () => {
       const validOtpData = {
         otp: { code: 12345, expiresIn: now + 60000, createdAt: now - 60000 },
-        attempts: { sendAttempts: 1, checkAttempts: 0, lastSendAttempt: now - 60000 }
+        attempts: {
+          sendAttempts: 1,
+          checkAttempts: 0,
+          lastSendAttempt: now - 60000,
+        },
       };
       keyvMock.get.mockResolvedValue(validOtpData as any);
       keyvMock.set.mockResolvedValue(true);
 
-      await expect(service.checkOtp({ phoneNumber: '+989123456789', code: 54321 })).rejects.toThrow(
-        new UnauthorizedException(AuthMessages.OtpInvalid)
-      );
+      await expect(
+        service.checkOtp({ phoneNumber: '+989123456789', code: 54321 }),
+      ).rejects.toThrow(new UnauthorizedException(AuthMessages.OtpInvalid));
     });
   });
 
@@ -241,9 +307,13 @@ describe('AuthService', () => {
     };
 
     it('should create sender successfully', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.user.create.mockResolvedValue(mockUser);
-      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue('access-token');
+      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue(
+        'access-token',
+      );
 
       const result = await service.signupSender(senderDto);
 
@@ -276,14 +346,18 @@ describe('AuthService', () => {
     };
 
     it('should create transporter successfully', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       const createdTransporter = {
         ...mockUser,
         role: RolesEnum.transporter,
         transporter: mockTransporter,
       };
       prismaService.user.create.mockResolvedValue(createdTransporter);
-      (tokenService['generateProgressToken'] as jest.Mock).mockReturnValue('progress-token');
+      (tokenService['generateProgressToken'] as jest.Mock).mockReturnValue(
+        'progress-token',
+      );
 
       const result = await service.signupTransporter(transporterDto);
 
@@ -315,16 +389,28 @@ describe('AuthService', () => {
         cardKey: 'card-key',
         vehiclePicsKey: ['vehicle-pics-key'],
       };
-      
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
-      userService.getTransporter.mockResolvedValue(mockTransporter);
-      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue('access-token');
 
-      const result = await service.submitDocuments('user-123', '+989123456789', documentsDto);
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
+      userService.getTransporter.mockResolvedValue(mockTransporter);
+      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue(
+        'access-token',
+      );
+
+      const result = await service.submitDocuments(
+        'user-123',
+        '+989123456789',
+        documentsDto,
+      );
 
       expect(result.accessToken).toBe('access-token');
       expect(userService.updateTransporter).toHaveBeenCalled();
-      expect(vehicleService.update).toHaveBeenCalledWith('vehicle-123', expect.any(Object), prismaService);
+      expect(vehicleService.update).toHaveBeenCalledWith(
+        'vehicle-123',
+        expect.any(Object),
+        prismaService,
+      );
     });
   });
 
@@ -352,7 +438,10 @@ describe('AuthService', () => {
 
     it('should compute state for transporter', async () => {
       const session = { userId: 'trans-123' } as any;
-      userService.get.mockResolvedValue({ ...mockUser, role: RolesEnum.transporter });
+      userService.get.mockResolvedValue({
+        ...mockUser,
+        role: RolesEnum.transporter,
+      });
       userService.getTransporter.mockResolvedValue(mockTransporterInProgress);
 
       const result = await service.getUserState(session);
@@ -366,7 +455,7 @@ describe('AuthService', () => {
       userService.get.mockResolvedValue(null);
 
       await expect(service.getUserState(session)).rejects.toThrow(
-        new NotFoundException(NotFoundMessages.User)
+        new NotFoundException(NotFoundMessages.User),
       );
     });
   });
@@ -420,38 +509,52 @@ describe('AuthService', () => {
 
   describe('Error scenarios', () => {
     it('should handle missing OTP', async () => {
-      keyvMock.get.mockResolvedValue({ attempts: { sendAttempts: 0, checkAttempts: 0, lastSendAttempt: 0 } } as any);
+      keyvMock.get.mockResolvedValue({
+        attempts: { sendAttempts: 0, checkAttempts: 0, lastSendAttempt: 0 },
+      } as any);
 
-      await expect(service.checkOtp({ phoneNumber: '+989123456789', code: 12345 })).rejects.toThrow(
-        new UnauthorizedException(AuthMessages.OtpExpired)
-      );
+      await expect(
+        service.checkOtp({ phoneNumber: '+989123456789', code: 12345 }),
+      ).rejects.toThrow(new UnauthorizedException(AuthMessages.OtpExpired));
     });
 
     it('should block after max check attempts', async () => {
       const userData = {
         otp: { code: 54321, expiresIn: Date.now() + 60000 },
-        attempts: { sendAttempts: 1, checkAttempts: 10, lastSendAttempt: Date.now() - 60000 }
+        attempts: {
+          sendAttempts: 1,
+          checkAttempts: 10,
+          lastSendAttempt: Date.now() - 60000,
+        },
       };
       keyvMock.get.mockResolvedValue(userData as any);
       keyvMock.set.mockResolvedValue(true);
 
-      await expect(service.checkOtp({ phoneNumber: '+989123456789', code: 12345 })).rejects.toThrow(TooManyRequestsException);
+      await expect(
+        service.checkOtp({ phoneNumber: '+989123456789', code: 12345 }),
+      ).rejects.toThrow(TooManyRequestsException);
     });
 
     it('should handle Prisma errors', async () => {
       const error = new Error('DB error');
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.user.create.mockRejectedValue(error);
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
-        throw new Error('Formatted error');
-      });
+      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('Formatted error');
+        },
+      );
 
-      await expect(service.signupSender({
-        firstName: 'احمد',
-        lastName: 'محمدی',
-        phoneNumber: '+989123456789',
-        gender: GendersEnum.male,
-      })).rejects.toThrow('Formatted error');
+      await expect(
+        service.signupSender({
+          firstName: 'احمد',
+          lastName: 'محمدی',
+          phoneNumber: '+989123456789',
+          gender: GendersEnum.male,
+        }),
+      ).rejects.toThrow('Formatted error');
     });
   });
 });

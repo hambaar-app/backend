@@ -4,7 +4,7 @@ import { VerificationStatusEnum } from '../../../../generated/prisma';
 
 export class UpdateVerificationDto {
   @ApiProperty({
-    enum: VerificationStatusEnum
+    enum: VerificationStatusEnum,
   })
   @IsNotEmpty()
   @IsEnum(VerificationStatusEnum)

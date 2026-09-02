@@ -13,7 +13,7 @@ declare module 'express-session' {
       id: string;
       lastCheckMatching?: Date;
       matchResults: MatchResult[];
-    }[]
+    }[];
     destroy(callback?: (err: any) => void): void;
   }
 }

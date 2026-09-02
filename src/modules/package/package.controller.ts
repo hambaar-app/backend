@@ -34,22 +34,28 @@ import {
 } from './dto/package-response.dto';
 import { OwnershipGuard } from '../auth/guard/ownership.guard';
 import { CheckOwnership } from '../auth/auth.decorators';
-import { ApiQuerySearch, AuthResponses, CrudResponses, ValidationResponses } from '../../common/api-docs.decorators';
+import {
+  ApiQuerySearch,
+  AuthResponses,
+  CrudResponses,
+  ValidationResponses,
+} from '../../common/api-docs.decorators';
 import { UpdatePackageDto } from './dto/update.package.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { PackageFilterQueryDto } from './dto/package-filter-query.dto';
 import { SessionData } from 'express-session';
 import { MatchedTripResponseDto } from '../trip/dto/trip-response.dto';
-import { BadRequestMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import {
+  BadRequestMessages,
+  NotFoundMessages,
+} from '../../common/enums/messages.enum';
 import { RequestStatusEnum } from '../../../generated/prisma';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
 import { TrackingResponseDto } from './dto/tracking-response.dto';
 
 @Controller('packages')
 export class PackageController {
-  constructor(
-    private packageService: PackageService,
-  ) {}
+  constructor(private packageService: PackageService) {}
 
   @ApiOperation({
     summary: 'Create a new recipient',
@@ -87,7 +93,7 @@ export class PackageController {
   @Get('recipients')
   async getAllRecipients(
     @CurrentUser('id') id: string,
-    @Query('search') search?: string
+    @Query('search') search?: string,
   ) {
     return this.packageService.getAllRecipients(id, search);
   }
@@ -131,7 +137,12 @@ export class PackageController {
     @Query() query: PackageFilterQueryDto,
     @CurrentUser('id') id: string,
   ) {
-    return this.packageService.getAll(id, query.status, query.page, query.limit);
+    return this.packageService.getAll(
+      id,
+      query.status,
+      query.page,
+      query.limit,
+    );
   }
 
   @ApiOperation({
@@ -200,10 +211,10 @@ export class PackageController {
     summary: 'Get package matched trips by package id',
   })
   @ApiOkResponse({
-    type: [MatchedTripResponseDto]
+    type: [MatchedTripResponseDto],
   })
   @ApiBadRequestResponse({
-    description: BadRequestMessages.SendRequestPackage
+    description: BadRequestMessages.SendRequestPackage,
   })
   @AuthResponses()
   @CrudResponses()
@@ -215,7 +226,7 @@ export class PackageController {
   @Get(':id/matched-trips')
   async getPackageMatchingTrips(
     @Param('id', ParseUUIDPipe) id: string,
-    @Session() session: SessionData
+    @Session() session: SessionData,
   ) {
     return this.packageService.getMatchedTrips(id, session);
   }
@@ -231,13 +242,13 @@ export class PackageController {
   @ValidationResponses()
   @CrudResponses()
   @ApiBadRequestResponse({
-    description: BadRequestMessages.SendRequestTrip
+    description: BadRequestMessages.SendRequestTrip,
   })
   @ApiBadRequestResponse({
-    description: BadRequestMessages.SendRequestPackage
+    description: BadRequestMessages.SendRequestPackage,
   })
   @ApiNotFoundResponse({
-    description: NotFoundMessages.MatchedTrip
+    description: NotFoundMessages.MatchedTrip,
   })
   @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -245,7 +256,7 @@ export class PackageController {
   async createTripRequest(
     @Body() body: CreateRequestDto,
     @CurrentUser('id') userId: string,
-    @Session() session: SessionData
+    @Session() session: SessionData,
   ) {
     return this.packageService.createRequest(userId, body, session);
   }
@@ -268,15 +279,19 @@ export class PackageController {
   @Get(':id/requests')
   async getAllPackageRequests(
     @Param('id', ParseUUIDPipe) id: string,
-    @Query('status', new ParseEnumPipe(RequestStatusEnum, { optional: true })) status?: RequestStatusEnum
+    @Query('status', new ParseEnumPipe(RequestStatusEnum, { optional: true }))
+    status?: RequestStatusEnum,
   ) {
-    return this.packageService.getAllPackageRequests(id, status ? [status] : undefined);
+    return this.packageService.getAllPackageRequests(
+      id,
+      status ? [status] : undefined,
+    );
   }
 
   @ApiOperation({
     summary: 'Cancel a trip request by its id',
     description: `Allows a sender to cancel a \`pending\` trip request.
-      No error is thrown if the request is not in \`pending\` status.`
+      No error is thrown if the request is not in \`pending\` status.`,
   })
   @AuthResponses()
   @CrudResponses()
@@ -284,28 +299,26 @@ export class PackageController {
   @UseGuards(AccessTokenGuard, OwnershipGuard)
   @CheckOwnership({
     entity: 'tripRequest',
-    ownershipName: 'packageRequest'
+    ownershipName: 'packageRequest',
   })
   @Patch('requests/:id')
   async updateTripRequest(
     @Param('id', ParseUUIDPipe) id: string,
-    @Session() session: SessionData
+    @Session() session: SessionData,
   ) {
     return this.packageService.updateRequest(id, session);
   }
 
   @ApiOperation({
-    summary: 'Get tracking info by tracking code (Public)'
+    summary: 'Get tracking info by tracking code (Public)',
   })
   @ApiOkResponse({
-    type: TrackingResponseDto
+    type: TrackingResponseDto,
   })
   @CrudResponses()
   @Serialize(TrackingResponseDto)
   @Get('tracking/:code')
-  async getTripTrackingByCode(
-    @Param('code') code: string,
-  ) {
+  async getTripTrackingByCode(@Param('code') code: string) {
     return this.packageService.getTrackingByCode(code);
   }
 }

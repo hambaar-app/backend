@@ -36,7 +36,7 @@ describe('PricingService', () => {
     isFragile: false,
     isPerishable: false,
     originCity: 'تهران',
-    destinationCity: 'اصفهان'
+    destinationCity: 'اصفهان',
   };
 
   beforeEach(async () => {
@@ -66,7 +66,7 @@ describe('PricingService', () => {
         isFragile: false,
         isPerishable: false,
         originCity: 'تهران',
-        destinationCity: 'اصفهان'
+        destinationCity: 'اصفهان',
       };
 
       const result = service.calculateSuggestedPrice(input);
@@ -78,7 +78,7 @@ describe('PricingService', () => {
         weightCost: expect.any(Number),
         deviationCost: 0,
         specialHandlingCost: 0,
-        cityPremiumCost: 0 // Both major cities
+        cityPremiumCost: 0, // Both major cities
       });
     });
 
@@ -89,7 +89,9 @@ describe('PricingService', () => {
       const normalResult = service.calculateSuggestedPrice(normalInput);
       const fragileResult = service.calculateSuggestedPrice(fragileInput);
 
-      expect(fragileResult.suggestedPrice).toBeGreaterThan(normalResult.suggestedPrice);
+      expect(fragileResult.suggestedPrice).toBeGreaterThan(
+        normalResult.suggestedPrice,
+      );
       expect(fragileResult.breakdown.specialHandlingCost).toBeGreaterThan(0);
     });
 
@@ -100,22 +102,42 @@ describe('PricingService', () => {
       const normalResult = service.calculateSuggestedPrice(normalInput);
       const perishableResult = service.calculateSuggestedPrice(perishableInput);
 
-      expect(perishableResult.suggestedPrice).toBeGreaterThan(normalResult.suggestedPrice);
+      expect(perishableResult.suggestedPrice).toBeGreaterThan(
+        normalResult.suggestedPrice,
+      );
       expect(perishableResult.breakdown.specialHandlingCost).toBeGreaterThan(0);
     });
 
     it('should apply both fragile and perishable multiplier', async () => {
-      const normalInput = { ...mockPricingInput, isFragile: false, isPerishable: false };
-      const fragileInput = { ...mockPricingInput, isFragile: true, isPerishable: false };
-      const bothInput = { ...mockPricingInput, isFragile: true, isPerishable: true };
+      const normalInput = {
+        ...mockPricingInput,
+        isFragile: false,
+        isPerishable: false,
+      };
+      const fragileInput = {
+        ...mockPricingInput,
+        isFragile: true,
+        isPerishable: false,
+      };
+      const bothInput = {
+        ...mockPricingInput,
+        isFragile: true,
+        isPerishable: true,
+      };
 
       const normalResult = service.calculateSuggestedPrice(normalInput);
       const fragileResult = service.calculateSuggestedPrice(fragileInput);
       const bothResult = service.calculateSuggestedPrice(bothInput);
 
-      expect(bothResult.suggestedPrice).toBeGreaterThan(fragileResult.suggestedPrice);
-      expect(bothResult.suggestedPrice).toBeGreaterThan(normalResult.suggestedPrice);
-      expect(bothResult.breakdown.specialHandlingCost).toBeGreaterThan(fragileResult.breakdown.specialHandlingCost);
+      expect(bothResult.suggestedPrice).toBeGreaterThan(
+        fragileResult.suggestedPrice,
+      );
+      expect(bothResult.suggestedPrice).toBeGreaterThan(
+        normalResult.suggestedPrice,
+      );
+      expect(bothResult.breakdown.specialHandlingCost).toBeGreaterThan(
+        fragileResult.breakdown.specialHandlingCost,
+      );
     });
 
     it('should calculate weight cost correctly', async () => {
@@ -124,30 +146,52 @@ describe('PricingService', () => {
 
       const lightResult = service.calculateSuggestedPrice(lightInput);
       const heavyResult = service.calculateSuggestedPrice(heavyInput);
-      
+
       expect(lightResult.breakdown.weightCost).toBe(0);
       expect(heavyResult.breakdown.weightCost).toBeGreaterThan(0);
-      expect(heavyResult.suggestedPrice).toBeGreaterThan(lightResult.suggestedPrice);
+      expect(heavyResult.suggestedPrice).toBeGreaterThan(
+        lightResult.suggestedPrice,
+      );
     });
 
     it('should apply city premium for major to small city', async () => {
-      const majorToMajor = { ...mockPricingInput, originCity: 'تهران', destinationCity: 'اصفهان' };
-      const majorToSmall = { ...mockPricingInput, originCity: 'تهران', destinationCity: 'کرج' };
+      const majorToMajor = {
+        ...mockPricingInput,
+        originCity: 'تهران',
+        destinationCity: 'اصفهان',
+      };
+      const majorToSmall = {
+        ...mockPricingInput,
+        originCity: 'تهران',
+        destinationCity: 'کرج',
+      };
 
       const majorToMajorResult = service.calculateSuggestedPrice(majorToMajor);
       const majorToSmallResult = service.calculateSuggestedPrice(majorToSmall);
 
-      expect(majorToSmallResult.suggestedPrice).toBeLessThan(majorToMajorResult.suggestedPrice);
+      expect(majorToSmallResult.suggestedPrice).toBeLessThan(
+        majorToMajorResult.suggestedPrice,
+      );
     });
 
     it('should apply city premium for small to major city', async () => {
-      const smallToMajor = { ...mockPricingInput, originCity: 'کرج', destinationCity: 'تهران' };
-      const smallToSmall = { ...mockPricingInput, originCity: 'کرج', destinationCity: 'قزوین' };
+      const smallToMajor = {
+        ...mockPricingInput,
+        originCity: 'کرج',
+        destinationCity: 'تهران',
+      };
+      const smallToSmall = {
+        ...mockPricingInput,
+        originCity: 'کرج',
+        destinationCity: 'قزوین',
+      };
 
       const smallToMajorResult = service.calculateSuggestedPrice(smallToMajor);
       const smallToSmallResult = service.calculateSuggestedPrice(smallToSmall);
 
-      expect(smallToMajorResult.suggestedPrice).toBeGreaterThan(smallToSmallResult.suggestedPrice);
+      expect(smallToMajorResult.suggestedPrice).toBeGreaterThan(
+        smallToSmallResult.suggestedPrice,
+      );
       expect(smallToMajorResult.breakdown.cityPremiumCost).toBeGreaterThan(0);
     });
 
@@ -161,50 +205,54 @@ describe('PricingService', () => {
   describe('calculateDistanceCost', () => {
     it('should calculate cost for tier 1 distance (0-100km)', async () => {
       const cost = service.calculateDistanceCost(50);
-      const expectedCost = (200 * 50) + (50 * 1000); // fuel + tier rate
+      const expectedCost = 200 * 50 + 50 * 1000; // fuel + tier rate
 
       expect(cost).toBe(expectedCost);
     });
 
     it('should calculate cost for tier 2 distance (101-300km)', async () => {
       const cost = service.calculateDistanceCost(200);
-      const expectedCost = (200 * defaultConfig.PRICING_FUEL_RATE)
-        + (100 * defaultConfig.PRICING_TIER_1_RATE)
-        + (100 * defaultConfig.PRICING_TIER_2_RATE);
+      const expectedCost =
+        200 * defaultConfig.PRICING_FUEL_RATE +
+        100 * defaultConfig.PRICING_TIER_1_RATE +
+        100 * defaultConfig.PRICING_TIER_2_RATE;
 
       expect(cost).toBe(expectedCost);
     });
 
     it('should calculate cost for tier 3 distance (301-600km)', async () => {
       const cost = service.calculateDistanceCost(400);
-      const expectedCost = (400 * defaultConfig.PRICING_FUEL_RATE)
-        + (100 * defaultConfig.PRICING_TIER_1_RATE)
-        + (200 * defaultConfig.PRICING_TIER_2_RATE)
-        + (100 * defaultConfig.PRICING_TIER_3_RATE);
+      const expectedCost =
+        400 * defaultConfig.PRICING_FUEL_RATE +
+        100 * defaultConfig.PRICING_TIER_1_RATE +
+        200 * defaultConfig.PRICING_TIER_2_RATE +
+        100 * defaultConfig.PRICING_TIER_3_RATE;
 
       expect(cost).toBe(expectedCost);
     });
 
     it('should calculate cost for tier 4 distance (601-1000km)', async () => {
       const cost = service.calculateDistanceCost(800);
-      const expectedCost = (800 * defaultConfig.PRICING_FUEL_RATE)
-        + (100 * defaultConfig.PRICING_TIER_1_RATE)
-        + (200 * defaultConfig.PRICING_TIER_2_RATE)
-        + (300 * defaultConfig.PRICING_TIER_3_RATE)
-        + (200 * defaultConfig.PRICING_TIER_4_RATE);
-  
+      const expectedCost =
+        800 * defaultConfig.PRICING_FUEL_RATE +
+        100 * defaultConfig.PRICING_TIER_1_RATE +
+        200 * defaultConfig.PRICING_TIER_2_RATE +
+        300 * defaultConfig.PRICING_TIER_3_RATE +
+        200 * defaultConfig.PRICING_TIER_4_RATE;
+
       expect(cost).toBe(expectedCost);
     });
 
     it('should calculate cost for tier 5 distance (1001km+)', async () => {
       const cost = service.calculateDistanceCost(1200);
-      const expectedCost = (1200 * defaultConfig.PRICING_FUEL_RATE)
-        + (100 * defaultConfig.PRICING_TIER_1_RATE)
-        + (200 * defaultConfig.PRICING_TIER_2_RATE)
-        + (300 * defaultConfig.PRICING_TIER_3_RATE)
-        + (400 * defaultConfig.PRICING_TIER_4_RATE)
-        + (200 * defaultConfig.PRICING_TIER_5_RATE);
-  
+      const expectedCost =
+        1200 * defaultConfig.PRICING_FUEL_RATE +
+        100 * defaultConfig.PRICING_TIER_1_RATE +
+        200 * defaultConfig.PRICING_TIER_2_RATE +
+        300 * defaultConfig.PRICING_TIER_3_RATE +
+        400 * defaultConfig.PRICING_TIER_4_RATE +
+        200 * defaultConfig.PRICING_TIER_5_RATE;
+
       expect(cost).toBe(expectedCost);
     });
 
@@ -226,7 +274,10 @@ describe('PricingService', () => {
     it('should calculate transporter earnings with deviation', async () => {
       const finalPrice = 100000;
       const deviationPrice = 20000;
-      const earnings = service.calculateTransporterEarnings(finalPrice, deviationPrice);
+      const earnings = service.calculateTransporterEarnings(
+        finalPrice,
+        deviationPrice,
+      );
 
       expect(earnings).toBe(Math.floor(100000 * 0.7) + 20000); // 90000
     });
@@ -254,7 +305,7 @@ describe('PricingService', () => {
     it('should calculate combined deviation cost', async () => {
       const cost = service.calculateDeviationCost(5, 20);
 
-      expect(cost).toBe((5 * 15000) + (20 * 5000)); // 175000
+      expect(cost).toBe(5 * 15000 + 20 * 5000); // 175000
     });
 
     it('should handle zero deviation', async () => {
@@ -269,7 +320,7 @@ describe('PricingService', () => {
       const majorToMajor = service.calculateSuggestedPrice({
         ...mockPricingInput,
         originCity: 'تهران',
-        destinationCity: 'مشهد'
+        destinationCity: 'مشهد',
       });
 
       expect(majorToMajor.breakdown.cityPremiumCost).toBe(0); // Both major cities
@@ -279,13 +330,13 @@ describe('PricingService', () => {
       const upperCase = service.calculateSuggestedPrice({
         ...mockPricingInput,
         originCity: 'تهران',
-        destinationCity: 'مشهد'
+        destinationCity: 'مشهد',
       });
 
       const mixedCase = service.calculateSuggestedPrice({
         ...mockPricingInput,
         originCity: 'تهران',
-        destinationCity: 'مشهد'
+        destinationCity: 'مشهد',
       });
 
       expect(upperCase.suggestedPrice).toBe(mixedCase.suggestedPrice);
@@ -295,7 +346,7 @@ describe('PricingService', () => {
       const result = service.calculateSuggestedPrice({
         ...mockPricingInput,
         originCity: 'کرج',
-        destinationCity: 'قزوین'
+        destinationCity: 'قزوین',
       });
 
       expect(result.breakdown.cityPremiumCost).toBeGreaterThan(0);
@@ -308,7 +359,7 @@ describe('PricingService', () => {
         distanceKm: 100,
         weightGr: 1,
         originCity: 'تهران',
-        destinationCity: 'اصفهان'
+        destinationCity: 'اصفهان',
       };
 
       const result = service.calculateSuggestedPrice(minimalInput);
@@ -320,7 +371,7 @@ describe('PricingService', () => {
     it('should handle very large distances', async () => {
       const largeDistanceInput = {
         ...mockPricingInput,
-        distanceKm: 5000
+        distanceKm: 5000,
       };
 
       const result = service.calculateSuggestedPrice(largeDistanceInput);
@@ -332,7 +383,7 @@ describe('PricingService', () => {
     it('should handle very heavy packages', async () => {
       const heavyPackageInput = {
         ...mockPricingInput,
-        weightGr: 50000
+        weightGr: 50000,
       };
 
       const result = service.calculateSuggestedPrice(heavyPackageInput);
@@ -344,7 +395,7 @@ describe('PricingService', () => {
     it('should handle zero weight packages', async () => {
       const zeroWeightInput = {
         ...mockPricingInput,
-        weightGr: 0
+        weightGr: 0,
       };
 
       const result = service.calculateSuggestedPrice(zeroWeightInput);
@@ -359,12 +410,14 @@ describe('PricingService', () => {
       const customConfig = {
         ...defaultConfig,
         PRICING_BASE_PRICE: 100000,
-        PRICING_DRIVER_SHARE: 0.8
+        PRICING_DRIVER_SHARE: 0.8,
       };
 
-      configService.get.mockImplementation((key: string, defaultValue?: any) => {
-        return customConfig[key] || defaultValue;
-      });
+      configService.get.mockImplementation(
+        (key: string, defaultValue?: any) => {
+          return customConfig[key] || defaultValue;
+        },
+      );
 
       // Recreate service with new config
       const module: TestingModule = await Test.createTestingModule({
@@ -375,7 +428,7 @@ describe('PricingService', () => {
       }).compile();
 
       const customService = module.get<PricingService>(PricingService);
-      
+
       const result = customService.calculateSuggestedPrice(mockPricingInput);
       const earnings = customService.calculateTransporterEarnings(100000);
 
@@ -384,9 +437,11 @@ describe('PricingService', () => {
     });
 
     it('should use default values when config is missing', async () => {
-      configService.get.mockImplementation((key: string, defaultValue?: any) => {
-        return defaultValue;
-      });
+      configService.get.mockImplementation(
+        (key: string, defaultValue?: any) => {
+          return defaultValue;
+        },
+      );
 
       // Recreate service with missing config
       const module: TestingModule = await Test.createTestingModule({
@@ -406,12 +461,14 @@ describe('PricingService', () => {
     it('should parse major cities from configuration', async () => {
       const customConfig = {
         ...defaultConfig,
-        PRICING_MAJOR_CITIES: 'شیراز,تبریز,کرج'
+        PRICING_MAJOR_CITIES: 'شیراز,تبریز,کرج',
       };
 
-      configService.get.mockImplementation((key: string, defaultValue?: any) => {
-        return customConfig[key] || defaultValue;
-      });
+      configService.get.mockImplementation(
+        (key: string, defaultValue?: any) => {
+          return customConfig[key] || defaultValue;
+        },
+      );
 
       // Recreate service with new config
       const module: TestingModule = await Test.createTestingModule({
@@ -422,11 +479,11 @@ describe('PricingService', () => {
       }).compile();
 
       const customService = module.get<PricingService>(PricingService);
-      
+
       const shirazToTabriz = customService.calculateSuggestedPrice({
         ...mockPricingInput,
         originCity: 'شیراز',
-        destinationCity: 'تبریز'
+        destinationCity: 'تبریز',
       });
 
       expect(shirazToTabriz.breakdown.cityPremiumCost).toBe(0);
@@ -448,7 +505,7 @@ describe('PricingService', () => {
     it('should have positive or zero breakdown values', async () => {
       const result = service.calculateSuggestedPrice(mockPricingInput);
 
-      Object.values(result.breakdown).forEach(cost => {
+      Object.values(result.breakdown).forEach((cost) => {
         expect(cost).toBeGreaterThanOrEqual(0);
       });
     });
@@ -457,9 +514,10 @@ describe('PricingService', () => {
       const fragileInput = { ...mockPricingInput, isFragile: true };
       const result = service.calculateSuggestedPrice(fragileInput);
 
-      const calculatedTotal = result.breakdown.basePrice + 
-                            result.breakdown.distanceCost + 
-                            result.breakdown.weightCost;
+      const calculatedTotal =
+        result.breakdown.basePrice +
+        result.breakdown.distanceCost +
+        result.breakdown.weightCost;
 
       expect(result.suggestedPrice).toBeGreaterThan(calculatedTotal);
     });
@@ -470,7 +528,7 @@ describe('PricingService', () => {
       const precisionInput = {
         ...mockPricingInput,
         distanceKm: 150.5,
-        weightGr: 2750
+        weightGr: 2750,
       };
 
       const result = service.calculateSuggestedPrice(precisionInput);

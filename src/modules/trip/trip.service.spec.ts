@@ -3,11 +3,21 @@ import { TripService } from './trip.service';
 import { S3Service } from '../s3/s3.service';
 import { FinancialService } from '../financial/financial.service';
 import { MapService } from '../map/map.service';
-import { PrismaClient, TripStatusEnum, TripTypeEnum, RequestStatusEnum, PackageStatusEnum } from '../../../generated/prisma';
+import {
+  PrismaClient,
+  TripStatusEnum,
+  TripTypeEnum,
+  RequestStatusEnum,
+  PackageStatusEnum,
+} from '../../../generated/prisma';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { BadRequestMessages, AuthMessages, TrackingMessages } from '../../common/enums/messages.enum';
+import {
+  BadRequestMessages,
+  AuthMessages,
+  TrackingMessages,
+} from '../../common/enums/messages.enum';
 import * as utilities from '../../common/utilities';
 import { TurfService } from '../turf/turf.service';
 import { NotificationService } from '../notification/notification.service';
@@ -31,15 +41,15 @@ describe('TripService', () => {
     id: 'vehicle-123',
     ownerId: 'transporter-123',
     owner: {
-      userId: 'user-123'
-    }
+      userId: 'user-123',
+    },
   } as any;
 
   const mockCity = {
     id: 'city-123',
     name: 'Tehran',
     latitude: '35.6892',
-    longitude: '51.3890'
+    longitude: '51.3890',
   } as any;
 
   const mockTrip = {
@@ -57,7 +67,7 @@ describe('TripService', () => {
     normalDurationMin: 120,
     totalDeviationDistanceKm: 0,
     totalDeviationDurationMin: 0,
-    matchedRequests: []
+    matchedRequests: [],
   } as any;
 
   const mockCreateTripDto = {
@@ -67,7 +77,7 @@ describe('TripService', () => {
     departureTime: [new Date(), new Date(Date.now() + 3600000)] as [Date, Date],
     maxPackageWeightGr: 5000,
     restrictedItems: ['fragile'],
-    description: 'Test trip'
+    description: 'Test trip',
   };
 
   const mockTripRequest = {
@@ -77,7 +87,7 @@ describe('TripService', () => {
     status: RequestStatusEnum.pending,
     deviationDistanceKm: 10,
     deviationDurationMin: 15,
-    deviationCost: 50000
+    deviationCost: 50000,
   } as any;
 
   const mockMatchedRequest = {
@@ -96,16 +106,16 @@ describe('TripService', () => {
       originAddress: {
         latitude: '35.6892',
         longitude: '51.3890',
-        city: 'Tehran'
+        city: 'Tehran',
       },
       recipient: {
         address: {
           latitude: '35.7219',
           longitude: '51.3347',
-          city: 'Tehran'
-        }
+          city: 'Tehran',
+        },
       },
-      breakdown: { baseCost: 100000, deviationCost: 0 }
+      breakdown: { baseCost: 100000, deviationCost: 0 },
     },
     trip: {
       status: TripStatusEnum.in_progress,
@@ -116,14 +126,14 @@ describe('TripService', () => {
         user: {
           firstName: 'Ahmad',
           lastName: 'Mohammadi',
-          phoneNumber: '+989123456789'
-        }
+          phoneNumber: '+989123456789',
+        },
       },
       vehicle: {
         vehicleType: 'truck',
-        model: { brand: { name: 'Volvo' } }
-      }
-    }
+        model: { brand: { name: 'Volvo' } },
+      },
+    },
   } as any;
 
   const trackingDto = {
@@ -131,7 +141,7 @@ describe('TripService', () => {
     longitude: '51.3890',
     city: 'Tehran',
     routeName: 'Azadi Square',
-    description: 'Moving towards destination'
+    description: 'Moving towards destination',
   };
 
   beforeEach(async () => {
@@ -146,7 +156,9 @@ describe('TripService', () => {
 
     // Reset utility mocks to default values
     (utilities.generateCode as jest.Mock).mockReturnValue(12345);
-    (utilities.generateUniqueCode as jest.Mock).mockReturnValue('17571445988911932924');
+    (utilities.generateUniqueCode as jest.Mock).mockReturnValue(
+      '17571445988911932924',
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -165,17 +177,22 @@ describe('TripService', () => {
 
   describe('create', () => {
     it('should create trip successfully', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.vehicle.findFirst.mockResolvedValue(mockVehicle);
       prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
-      mapService.calculateDistance.mockResolvedValue({ distance: 100, duration: 120 });
+      mapService.calculateDistance.mockResolvedValue({
+        distance: 100,
+        duration: 120,
+      });
       prisma.trip.create.mockResolvedValue(mockTrip);
 
       const result = await service.create('user-123', mockCreateTripDto);
 
       expect(result).toEqual(mockTrip);
       expect(prisma.vehicle.findFirst).toHaveBeenCalledWith({
-        where: { id: 'vehicle-123', owner: { userId: 'user-123' } }
+        where: { id: 'vehicle-123', owner: { userId: 'user-123' } },
       });
       expect(mapService.calculateDistance).toHaveBeenCalled();
       expect(prisma.trip.create).toHaveBeenCalledWith({
@@ -186,21 +203,26 @@ describe('TripService', () => {
           vehicleId: 'vehicle-123',
           tripType: TripTypeEnum.intercity,
           normalDistanceKm: 100,
-          normalDurationMin: 120
-        })
+          normalDurationMin: 120,
+        }),
       });
     });
 
     it('should create trip with waypoints', async () => {
       const tripDtoWithWaypoints = {
         ...mockCreateTripDto,
-        waypoints: [{ id: 'way-1', name: 'Waypoint 1' }]
+        waypoints: [{ id: 'way-1', name: 'Waypoint 1' }],
       };
 
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.vehicle.findFirst.mockResolvedValue(mockVehicle);
       prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
-      mapService.calculateDistance.mockResolvedValue({ distance: 100, duration: 120 });
+      mapService.calculateDistance.mockResolvedValue({
+        distance: 100,
+        duration: 120,
+      });
       prisma.trip.create.mockResolvedValue(mockTrip);
 
       await service.create('user-123', tripDtoWithWaypoints as any);
@@ -209,19 +231,23 @@ describe('TripService', () => {
         data: expect.objectContaining({
           waypoints: {
             createMany: {
-              data: [{ id: 'way-1', name: 'Waypoint 1' }]
-            }
-          }
-        })
+              data: [{ id: 'way-1', name: 'Waypoint 1' }],
+            },
+          },
+        }),
       });
     });
 
     it('should throw when vehicle not found', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.vehicle.findFirst.mockResolvedValue(null);
 
-      await expect(service.create('user-123', mockCreateTripDto)).rejects.toThrow(
-        new ForbiddenException(`${AuthMessages.EntityAccessDenied} vehicle.`)
+      await expect(
+        service.create('user-123', mockCreateTripDto),
+      ).rejects.toThrow(
+        new ForbiddenException(`${AuthMessages.EntityAccessDenied} vehicle.`),
       );
     });
   });
@@ -230,7 +256,7 @@ describe('TripService', () => {
     it('should get trip by id successfully', async () => {
       const tripWithIncludes = {
         ...mockTrip,
-        waypoints: [{ id: 'way-1', isVisible: true }]
+        waypoints: [{ id: 'way-1', isVisible: true }],
       };
       prisma.trip.findUniqueOrThrow.mockResolvedValue(tripWithIncludes);
 
@@ -248,10 +274,10 @@ describe('TripService', () => {
               vehicleType: true,
               model: { include: { brand: true } },
               manufactureYear: true,
-              color: true
-            }
-          }
-        }
+              color: true,
+            },
+          },
+        },
       });
     });
   });
@@ -272,17 +298,17 @@ describe('TripService', () => {
               TripStatusEnum.scheduled,
               TripStatusEnum.closed,
               TripStatusEnum.delayed,
-              TripStatusEnum.in_progress
-            ]
+              TripStatusEnum.in_progress,
+            ],
           },
-          deletedAt: null
+          deletedAt: null,
         },
         include: {
           origin: true,
           destination: true,
-          waypoints: { where: { isVisible: true } }
+          waypoints: { where: { isVisible: true } },
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
     });
 
@@ -295,9 +321,9 @@ describe('TripService', () => {
       expect(prisma.trip.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            status: { in: [TripStatusEnum.scheduled] }
-          })
-        })
+            status: { in: [TripStatusEnum.scheduled] },
+          }),
+        }),
       );
     });
   });
@@ -305,12 +331,16 @@ describe('TripService', () => {
   describe('update', () => {
     const updateDto = {
       maxPackageWeightGr: 6000,
-      description: 'Updated description'
+      description: 'Updated description',
     };
 
     it('should update trip successfully', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-      prisma.trip.findUniqueOrThrow.mockResolvedValue({ status: TripStatusEnum.scheduled } as any);
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
+      prisma.trip.findUniqueOrThrow.mockResolvedValue({
+        status: TripStatusEnum.scheduled,
+      } as any);
       prisma.trip.update.mockResolvedValue({ ...mockTrip, ...updateDto });
 
       const result = await service.update('trip-123', updateDto);
@@ -318,44 +348,54 @@ describe('TripService', () => {
       expect(result).toEqual({ ...mockTrip, ...updateDto });
       expect(prisma.trip.update).toHaveBeenCalledWith({
         where: { id: 'trip-123' },
-        data: updateDto
+        data: updateDto,
       });
     });
 
     it('should update trip with waypoints', async () => {
       const updateDtoWithWaypoints = {
         ...updateDto,
-        waypoints: [{ id: 'way-2', name: 'New waypoint' }]
+        waypoints: [{ id: 'way-2', name: 'New waypoint' }],
       };
 
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-      prisma.trip.findUniqueOrThrow.mockResolvedValue({ status: TripStatusEnum.scheduled } as any);
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
+      prisma.trip.findUniqueOrThrow.mockResolvedValue({
+        status: TripStatusEnum.scheduled,
+      } as any);
       prisma.tripWaypoint.deleteMany.mockResolvedValue({ count: 1 });
       prisma.trip.update.mockResolvedValue(mockTrip);
 
       await service.update('trip-123', updateDtoWithWaypoints as any);
 
       expect(prisma.tripWaypoint.deleteMany).toHaveBeenCalledWith({
-        where: { tripId: 'trip-123', isVisible: true }
+        where: { tripId: 'trip-123', isVisible: true },
       });
       expect(prisma.trip.update).toHaveBeenCalledWith({
         where: { id: 'trip-123' },
         data: expect.objectContaining({
           waypoints: {
             createMany: {
-              data: [{ id: 'way-2', name: 'New waypoint' }]
-            }
-          }
-        })
+              data: [{ id: 'way-2', name: 'New waypoint' }],
+            },
+          },
+        }),
       });
     });
 
     it('should throw when trip status is not scheduled', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-      prisma.trip.findUniqueOrThrow.mockResolvedValueOnce({ status: TripStatusEnum.in_progress } as any);
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
+      prisma.trip.findUniqueOrThrow.mockResolvedValueOnce({
+        status: TripStatusEnum.in_progress,
+      } as any);
 
       await expect(service.update('trip-123', updateDto)).rejects.toThrow(
-        new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${TripStatusEnum.in_progress}*.`)
+        new BadRequestException(
+          `${BadRequestMessages.BaseTripStatus}*${TripStatusEnum.in_progress}*.`,
+        ),
       );
     });
   });
@@ -363,8 +403,12 @@ describe('TripService', () => {
   describe('delete', () => {
     it('should delete trip successfully', async () => {
       const deletedTrip = { ...mockTrip, deletedAt: new Date() };
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-      prisma.trip.findUniqueOrThrow.mockResolvedValue({ status: TripStatusEnum.scheduled } as any);
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
+      prisma.trip.findUniqueOrThrow.mockResolvedValue({
+        status: TripStatusEnum.scheduled,
+      } as any);
       prisma.trip.update.mockResolvedValue(deletedTrip);
 
       const result = await service.delete('trip-123');
@@ -372,16 +416,22 @@ describe('TripService', () => {
       expect(result).toEqual(deletedTrip);
       expect(prisma.trip.update).toHaveBeenCalledWith({
         where: { id: 'trip-123' },
-        data: { deletedAt: expect.any(Date) }
+        data: { deletedAt: expect.any(Date) },
       });
     });
 
     it('should throw when trip status is not scheduled', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-      prisma.trip.findUniqueOrThrow.mockResolvedValue({ status: TripStatusEnum.completed } as any);
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
+      prisma.trip.findUniqueOrThrow.mockResolvedValue({
+        status: TripStatusEnum.completed,
+      } as any);
 
       await expect(service.delete('trip-123')).rejects.toThrow(
-        new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${TripStatusEnum.completed}*.`)
+        new BadRequestException(
+          `${BadRequestMessages.BaseTripStatus}*${TripStatusEnum.completed}*.`,
+        ),
       );
     });
   });
@@ -396,23 +446,28 @@ describe('TripService', () => {
       expect(result).toEqual(requests);
       expect(prisma.tripRequest.findMany).toHaveBeenCalledWith({
         where: { tripId: 'trip-123', status: RequestStatusEnum.pending },
-        orderBy: { createdAt: 'asc' }
+        orderBy: { createdAt: 'asc' },
       });
     });
   });
 
   describe('updateRequest', () => {
     it('should reject request', async () => {
-      const updatedRequest = { ...mockTripRequest, status: RequestStatusEnum.rejected };
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      const updatedRequest = {
+        ...mockTripRequest,
+        status: RequestStatusEnum.rejected,
+      };
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.tripRequest.update.mockResolvedValue({
         ...updatedRequest,
         package: { code: 'PKG-123', senderId: 'user-123' },
-        trip: { code: 'TRIP-123' }
-      } as any);
+        trip: { code: 'TRIP-123' },
+      });
 
       const result = await service.updateRequest('request-123', {
-        status: RequestStatusEnum.rejected
+        status: RequestStatusEnum.rejected,
       } as any);
 
       expect(result).toEqual(updatedRequest);
@@ -423,40 +478,47 @@ describe('TripService', () => {
           package: {
             select: {
               code: true,
-              senderId: true
-            }
+              senderId: true,
+            },
           },
           trip: {
             select: {
-              code: true
-            }
-          }
-        }
+              code: true,
+            },
+          },
+        },
       });
     });
 
     it('should accept request and create matched request', async () => {
-      const acceptedRequest = { ...mockTripRequest, status: RequestStatusEnum.accepted };
-      
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      const acceptedRequest = {
+        ...mockTripRequest,
+        status: RequestStatusEnum.accepted,
+      };
+
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.tripRequest.update.mockResolvedValue(acceptedRequest);
       prisma.tripRequest.updateMany.mockResolvedValue({ count: 0 });
       prisma.matchedRequest.create.mockResolvedValue(mockMatchedRequest);
       prisma.trip.findUniqueOrThrow.mockResolvedValue({
         totalDeviationDistanceKm: 0,
-        totalDeviationDurationMin: 0
+        totalDeviationDurationMin: 0,
       } as any);
       prisma.trip.update.mockResolvedValue(mockTrip);
       prisma.package.findFirstOrThrow.mockResolvedValue({
         breakdown: { baseCost: 100000, deviationCost: 0 },
-        senderId: 'user-123'
+        senderId: 'user-123',
       } as any);
-      prisma.package.update.mockResolvedValue({ status: PackageStatusEnum.matched } as any);
+      prisma.package.update.mockResolvedValue({
+        status: PackageStatusEnum.matched,
+      } as any);
       financialService.createEscrow.mockResolvedValue({} as any);
 
       const result = await service.updateRequest('request-123', {
         status: RequestStatusEnum.accepted,
-        transporterNotes: ['Note 1']
+        transporterNotes: ['Note 1'],
       } as any);
 
       expect(result).toEqual(acceptedRequest);
@@ -467,37 +529,47 @@ describe('TripService', () => {
           tripId: 'trip-123',
           trackingCode: mockMatchedRequest.trackingCode,
           deliveryCode: mockMatchedRequest.deliveryCode,
-          transporterNotes: ['Note 1']
-        }
+          transporterNotes: ['Note 1'],
+        },
       });
       expect(prisma.package.update).toHaveBeenCalledWith({
         where: { id: 'package-123' },
         data: {
           status: PackageStatusEnum.matched,
           finalPrice: { increment: 50000 },
-          breakdown: expect.any(Object)
-        }
+          breakdown: expect.any(Object),
+        },
       });
     });
   });
 
   describe('toggleTripAccess', () => {
     it('should toggle from scheduled to closed', async () => {
-      prisma.trip.findUniqueOrThrow.mockResolvedValue({ status: TripStatusEnum.scheduled } as any);
-      prisma.trip.update.mockResolvedValue({ ...mockTrip, status: TripStatusEnum.closed });
+      prisma.trip.findUniqueOrThrow.mockResolvedValue({
+        status: TripStatusEnum.scheduled,
+      } as any);
+      prisma.trip.update.mockResolvedValue({
+        ...mockTrip,
+        status: TripStatusEnum.closed,
+      });
 
       const result = await service.toggleTripAccess('trip-123');
 
       expect(result).toEqual({ ...mockTrip, status: TripStatusEnum.closed });
       expect(prisma.trip.update).toHaveBeenCalledWith({
         where: { id: 'trip-123' },
-        data: { status: TripStatusEnum.closed }
+        data: { status: TripStatusEnum.closed },
       });
     });
 
     it('should toggle from closed to scheduled', async () => {
-      prisma.trip.findUniqueOrThrow.mockResolvedValue({ status: TripStatusEnum.closed } as any);
-      prisma.trip.update.mockResolvedValue({ ...mockTrip, status: TripStatusEnum.scheduled });
+      prisma.trip.findUniqueOrThrow.mockResolvedValue({
+        status: TripStatusEnum.closed,
+      } as any);
+      prisma.trip.update.mockResolvedValue({
+        ...mockTrip,
+        status: TripStatusEnum.scheduled,
+      });
 
       const result = await service.toggleTripAccess('trip-123');
 
@@ -510,7 +582,9 @@ describe('TripService', () => {
       } as any);
 
       await expect(service.toggleTripAccess('trip-123')).rejects.toThrow(
-        new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${TripStatusEnum.completed}*.`)
+        new BadRequestException(
+          `${BadRequestMessages.BaseTripStatus}*${TripStatusEnum.completed}*.`,
+        ),
       );
     });
   });
@@ -519,51 +593,63 @@ describe('TripService', () => {
     it('should start trip successfully', async () => {
       prisma.trip.findUniqueOrThrow.mockResolvedValueOnce({
         status: TripStatusEnum.scheduled,
-        origin: mockCity
+        origin: mockCity,
       } as any);
-      
+
       prisma.trip.findUniqueOrThrow.mockResolvedValueOnce({
         status: TripStatusEnum.scheduled,
-        matchedRequests: [{ id: 'matched-1' }, { id: 'matched-2' }]
+        matchedRequests: [{ id: 'matched-1' }, { id: 'matched-2' }],
       } as any);
-      
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-      prisma.trip.update.mockResolvedValueOnce({ ...mockTrip, status: TripStatusEnum.in_progress });
+
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
+      prisma.trip.update.mockResolvedValueOnce({
+        ...mockTrip,
+        status: TripStatusEnum.in_progress,
+      });
       prisma.trackingUpdate.createMany.mockResolvedValue({ count: 2 });
 
       const result = await service.startTrip('trip-123');
 
-      expect(result).toEqual({ ...mockTrip, status: TripStatusEnum.in_progress });
+      expect(result).toEqual({
+        ...mockTrip,
+        status: TripStatusEnum.in_progress,
+      });
       expect(prisma.trip.update).toHaveBeenCalledWith({
         where: { id: 'trip-123' },
-        data: { status: TripStatusEnum.in_progress }
+        data: { status: TripStatusEnum.in_progress },
       });
       expect(prisma.trackingUpdate.createMany).toHaveBeenCalledWith({
         data: [
           {
             matchedRequestId: 'matched-1',
             city: 'Tehran',
-            description: TrackingMessages.TripStarted
+            description: TrackingMessages.TripStarted,
           },
           {
             matchedRequestId: 'matched-2',
             city: 'Tehran',
-            description: TrackingMessages.TripStarted
-          }
-        ]
+            description: TrackingMessages.TripStarted,
+          },
+        ],
       });
     });
   });
 
   describe('pickupPackage', () => {
     it('should pickup package successfully', async () => {
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValueOnce(mockMatchedRequest);
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValueOnce(
+        mockMatchedRequest,
+      );
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.package.update.mockResolvedValue({
-        status: PackageStatusEnum.in_transit
+        status: PackageStatusEnum.in_transit,
       } as any);
       prisma.matchedRequest.update.mockResolvedValue({
-        pickupTime: new Date()
+        pickupTime: new Date(),
       } as any);
       prisma.trackingUpdate.create.mockResolvedValue({} as any);
 
@@ -577,33 +663,48 @@ describe('TripService', () => {
           latitude: '35.6892',
           longitude: '51.3890',
           city: 'Tehran',
-          description: TrackingMessages.PackagePickedUp
-        }
+          description: TrackingMessages.PackagePickedUp,
+        },
       });
     });
 
     it('should throw when package status is invalid', async () => {
       const invalidMatchedRequest = {
         ...mockMatchedRequest,
-        package: { ...mockMatchedRequest.package, status: PackageStatusEnum.delivered }
+        package: {
+          ...mockMatchedRequest.package,
+          status: PackageStatusEnum.delivered,
+        },
       };
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValueOnce(invalidMatchedRequest);
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValueOnce(
+        invalidMatchedRequest,
+      );
 
-      await expect(service.pickupPackage('trip-123', 'package-123')).rejects.toThrow(
-        new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${PackageStatusEnum.delivered}*.`)
+      await expect(
+        service.pickupPackage('trip-123', 'package-123'),
+      ).rejects.toThrow(
+        new BadRequestException(
+          `${BadRequestMessages.BasePackageStatus}*${PackageStatusEnum.delivered}*.`,
+        ),
       );
     });
 
     it('should throw when trip status is invalid', async () => {
       const invalidMatchedRequest = {
         ...mockMatchedRequest,
-        trip: { status: TripStatusEnum.completed }
+        trip: { status: TripStatusEnum.completed },
       };
-      
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValueOnce(invalidMatchedRequest);
 
-      await expect(service.pickupPackage('trip-123', 'package-123')).rejects.toThrow(
-        new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${PackageStatusEnum.matched}*.`)
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValueOnce(
+        invalidMatchedRequest,
+      );
+
+      await expect(
+        service.pickupPackage('trip-123', 'package-123'),
+      ).rejects.toThrow(
+        new BadRequestException(
+          `${BadRequestMessages.BaseTripStatus}*${PackageStatusEnum.matched}*.`,
+        ),
       );
     });
   });
@@ -613,34 +714,50 @@ describe('TripService', () => {
       ...mockMatchedRequest,
       package: {
         ...mockMatchedRequest.package,
-        status: PackageStatusEnum.in_transit
-      }
+        status: PackageStatusEnum.in_transit,
+      },
     };
 
     it('should deliver package successfully', async () => {
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(inTransitMatchedRequest);
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(
+        inTransitMatchedRequest,
+      );
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.package.update.mockResolvedValue({
-        status: PackageStatusEnum.delivered
+        status: PackageStatusEnum.delivered,
       } as any);
       prisma.matchedRequest.update.mockResolvedValue({
-        deliveryTime: new Date()
+        deliveryTime: new Date(),
       } as any);
       prisma.trackingUpdate.create.mockResolvedValue({} as any);
       financialService.releaseEscrow.mockResolvedValue({} as any);
 
-      const result = await service.deliveryPackage('trip-123', 'package-123', '12345');
+      const result = await service.deliveryPackage(
+        'trip-123',
+        'package-123',
+        '12345',
+      );
 
       expect(result.packageStatus).toBe(PackageStatusEnum.delivered);
       expect(result.deliveryTime).toBeInstanceOf(Date);
-      expect(financialService.releaseEscrow).toHaveBeenCalledWith('package-123', 'trip-123', prisma);
+      expect(financialService.releaseEscrow).toHaveBeenCalledWith(
+        'package-123',
+        'trip-123',
+        prisma,
+      );
     });
 
     it('should throw when delivery code is wrong', async () => {
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(inTransitMatchedRequest);
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(
+        inTransitMatchedRequest,
+      );
 
-      await expect(service.deliveryPackage('trip-123', 'package-123', '54321')).rejects.toThrow(
-        new BadRequestException(BadRequestMessages.WrongDeliveryCode)
+      await expect(
+        service.deliveryPackage('trip-123', 'package-123', '54321'),
+      ).rejects.toThrow(
+        new BadRequestException(BadRequestMessages.WrongDeliveryCode),
       );
     });
   });
@@ -652,11 +769,16 @@ describe('TripService', () => {
         matchedRequests: [{ deliveryTime: new Date() }],
         transporter: {
           id: 'transporter-123',
-          firstTripDate: null
-        }
+          firstTripDate: null,
+        },
       } as any);
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-      prisma.trip.update.mockResolvedValue({ ...mockTrip, status: TripStatusEnum.completed });
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
+      prisma.trip.update.mockResolvedValue({
+        ...mockTrip,
+        status: TripStatusEnum.completed,
+      });
       prisma.transporter.update.mockResolvedValue({} as any);
 
       const result = await service.finishTrip('trip-123');
@@ -664,7 +786,7 @@ describe('TripService', () => {
       expect(result).toEqual({ ...mockTrip, status: TripStatusEnum.completed });
       expect(prisma.transporter.update).toHaveBeenCalledWith({
         where: { id: 'transporter-123' },
-        data: { firstTripDate: expect.any(Date) }
+        data: { firstTripDate: expect.any(Date) },
       });
     });
 
@@ -674,11 +796,16 @@ describe('TripService', () => {
         matchedRequests: [{ deliveryTime: new Date() }],
         transporter: {
           id: 'transporter-123',
-          firstTripDate: new Date('2023-01-01')
-        }
+          firstTripDate: new Date('2023-01-01'),
+        },
       } as any);
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-      prisma.trip.update.mockResolvedValue({ ...mockTrip, status: TripStatusEnum.completed });
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
+      prisma.trip.update.mockResolvedValue({
+        ...mockTrip,
+        status: TripStatusEnum.completed,
+      });
       prisma.transporter.update.mockResolvedValue({} as any);
 
       const result = await service.finishTrip('trip-123');
@@ -686,7 +813,7 @@ describe('TripService', () => {
       expect(result).toEqual({ ...mockTrip, status: TripStatusEnum.completed });
       expect(prisma.transporter.update).toHaveBeenCalledWith({
         where: { id: 'transporter-123' },
-        data: { lastTripDate: expect.any(Date) }
+        data: { lastTripDate: expect.any(Date) },
       });
     });
 
@@ -696,12 +823,12 @@ describe('TripService', () => {
         matchedRequests: [{ deliveryTime: null }],
         transporter: {
           id: 'transporter-123',
-          firstTripDate: null
-        }
+          firstTripDate: null,
+        },
       } as any);
 
       await expect(service.finishTrip('trip-123')).rejects.toThrow(
-        new BadRequestException(BadRequestMessages.CannotFinishTrip)
+        new BadRequestException(BadRequestMessages.CannotFinishTrip),
       );
     });
   });
@@ -710,18 +837,28 @@ describe('TripService', () => {
     it('should add note to specific package', async () => {
       const tripWithMatches = {
         ...mockTrip,
-        matchedRequests: [{ packageId: 'package-123', transporterNotes: [], package: { senderId: 'user-123' } }]
+        matchedRequests: [
+          {
+            packageId: 'package-123',
+            transporterNotes: [],
+            package: { senderId: 'user-123' },
+          },
+        ],
       };
-      
+
       prisma.trip.findUniqueOrThrow.mockResolvedValue(tripWithMatches);
       prisma.matchedRequest.update.mockResolvedValue({} as any);
 
-      const result = await service.addTripNote('trip-123', 'Test note', 'package-123');
+      const result = await service.addTripNote(
+        'trip-123',
+        'Test note',
+        'package-123',
+      );
 
       expect(result.count).toBe(1);
       expect(prisma.matchedRequest.update).toHaveBeenCalledWith({
         where: { tripId: 'trip-123', packageId: 'package-123' },
-        data: { transporterNotes: ['Test note'] }
+        data: { transporterNotes: ['Test note'] },
       });
     });
 
@@ -729,13 +866,17 @@ describe('TripService', () => {
       const completedTrip = {
         ...mockTrip,
         status: TripStatusEnum.completed,
-        matchedRequests: []
+        matchedRequests: [],
       };
-      
+
       prisma.trip.findUniqueOrThrow.mockResolvedValue(completedTrip);
 
-      await expect(service.addTripNote('trip-123', 'Test note')).rejects.toThrow(
-        new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${TripStatusEnum.completed}*.`)
+      await expect(
+        service.addTripNote('trip-123', 'Test note'),
+      ).rejects.toThrow(
+        new BadRequestException(
+          `${BadRequestMessages.BaseTripStatus}*${TripStatusEnum.completed}*.`,
+        ),
       );
     });
   });
@@ -743,7 +884,7 @@ describe('TripService', () => {
   describe('getTripTracking', () => {
     it('should get trip tracking successfully', async () => {
       const trackingUpdates = [
-        { id: 'tracking-1', city: 'Tehran', createdAt: new Date() }
+        { id: 'tracking-1', city: 'Tehran', createdAt: new Date() },
       ];
       prisma.trackingUpdate.findMany.mockResolvedValue(trackingUpdates as any);
 
@@ -753,9 +894,9 @@ describe('TripService', () => {
       expect(prisma.trackingUpdate.findMany).toHaveBeenCalledWith({
         where: {
           matchedRequest: { tripId: 'trip-123', packageId: 'package-123' },
-          deletedAt: null
+          deletedAt: null,
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
     });
   });
@@ -765,29 +906,35 @@ describe('TripService', () => {
       tripId: 'trip-123',
       packageId: 'package-123',
       rate: 5,
-      comment: 'Great service!'
+      comment: 'Great service!',
     };
 
     const mockRatingData = {
       senderRating: null,
       package: {
         senderId: 'user-123',
-        status: PackageStatusEnum.delivered
+        status: PackageStatusEnum.delivered,
       },
       trip: {
         transporterId: 'transporter-123',
         transporter: {
           rate: 4.5,
-          rateCount: 10
-        }
-      }
+          rateCount: 10,
+        },
+      },
     };
 
     it('should rate trip successfully', async () => {
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(mockRatingData as any);
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(
+        mockRatingData as any,
+      );
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.transporter.update.mockResolvedValue({} as any);
-      prisma.matchedRequest.update.mockResolvedValue({ senderRating: 5 } as any);
+      prisma.matchedRequest.update.mockResolvedValue({
+        senderRating: 5,
+      } as any);
 
       const result = await service.rateTrip('user-123', rateDto);
 
@@ -796,44 +943,55 @@ describe('TripService', () => {
         where: { id: 'transporter-123' },
         data: {
           rate: (4.5 * 10 + 5) / 11, // New average
-          rateCount: 11
-        }
+          rateCount: 11,
+        },
       });
     });
 
     it('should throw when user is not the sender', async () => {
       const wrongUserRatingData = {
         ...mockRatingData,
-        package: { ...mockRatingData.package, senderId: 'different-user' }
+        package: { ...mockRatingData.package, senderId: 'different-user' },
       };
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(wrongUserRatingData as any);
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(
+        wrongUserRatingData as any,
+      );
 
       await expect(service.rateTrip('user-123', rateDto)).rejects.toThrow(
-        new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`)
+        new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`),
       );
     });
 
     it('should throw when trip already rated', async () => {
       const alreadyRatedData = {
         ...mockRatingData,
-        senderRating: 4
+        senderRating: 4,
       };
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(alreadyRatedData as any);
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(
+        alreadyRatedData as any,
+      );
 
       await expect(service.rateTrip('user-123', rateDto)).rejects.toThrow(
-        new BadRequestException(BadRequestMessages.AlreadyRatedTrip)
+        new BadRequestException(BadRequestMessages.AlreadyRatedTrip),
       );
     });
 
     it('should throw when package status is invalid', async () => {
       const invalidStatusData = {
         ...mockRatingData,
-        package: { ...mockRatingData.package, status: PackageStatusEnum.matched }
+        package: {
+          ...mockRatingData.package,
+          status: PackageStatusEnum.matched,
+        },
       };
-      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(invalidStatusData as any);
+      prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(
+        invalidStatusData as any,
+      );
 
       await expect(service.rateTrip('user-123', rateDto)).rejects.toThrow(
-        new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${PackageStatusEnum.matched}*.`)
+        new BadRequestException(
+          `${BadRequestMessages.BasePackageStatus}*${PackageStatusEnum.matched}*.`,
+        ),
       );
     });
   });
@@ -842,10 +1000,12 @@ describe('TripService', () => {
     it('should update tracking successfully', async () => {
       const tripWithMatches = {
         status: TripStatusEnum.in_progress,
-        matchedRequests: [{ id: 'matched-1' }, { id: 'matched-2' }]
+        matchedRequests: [{ id: 'matched-1' }, { id: 'matched-2' }],
       };
-      
-      prisma.trip.findUniqueOrThrow.mockResolvedValueOnce(tripWithMatches as any);
+
+      prisma.trip.findUniqueOrThrow.mockResolvedValueOnce(
+        tripWithMatches as any,
+      );
       prisma.trackingUpdate.createMany.mockResolvedValue({ count: 2 });
 
       const result = await service.updateTracking('trip-123', trackingDto);
@@ -854,8 +1014,8 @@ describe('TripService', () => {
       expect(prisma.trackingUpdate.createMany).toHaveBeenCalledWith({
         data: [
           { matchedRequestId: 'matched-1', ...trackingDto },
-          { matchedRequestId: 'matched-2', ...trackingDto }
-        ]
+          { matchedRequestId: 'matched-2', ...trackingDto },
+        ],
       });
     });
   });
@@ -871,7 +1031,7 @@ describe('TripService', () => {
       expect(prisma.trip.findMany).toHaveBeenCalledWith({
         where: {
           id: { in: ['trip-123', 'trip-456'] },
-          status: TripStatusEnum.scheduled
+          status: TripStatusEnum.scheduled,
         },
         include: {
           origin: true,
@@ -879,20 +1039,20 @@ describe('TripService', () => {
           waypoints: true,
           vehicle: {
             include: {
-              model: { include: { brand: true } }
-            }
+              model: { include: { brand: true } },
+            },
           },
           matchedRequests: {
             include: {
               package: {
                 include: {
                   originAddress: true,
-                  recipient: { include: { address: true } }
-                }
-              }
-            }
-          }
-        }
+                  recipient: { include: { address: true } },
+                },
+              },
+            },
+          },
+        },
       });
     });
   });
@@ -906,18 +1066,20 @@ describe('TripService', () => {
             sender: { firstName: 'Ahmad', lastName: 'Mohammadi' },
             items: ['Electronics'],
             weight: 2.5,
-            picturesKey: ['key-1']
+            picturesKey: ['key-1'],
           },
           request: { offeredPrice: 75000 },
           transporterNotes: ['Handle with care'],
           pickupTime: null,
           deliveryTime: null,
-          paymentStatus: 'pending'
-        }
+          paymentStatus: 'pending',
+        },
       ];
-      
+
       prisma.matchedRequest.findMany.mockResolvedValue(matchedRequests as any);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://s3.example.com/key-1');
+      s3Service.generateGetPresignedUrl.mockResolvedValue(
+        'https://s3.example.com/key-1',
+      );
 
       const result = await service.getAllMatchedRequests('trip-123');
 
@@ -927,14 +1089,14 @@ describe('TripService', () => {
             ...matchedRequests[0].package,
             picturesUrl: ['https://s3.example.com/key-1'],
             offeredPrice: 75000,
-            picturesKey: undefined
+            picturesKey: undefined,
           },
           transporterNotes: ['Handle with care'],
           pickupTime: null,
           deliveryTime: null,
           paymentStatus: 'pending',
-          request: undefined
-        }
+          request: undefined,
+        },
       ]);
       expect(prisma.matchedRequest.findMany).toHaveBeenCalledWith({
         where: { tripId: 'trip-123' },
@@ -949,8 +1111,8 @@ describe('TripService', () => {
                   firstName: true,
                   lastName: true,
                   gender: true,
-                  phoneNumber: true
-                }
+                  phoneNumber: true,
+                },
               },
               status: true,
               items: true,
@@ -966,15 +1128,15 @@ describe('TripService', () => {
               deliveryAtDestination: true,
               preferredPickupTime: true,
               preferredDeliveryTime: true,
-              picturesKey: true
-            }
+              picturesKey: true,
+            },
           },
           request: true,
           transporterNotes: true,
           pickupTime: true,
           deliveryTime: true,
-          paymentStatus: true
-        }
+          paymentStatus: true,
+        },
       });
     });
 
@@ -984,11 +1146,22 @@ describe('TripService', () => {
           package: {
             id: 'package-1',
             code: 'PKG-1',
-            sender: { firstName: 'A', lastName: 'A', gender: 'male', phoneNumber: '+1' },
+            sender: {
+              firstName: 'A',
+              lastName: 'A',
+              gender: 'male',
+              phoneNumber: '+1',
+            },
             status: PackageStatusEnum.matched,
             items: ['Item1'],
-            originAddress: { latitude: '35.7', longitude: '51.4', city: 'Tehran' },
-            recipient: { address: { latitude: '35.8', longitude: '51.5', city: 'Tehran' } },
+            originAddress: {
+              latitude: '35.7',
+              longitude: '51.4',
+              city: 'Tehran',
+            },
+            recipient: {
+              address: { latitude: '35.8', longitude: '51.5', city: 'Tehran' },
+            },
             weight: 1,
             dimensions: { w: 1, h: 1, l: 1 } as any,
             packageValue: 100,
@@ -999,23 +1172,34 @@ describe('TripService', () => {
             deliveryAtDestination: true,
             preferredPickupTime: null,
             preferredDeliveryTime: null,
-            picturesKey: ['k1']
+            picturesKey: ['k1'],
           },
           request: { offeredPrice: 10000 },
           transporterNotes: [],
           pickupTime: null,
           deliveryTime: null,
-          paymentStatus: 'pending'
+          paymentStatus: 'pending',
         },
         {
           package: {
             id: 'package-2',
             code: 'PKG-2',
-            sender: { firstName: 'B', lastName: 'B', gender: 'female', phoneNumber: '+2' },
+            sender: {
+              firstName: 'B',
+              lastName: 'B',
+              gender: 'female',
+              phoneNumber: '+2',
+            },
             status: PackageStatusEnum.matched,
             items: ['Item2'],
-            originAddress: { latitude: '35.6', longitude: '51.3', city: 'Tehran' },
-            recipient: { address: { latitude: '35.9', longitude: '51.6', city: 'Tehran' } },
+            originAddress: {
+              latitude: '35.6',
+              longitude: '51.3',
+              city: 'Tehran',
+            },
+            recipient: {
+              address: { latitude: '35.9', longitude: '51.6', city: 'Tehran' },
+            },
             weight: 2,
             dimensions: { w: 2, h: 2, l: 2 } as any,
             packageValue: 200,
@@ -1026,46 +1210,64 @@ describe('TripService', () => {
             deliveryAtDestination: true,
             preferredPickupTime: null,
             preferredDeliveryTime: null,
-            picturesKey: ['k2']
+            picturesKey: ['k2'],
           },
           request: { offeredPrice: 20000 },
           transporterNotes: [],
           pickupTime: null,
           deliveryTime: null,
-          paymentStatus: 'pending'
-        }
+          paymentStatus: 'pending',
+        },
       ];
 
       prisma.matchedRequest.findMany.mockResolvedValue(matchedRequests as any);
       prisma.trip.findFirstOrThrow.mockResolvedValue({
         origin: { latitude: '35.65', longitude: '51.35', name: 'Origin' },
-        destination: { latitude: '35.95', longitude: '51.65', name: 'Destination' }
+        destination: {
+          latitude: '35.95',
+          longitude: '51.65',
+          name: 'Destination',
+        },
       } as any);
 
       // First call: sortLocationsByRoute for map of package locations -> returns Map ordering by package-2 then package-1
-      (turfService.sortLocationsByRoute as any).mockImplementationOnce((_o, _d, _locationsMap: Map<string, any>) =>
-        new Map<string, any>([
-          ['package-2', { latitude: '35.6', longitude: '51.3' }],
-          ['package-1', { latitude: '35.7', longitude: '51.4' }]
-        ])
+      (turfService.sortLocationsByRoute as any).mockImplementationOnce(
+        (_o, _d, _locationsMap: Map<string, any>) =>
+          new Map<string, any>([
+            ['package-2', { latitude: '35.6', longitude: '51.3' }],
+            ['package-1', { latitude: '35.7', longitude: '51.4' }],
+          ]),
       );
 
-      s3Service.generateGetPresignedUrl.mockImplementation(async (key: string) => `https://s3.example.com/${key}`);
+      s3Service.generateGetPresignedUrl.mockImplementation(
+        async (key: string) => `https://s3.example.com/${key}`,
+      );
 
       const result = await service.getAllMatchedRequests('trip-123', true);
 
-      expect(result.map(r => r.package.id)).toEqual(['package-2', 'package-1']);
-      expect(result[0].package.picturesUrl).toEqual(['https://s3.example.com/k2']);
-      expect(result[1].package.picturesUrl).toEqual(['https://s3.example.com/k1']);
+      expect(result.map((r) => r.package.id)).toEqual([
+        'package-2',
+        'package-1',
+      ]);
+      expect(result[0].package.picturesUrl).toEqual([
+        'https://s3.example.com/k2',
+      ]);
+      expect(result[1].package.picturesUrl).toEqual([
+        'https://s3.example.com/k1',
+      ]);
     });
   });
 
   describe('getDirections', () => {
     it('should build sorted waypoints and fetch directions', async () => {
-      const origin = { latitude: '35.60', longitude: '51.30', name: 'Start' } as any;
+      const origin = {
+        latitude: '35.60',
+        longitude: '51.30',
+        name: 'Start',
+      } as any;
 
       prisma.trip.findFirstOrThrow.mockResolvedValue({
-        destination: { latitude: '35.95', longitude: '51.65', name: 'End' }
+        destination: { latitude: '35.95', longitude: '51.65', name: 'End' },
       } as any);
 
       // Two matched requests with pickup and delivery points
@@ -1077,8 +1279,8 @@ describe('TripService', () => {
             originAddress: { latitude: '35.70', longitude: '51.40' },
             recipient: { address: { latitude: '35.80', longitude: '51.50' } },
             pickupAtOrigin: true,
-            deliveryAtDestination: true
-          }
+            deliveryAtDestination: true,
+          },
         },
         {
           package: {
@@ -1087,21 +1289,24 @@ describe('TripService', () => {
             originAddress: { latitude: '35.65', longitude: '51.35' },
             recipient: { address: { latitude: '35.90', longitude: '51.60' } },
             pickupAtOrigin: true,
-            deliveryAtDestination: true
-          }
-        }
+            deliveryAtDestination: true,
+          },
+        },
       ] as any);
 
       // First call used by sortMatchedPackages: return an ordering map keyed by package ids
-      (turfService.sortLocationsByRoute as any).mockImplementationOnce((_o, _d, _map) =>
-        new Map<string, any>([
-          ['package-2', { latitude: '35.65', longitude: '51.35' }],
-          ['package-1', { latitude: '35.70', longitude: '51.40' }]
-        ])
+      (turfService.sortLocationsByRoute as any).mockImplementationOnce(
+        (_o, _d, _map) =>
+          new Map<string, any>([
+            ['package-2', { latitude: '35.65', longitude: '51.35' }],
+            ['package-1', { latitude: '35.70', longitude: '51.40' }],
+          ]),
       );
 
       // Second call sorts the final waypoints array
-      (turfService.sortLocationsByRoute as any).mockImplementationOnce((_o, _d, waypoints: any[]) => waypoints);
+      (turfService.sortLocationsByRoute as any).mockImplementationOnce(
+        (_o, _d, waypoints: any[]) => waypoints,
+      );
 
       const mockedDirections = { polyline: 'encoded-polyline' } as any;
       mapService.getDirections.mockResolvedValue(mockedDirections);
@@ -1115,8 +1320,8 @@ describe('TripService', () => {
           { latitude: '35.65', longitude: '51.35' },
           { latitude: '35.90', longitude: '51.60' },
           { latitude: '35.70', longitude: '51.40' },
-          { latitude: '35.80', longitude: '51.50' }
-        ]
+          { latitude: '35.80', longitude: '51.50' },
+        ],
       });
       expect(result).toBe(mockedDirections);
     });
@@ -1124,27 +1329,36 @@ describe('TripService', () => {
 
   describe('Error handling', () => {
     it('should handle escrow creation failure gracefully', async () => {
-      const acceptedRequest = { ...mockTripRequest, status: RequestStatusEnum.accepted };
-      
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      const acceptedRequest = {
+        ...mockTripRequest,
+        status: RequestStatusEnum.accepted,
+      };
+
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.tripRequest.update.mockResolvedValue(acceptedRequest);
       prisma.tripRequest.updateMany.mockResolvedValue({ count: 0 });
       prisma.matchedRequest.create.mockResolvedValue(mockMatchedRequest);
       prisma.trip.findUniqueOrThrow.mockResolvedValue({
         totalDeviationDistanceKm: 0,
-        totalDeviationDurationMin: 0
+        totalDeviationDurationMin: 0,
       } as any);
       prisma.trip.update.mockResolvedValue(mockTrip);
       prisma.package.findFirstOrThrow.mockResolvedValue({
         breakdown: { baseCost: 100000, deviationCost: 0 },
-        senderId: 'user-123'
+        senderId: 'user-123',
       } as any);
-      prisma.package.update.mockResolvedValue({ status: PackageStatusEnum.matched } as any);
-      
-      financialService.createEscrow.mockRejectedValue(new Error('Insufficient balance'));
+      prisma.package.update.mockResolvedValue({
+        status: PackageStatusEnum.matched,
+      } as any);
+
+      financialService.createEscrow.mockRejectedValue(
+        new Error('Insufficient balance'),
+      );
 
       const result = await service.updateRequest('request-123', {
-        status: RequestStatusEnum.accepted
+        status: RequestStatusEnum.accepted,
       } as any);
 
       expect(result).toEqual(acceptedRequest);
@@ -1156,42 +1370,57 @@ describe('TripService', () => {
     it('should handle empty waypoints array in create', async () => {
       const tripDtoWithEmptyWaypoints = {
         ...mockCreateTripDto,
-        waypoints: undefined
+        waypoints: undefined,
       };
 
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.vehicle.findFirst.mockResolvedValue(mockVehicle);
       prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
-      mapService.calculateDistance.mockResolvedValue({ distance: 100, duration: 120 });
+      mapService.calculateDistance.mockResolvedValue({
+        distance: 100,
+        duration: 120,
+      });
       prisma.trip.create.mockResolvedValue(mockTrip);
 
       await service.create('user-123', tripDtoWithEmptyWaypoints);
 
       expect(prisma.trip.create).toHaveBeenCalledWith({
         data: expect.not.objectContaining({
-          waypoints: expect.anything()
-        })
+          waypoints: expect.anything(),
+        }),
       });
     });
 
     it('should handle null breakdown in updateRequest', async () => {
-      const acceptedRequest = { ...mockTripRequest, status: RequestStatusEnum.accepted };
-      
-      prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+      const acceptedRequest = {
+        ...mockTripRequest,
+        status: RequestStatusEnum.accepted,
+      };
+
+      prisma.$transaction.mockImplementation(async (callback) =>
+        callback(prisma),
+      );
       prisma.tripRequest.update.mockResolvedValue(acceptedRequest);
       prisma.tripRequest.updateMany.mockResolvedValue({ count: 0 });
       prisma.matchedRequest.create.mockResolvedValue(mockMatchedRequest);
       prisma.trip.findUniqueOrThrow.mockResolvedValue({
         totalDeviationDistanceKm: null,
-        totalDeviationDurationMin: null
+        totalDeviationDurationMin: null,
       } as any);
       prisma.trip.update.mockResolvedValue(mockTrip);
-      prisma.package.findFirstOrThrow.mockResolvedValue({ breakdown: null, senderId: 'user-123' } as any);
-      prisma.package.update.mockResolvedValue({ status: PackageStatusEnum.matched } as any);
+      prisma.package.findFirstOrThrow.mockResolvedValue({
+        breakdown: null,
+        senderId: 'user-123',
+      } as any);
+      prisma.package.update.mockResolvedValue({
+        status: PackageStatusEnum.matched,
+      } as any);
       financialService.createEscrow.mockResolvedValue({} as any);
 
       const result = await service.updateRequest('request-123', {
-        status: RequestStatusEnum.accepted
+        status: RequestStatusEnum.accepted,
       } as any);
 
       expect(result).toEqual(acceptedRequest);
@@ -1199,17 +1428,17 @@ describe('TripService', () => {
         where: { id: 'trip-123' },
         data: {
           totalDeviationDistanceKm: 10, // 0 + 10
-          totalDeviationDurationMin: 15  // 0 + 15
-        }
+          totalDeviationDurationMin: 15, // 0 + 15
+        },
       });
     });
 
     it('should handle empty matched requests in addTripNote', async () => {
       const tripWithoutMatches = {
         ...mockTrip,
-        matchedRequests: []
+        matchedRequests: [],
       };
-      
+
       prisma.trip.findUniqueOrThrow.mockResolvedValue(tripWithoutMatches);
 
       const result = await service.addTripNote('trip-123', 'Test note');
@@ -1221,18 +1450,30 @@ describe('TripService', () => {
       jest.spyOn(Promise, 'allSettled').mockResolvedValue([
         { status: 'fulfilled', value: { id: 'matched-1' } as any },
         { status: 'rejected', reason: new Error('Database error') },
-        { status: 'fulfilled', value: { id: 'matched-3' } as any }
+        { status: 'fulfilled', value: { id: 'matched-3' } as any },
       ]);
 
       const tripWithMatches = {
         ...mockTrip,
         matchedRequests: [
-          { packageId: 'package-1', transporterNotes: [], package: { senderId: 'user-1' } },
-          { packageId: 'package-2', transporterNotes: [], package: { senderId: 'user-2' } },
-          { packageId: 'package-3', transporterNotes: [], package: { senderId: 'user-3' } }
-        ]
+          {
+            packageId: 'package-1',
+            transporterNotes: [],
+            package: { senderId: 'user-1' },
+          },
+          {
+            packageId: 'package-2',
+            transporterNotes: [],
+            package: { senderId: 'user-2' },
+          },
+          {
+            packageId: 'package-3',
+            transporterNotes: [],
+            package: { senderId: 'user-3' },
+          },
+        ],
       };
-      
+
       prisma.trip.findUniqueOrThrow.mockResolvedValue(tripWithMatches);
 
       const result = await service.addTripNote('trip-123', 'Broadcast note');
@@ -1245,15 +1486,21 @@ describe('TripService', () => {
 
   describe('Private method tests', () => {
     it('should update package status correctly', async () => {
-      const updatedPackage = { id: 'package-123', status: PackageStatusEnum.in_transit };
+      const updatedPackage = {
+        id: 'package-123',
+        status: PackageStatusEnum.in_transit,
+      };
       prisma.package.update.mockResolvedValue(updatedPackage as any);
 
-      const result = await service['updatePackageStatus']('package-123', PackageStatusEnum.in_transit);
+      const result = await service['updatePackageStatus'](
+        'package-123',
+        PackageStatusEnum.in_transit,
+      );
 
       expect(result).toEqual(updatedPackage);
       expect(prisma.package.update).toHaveBeenCalledWith({
         where: { id: 'package-123', deletedAt: null },
-        data: { status: PackageStatusEnum.in_transit }
+        data: { status: PackageStatusEnum.in_transit },
       });
     });
 
@@ -1261,12 +1508,15 @@ describe('TripService', () => {
       const updatedTrip = { ...mockTrip, status: TripStatusEnum.completed };
       prisma.trip.update.mockResolvedValue(updatedTrip);
 
-      const result = await service['updateStatus']('trip-123', TripStatusEnum.completed);
+      const result = await service['updateStatus'](
+        'trip-123',
+        TripStatusEnum.completed,
+      );
 
       expect(result).toEqual(updatedTrip);
       expect(prisma.trip.update).toHaveBeenCalledWith({
         where: { id: 'trip-123' },
-        data: { status: TripStatusEnum.completed }
+        data: { status: TripStatusEnum.completed },
       });
     });
   });

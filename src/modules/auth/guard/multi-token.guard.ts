@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { AuthTokens } from '../../../common/enums/auth.enum';
 import { CookieNames } from '../../../common/enums/cookies.enum';
@@ -11,33 +16,45 @@ export class MultiTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const progressToken = request.cookies?.[CookieNames.ProgressToken] as string;
+    const progressToken = request.cookies?.[
+      CookieNames.ProgressToken
+    ] as string;
     const accessToken = request.cookies?.[CookieNames.AccessToken] as string;
 
     // Check ProgressToken
     if (progressToken) {
       try {
-        const payload = this.tokenService.verifyToken(progressToken, AuthTokens.Progress);
+        const payload = this.tokenService.verifyToken(
+          progressToken,
+          AuthTokens.Progress,
+        );
         const isOkToken = payload.sub && payload.phoneNumber;
-        
+
         if (isOkToken) {
           request.user = { id: payload.sub };
           return true;
         }
-      } catch (error) {}
+      } catch {
+        /* token invalid — fall through to the next token type */
+      }
     }
 
     // Check AccessToken
     if (accessToken) {
       try {
-        const payload = this.tokenService.verifyToken(accessToken, AuthTokens.Access);
+        const payload = this.tokenService.verifyToken(
+          accessToken,
+          AuthTokens.Access,
+        );
         const isOkToken = payload.sub && payload.phoneNumber;
-        
+
         if (isOkToken) {
           request.user = { id: payload.sub };
           return true;
         }
-      } catch (error) {}
+      } catch {
+        /* token invalid — fall through to unauthorized response */
+      }
     }
 
     throw new UnauthorizedException(AuthMessages.MissingOrInvalidToken);

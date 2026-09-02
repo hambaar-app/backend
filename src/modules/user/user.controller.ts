@@ -8,53 +8,52 @@ import { ProfileResponseDto, UserResponseDto } from './dto/user-response.dto';
 import { TransporterCompactDto } from './dto/transporter-response.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CurrentUser } from './current-user.middleware';
-import { AuthResponses, ValidationResponses } from '../../common/api-docs.decorators';
+import {
+  AuthResponses,
+  ValidationResponses,
+} from '../../common/api-docs.decorators';
 
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
 
   @ApiOperation({
-    summary: 'Get user\'s profile info',
+    summary: "Get user's profile info",
   })
   @ApiOkResponse({
-    type: ProfileResponseDto
+    type: ProfileResponseDto,
   })
   @AuthResponses()
   @Serialize(ProfileResponseDto)
   @UseGuards(AccessTokenGuard)
   @Get('profile')
-  async getUserProfile(
-    @CurrentUser('id') id: string
-  ) {
+  async getUserProfile(@CurrentUser('id') id: string) {
     return this.userService.getProfile(id);
   }
 
   @ApiOperation({
     summary: 'Updates user info',
-    description: "For sender and user related transporter info. Update phoneNumber will be ignored."
+    description:
+      'For sender and user related transporter info. Update phoneNumber will be ignored.',
   })
   @ApiOkResponse({
-    type: UserResponseDto
+    type: UserResponseDto,
   })
   @AuthResponses()
   @ValidationResponses()
   @Serialize(UserResponseDto)
   @UseGuards(AccessTokenGuard)
   @Patch()
-  async updateUser(
-    @Body() body: UpdateUserDto,
-    @CurrentUser('id') id: string
-  ) {
+  async updateUser(@Body() body: UpdateUserDto, @CurrentUser('id') id: string) {
     return this.userService.update(id, body);
   }
 
   @ApiOperation({
     summary: 'Updates transporter info',
-    description: "For transformer related info."
+    description: 'For transformer related info.',
   })
   @ApiOkResponse({
-    type: TransporterCompactDto
+    type: TransporterCompactDto,
   })
   @AuthResponses()
   @ValidationResponses()

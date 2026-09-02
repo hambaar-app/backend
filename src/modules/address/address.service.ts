@@ -14,7 +14,7 @@ export class AddressService {
 
   async getAllProvinceCities(provinceId: string) {
     return this.prisma.city.findMany({
-      where: { provinceId }
+      where: { provinceId },
     });
   }
 
@@ -25,74 +25,74 @@ export class AddressService {
           {
             name: {
               contains: search,
-              mode: 'insensitive'
-            }
+              mode: 'insensitive',
+            },
           },
           {
             englishName: {
               contains: search,
-              mode: 'insensitive'
-            }
-          }
-        ]
-      }
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
     });
   }
 
-  async create(
-    userId: string,
-    {
-      cityId,
-      ...addressDto
-    }: CreateAddressDto
-  ) {
-    return this.prisma.$transaction(async tx => {
-      const city = await tx.city.findUniqueOrThrow({
-        where: { id: cityId },
-        include: {
-          province: true
-        }
-      });
+  async create(userId: string, { cityId, ...addressDto }: CreateAddressDto) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const city = await tx.city.findUniqueOrThrow({
+          where: { id: cityId },
+          include: {
+            province: true,
+          },
+        });
 
-      return this.prisma.address.create({
-        data: {
-          userId,
-          ...addressDto,
-          province: city.province.name,
-          city: city.name,
-        }
+        return this.prisma.address.create({
+          data: {
+            userId,
+            ...addressDto,
+            province: city.province.name,
+            city: city.name,
+          },
+        });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
       });
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
   }
 
   async getAll(userId: string, search?: string, isHighlighted = true) {
-    return this.prisma.address.findMany({
-      where: {
-        userId,
-        isHighlighted,
-        title: {
-          contains: search,
-          mode: 'insensitive'
-        }
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });;
+    return this.prisma.address
+      .findMany({
+        where: {
+          userId,
+          isHighlighted,
+          title: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
   }
 
   async update(addressId: string, addressDto: UpdateAddressDto) {
-    return this.prisma.address.update({
-      where: {
-        id: addressId
-      },
-      data: addressDto
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+    return this.prisma.address
+      .update({
+        where: {
+          id: addressId,
+        },
+        data: addressDto,
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
   }
 }

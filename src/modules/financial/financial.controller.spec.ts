@@ -13,13 +13,11 @@ describe('FinancialController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FinancialController],
-      providers: [
-        { provide: FinancialService, useValue: service }
-      ]
+      providers: [{ provide: FinancialService, useValue: service }],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<FinancialController>(FinancialController);
   });

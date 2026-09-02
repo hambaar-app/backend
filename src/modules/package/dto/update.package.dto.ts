@@ -1,6 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ArrayMinSize, IsArray, IsBoolean, IsInt, IsOptional, IsString, Matches, Validate } from 'class-validator';
-import { IsDeliveryAfterPickupConstraint, IsValidDateTimeTupleConstraint, IsValidS3Key } from '../../../common/utilities';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Validate,
+} from 'class-validator';
+import {
+  IsDeliveryAfterPickupConstraint,
+  IsValidDateTimeTupleConstraint,
+  IsValidS3Key,
+} from '../../../common/utilities';
 
 export class UpdatePackageDto {
   @IsOptional()
@@ -11,7 +24,7 @@ export class UpdatePackageDto {
 
   @ApiProperty({
     description: 'In LxWxH format.',
-    example: '20x30x40'
+    example: '20x30x40',
   })
   @Matches(/^\d+(\.\d+)?x\d+(\.\d+)?x\d+(\.\d+)?$/, {
     message: 'dimensions should be in cm and "LxWxH" format.',
@@ -48,14 +61,14 @@ export class UpdatePackageDto {
   deliveryAtDestination?: boolean;
 
   @ApiProperty({
-    example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]'
+    example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]',
   })
   @IsOptional()
   @Validate(IsValidDateTimeTupleConstraint)
   preferredPickupTime?: [Date, Date]; // [startDateTime, endDateTime]
-  
+
   @ApiProperty({
-    example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]'
+    example: '["2025-07-29T10:00:00.000Z", "2025-07-29T12:00:00.000Z"]',
   })
   @IsOptional()
   @Validate(IsValidDateTimeTupleConstraint)

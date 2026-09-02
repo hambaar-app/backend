@@ -5,12 +5,9 @@ import { TokenModule } from '../token/token.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [
-    TokenModule,
-    PrismaModule,
-  ],
+  imports: [TokenModule, PrismaModule],
   providers: [S3Service],
   controllers: [S3Controller],
-  exports: [S3Service]
+  exports: [S3Service],
 })
 export class S3Module {}

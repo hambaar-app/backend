@@ -8,14 +8,14 @@ export class TripFilterQueryDto {
     description: 'Array of status values to filter by',
     enum: TripStatusEnum,
     isArray: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsArray()
-  @IsEnum(TripStatusEnum, { each: true } )
+  @IsEnum(TripStatusEnum, { each: true })
   @Transform(({ value }) => {
     if (typeof value === 'string') {
-      return value.split(',').map(v => v.trim());
+      return value.split(',').map((v) => v.trim());
     }
     return Array.isArray(value) ? value : [value];
   })

@@ -26,16 +26,16 @@ class Statistics {
 export class DashboardResponseDto {
   @Expose()
   fullName: string;
-  
+
   @Expose()
   totalWalletBalance: number;
 
   @Expose()
   notificationCount: number;
-  
+
   @Expose()
   role?: AuthRoles;
-  
+
   @Expose()
   profilePictureUrl?: string;
 

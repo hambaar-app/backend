@@ -7,15 +7,19 @@ import {
   IsString,
 } from 'class-validator';
 
-enum RequestStatusEnum {
+/**
+ * NOTE: intentionally a local subset of the Prisma `RequestStatusEnum` —
+ * clients may only transition a request to accepted/rejected here.
+ */
+enum UpdateRequestStatusEnum {
   Accepted = 'accepted',
   Rejected = 'rejected',
 }
 
 export class UpdateRequestDto {
   @IsNotEmpty()
-  @IsEnum(RequestStatusEnum)
-  status: RequestStatusEnum;
+  @IsEnum(UpdateRequestStatusEnum)
+  status: UpdateRequestStatusEnum;
 
   @IsOptional()
   @IsArray()

@@ -14,15 +14,13 @@ describe('VehicleController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VehicleController],
-      providers: [
-        { provide: VehicleService, useValue: service }
-      ]
+      providers: [{ provide: VehicleService, useValue: service }],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .overrideGuard(OwnershipGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(OwnershipGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<VehicleController>(VehicleController);
   });

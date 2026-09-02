@@ -13,7 +13,7 @@ describe('DashboardService', () => {
   beforeEach(async () => {
     s3Service = mockDeep<S3Service>();
     prismaService = mockDeep<PrismaClient>();
-    
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DashboardService,

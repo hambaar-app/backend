@@ -35,7 +35,7 @@ export function ApiQuerySearch(required = false) {
       type: String,
       description: 'Search term to filter cities by name (Persian or English).',
       example: 'Ali',
-    })
+    }),
   );
 }
 

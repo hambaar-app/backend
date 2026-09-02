@@ -3,20 +3,20 @@ import { TripTypeEnum } from 'generated/prisma';
 export type VehicleTypes = 'car' | 'motorcycle';
 
 export interface CalculateDistanceInput {
-  vehicleType?: VehicleTypes,
-  tripType?: TripTypeEnum,
-  origin: Location,
-  destination: Location,
+  vehicleType?: VehicleTypes;
+  tripType?: TripTypeEnum;
+  origin: Location;
+  destination: Location;
   waypoints?: Location[];
 }
 
 export interface Location {
-  latitude: string,
-  longitude: string
+  latitude: string;
+  longitude: string;
 }
 
 export interface DistanceMatrixResponse {
-  status: "Ok";
+  status: 'Ok';
   rows: Row[];
   origin_addresses: string[];
   destination_addresses: string[];

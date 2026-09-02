@@ -12,7 +12,7 @@ export enum AuthMessages {
   AlreadyAuthorized = 'User is already authorized.',
   UnauthorizedPhoneNumber = 'Phone number in request does not match the authenticated user’s phone number',
   AccessDenied = 'Access Denied. You are not authorized to perform this action.',
-  EntityAccessDenied = 'Access Denied. You don\'t have permission to access this',
+  EntityAccessDenied = "Access Denied. You don't have permission to access this",
   MissingOrInvalidToken = 'Missing or invalid Progress/Access token. Please provide a valid one.',
 }
 
@@ -20,7 +20,7 @@ export enum NotFoundMessages {
   Vehicle = 'Vehicle not found.',
   VehicleModel = 'Vehicle model not found.',
   User = 'User not found.',
-  MatchedTrip = 'No matched trip found for this package.'
+  MatchedTrip = 'No matched trip found for this package.',
 }
 
 export enum BadRequestMessages {
@@ -34,7 +34,7 @@ export enum BadRequestMessages {
   PaymentProcessed = 'Payment already processed.',
   NotEnoughBalance = 'Not enough balance.',
   NoEscrowedPayment = 'No escrowed payment found.',
-  AlreadyRatedTrip = 'You have already rated this trip.'
+  AlreadyRatedTrip = 'You have already rated this trip.',
 }
 
 export enum TrackingMessages {

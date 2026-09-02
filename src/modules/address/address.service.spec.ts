@@ -14,7 +14,7 @@ describe('AddressService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AddressService,
-        { provide: PrismaService, useValue: prismaService }
+        { provide: PrismaService, useValue: prismaService },
       ],
     }).compile();
 

@@ -20,7 +20,7 @@ describe('MapService', () => {
     configService.get.mockImplementation((key: string, defaultValue?: any) => {
       const config = {
         MAP_API_KEY: 'key',
-        MAP_API_URL: 'url'
+        MAP_API_URL: 'url',
       };
       return config[key] || defaultValue;
     });

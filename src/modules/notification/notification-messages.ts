@@ -20,15 +20,18 @@ export interface NotificationContext {
 
 export function getNotificationMessage(
   messageKey: NotificationMessages,
-  context: NotificationContext = {}
+  context: NotificationContext = {},
 ): string {
   let baseMessage = messageKey as string;
-  
+
   // Replace placeholders with a value
-  Object.keys(context).forEach(key => {
+  Object.keys(context).forEach((key) => {
     const placeholder = `{${key}}`;
-    baseMessage = baseMessage.replace(new RegExp(placeholder, 'g'), context[key]);
+    baseMessage = baseMessage.replace(
+      new RegExp(placeholder, 'g'),
+      context[key],
+    );
   });
-  
+
   return baseMessage;
 }

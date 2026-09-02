@@ -19,7 +19,7 @@ export class CreateAddressDto {
   @IsOptional()
   @IsString()
   country?: string;
-  
+
   @IsNotEmpty()
   @IsUUID()
   cityId: string;

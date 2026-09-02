@@ -13,13 +13,11 @@ describe('UserController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
-      providers: [
-        { provide: UserService, useValue: service }
-      ]
+      providers: [{ provide: UserService, useValue: service }],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<UserController>(UserController);
   });

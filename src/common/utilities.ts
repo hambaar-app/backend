@@ -14,8 +14,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { isAfter, isValid } from 'date-fns';
-import moment from 'moment';
+import { differenceInCalendarMonths, isAfter, isValid } from 'date-fns';
 
 export const generateCode = () => {
   return crypto.randomInt(11_111, 99_999);
@@ -23,11 +22,10 @@ export const generateCode = () => {
 
 export const generateUniqueCode = () => {
   return Date.now().toString() + crypto.randomInt(1_111_111, 9_999_999);
-}
+};
 
 export const formatPrismaError = (error: Error): never => {
-  if (process.env.NODE_ENV === 'development')
-    console.error(error);
+  if (process.env.NODE_ENV === 'development') console.error(error);
 
   if (error instanceof HttpException) {
     throw error;
@@ -49,19 +47,21 @@ export const formatPrismaError = (error: Error): never => {
         throw new ConflictException(
           `A ${model} with the ${target} already exists. Please use a different value.`,
         );
-      case 'P2003':
+      case 'P2003': {
         const constraintName = error.meta?.constraint as string;
         let relationshipMessage = '';
-        
+
         if (constraintName?.includes('_fkey')) {
-          relationshipMessage = target !== 'unknown field' 
-            ? `The specified '${target}' does not exist or is invalid.`
-            : `Referenced record does not exist.`;
+          relationshipMessage =
+            target !== 'unknown field'
+              ? `The specified '${target}' does not exist or is invalid.`
+              : `Referenced record does not exist.`;
         }
-        
+
         throw new BadRequestException(
-          `Foreign key constraint violation in ${model}. ${relationshipMessage}`
+          `Foreign key constraint violation in ${model}. ${relationshipMessage}`,
         );
+      }
       case 'P2004':
         throw new BadRequestException(
           `Constraint violation on ${target} in ${model}: ${cause}.`,
@@ -102,7 +102,7 @@ export const formatPrismaError = (error: Error): never => {
 export class IsValidDateTimeTupleConstraint
   implements ValidatorConstraintInterface
 {
-  validate(value: any, args: ValidationArguments): boolean {
+  validate(value: any, _args: ValidationArguments): boolean {
     if (!Array.isArray(value) || value.length !== 2) {
       return false;
     }
@@ -177,10 +177,10 @@ class IsValidS3KeyConstraint implements ValidatorConstraintInterface {
       /^transporter\/[a-f0-9-]{36}\/vehicle\/green-sheet-.+$/,
       /^transporter\/[a-f0-9-]{36}\/vehicle\/card-.+$/,
       // Sender patterns
-      /^sender\/[a-f0-9-]{36}\/package\/pic-.+$/
+      /^sender\/[a-f0-9-]{36}\/package\/pic-.+$/,
     ];
 
-    return validPatterns.some(pattern => pattern.test(key));
+    return validPatterns.some((pattern) => pattern.test(key));
   }
 
   defaultMessage(): string {
@@ -189,7 +189,7 @@ class IsValidS3KeyConstraint implements ValidatorConstraintInterface {
 }
 
 export function IsValidS3Key(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -201,15 +201,20 @@ export function IsValidS3Key(validationOptions?: ValidationOptions) {
 }
 
 // Function to convert numbers to Persian digits
-export function toPersianDigits(number) {
+export function toPersianDigits(value: string | number): string {
   const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-  return number.toString().replace(/[0-9]/g, (digit) => persianDigits[parseInt(digit)]);
+  return value
+    .toString()
+    .replace(/[0-9]/g, (digit) => persianDigits[parseInt(digit, 10)]);
 }
 
 // Function to calculate date difference and return in Persian format
 export function getDateDifference(startDate: Date, endDate: Date) {
-  const duration = moment.duration(moment(endDate).diff(moment(startDate)));
-  const years = Math.floor(duration.asYears());
-  const months = Math.floor(duration.asMonths() % 12);
+  const totalMonths = Math.max(
+    0,
+    differenceInCalendarMonths(endDate, startDate),
+  );
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
   return `${toPersianDigits(years)} سال و ${toPersianDigits(months)} ماه`;
 }

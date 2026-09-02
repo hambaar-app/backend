@@ -4,43 +4,43 @@ import {
   ValidationArguments,
   IsNotEmpty,
   IsString,
-  IsUUID,
 } from 'class-validator';
 
-export function IsValidFilename(
-  allowExtensions: string[] = []
-) {
-  return function (object: Object, propertyName: string) {
+export function IsValidFilename(allowExtensions: string[] = []) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isValidFilename',
       target: object.constructor,
       propertyName: propertyName,
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any, _args: ValidationArguments) {
           const filename = value.trim();
 
+          // eslint-disable-next-line no-control-regex -- control characters are intentionally forbidden in filenames
           const forbiddenChars = /[<>:"/\\|?*\x00-\x1f]/;
           if (forbiddenChars.test(filename)) {
             return false;
           }
-          
+
           if (filename.includes(' ')) {
             return false;
           }
 
           if (allowExtensions && allowExtensions.length > 0) {
-            const hasValidExtension = allowExtensions.some(ext => {
+            const hasValidExtension = allowExtensions.some((ext) => {
               const normalizedExt = ext.startsWith('.') ? ext : `.${ext}`;
-              return filename.toLowerCase().endsWith(normalizedExt.toLowerCase());
+              return filename
+                .toLowerCase()
+                .endsWith(normalizedExt.toLowerCase());
             });
-            
+
             if (!hasValidExtension) {
               return false;
             }
           }
 
           return true;
-        }
+        },
       },
     });
   };

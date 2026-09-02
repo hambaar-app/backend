@@ -6,13 +6,9 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { TokenModule } from '../token/token.module';
 
 @Module({
-  imports: [
-    HttpModule,
-    PrismaModule,
-    TokenModule
-  ],
+  imports: [HttpModule, PrismaModule, TokenModule],
   providers: [MapService],
   exports: [MapService],
-  controllers: [MapController]
+  controllers: [MapController],
 })
 export class MapModule {}

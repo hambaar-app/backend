@@ -1,4 +1,9 @@
-import { CallHandler, ExecutionContext, NestInterceptor, UseInterceptors } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  NestInterceptor,
+  UseInterceptors,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { map, Observable } from 'rxjs';
 
@@ -27,7 +32,7 @@ export class SerializeInterceptor<T> implements NestInterceptor {
         });
 
         return isArray ? result : result[0];
-      })
+      }),
     );
   }
 }

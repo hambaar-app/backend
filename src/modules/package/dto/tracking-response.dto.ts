@@ -45,7 +45,7 @@ class RecipientDto {
 class PackageTrackingDto {
   @Transform(({ obj }) => ({
     fullName: `${obj.sender?.firstName} ${obj.sender?.lastName}`,
-    phoneNumber: obj.sender?.phoneNumber
+    phoneNumber: obj.sender?.phoneNumber,
   }))
   @Type(() => SenderDto)
   @Expose()
@@ -53,7 +53,7 @@ class PackageTrackingDto {
 
   @Expose()
   code: number;
-  
+
   @Type(() => RecipientDto)
   @Expose()
   recipient: RecipientDto;
@@ -90,9 +90,9 @@ class TransporterDto extends SenderDto {
 
   @Expose()
   rate: number;
-  
+
   // TODO: Add experience
-  
+
   @Type(() => VehicleCompactResponseDto)
   @Expose()
   vehicle: VehicleCompactResponseDto;
@@ -112,7 +112,7 @@ export class TrackingResponseDto {
     profilePictureUrl: obj.transporter?.profilePictureUrl,
     rate: obj.transporter?.rate ? obj.transporter?.rate : null,
     phoneNumber: obj.transporter?.phoneNumber,
-    vehicle: obj.transporter?.vehicle
+    vehicle: obj.transporter?.vehicle,
   }))
   @Type(() => TransporterDto)
   @Expose()

@@ -5,6 +5,6 @@ import { HttpModule } from '@nestjs/axios';
 @Module({
   imports: [HttpModule],
   providers: [SmsService],
-  exports: [SmsService]
+  exports: [SmsService],
 })
 export class SmsModule {}

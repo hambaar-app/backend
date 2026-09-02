@@ -8,14 +8,22 @@ import { PricingService } from '../pricing/pricing.service';
 import { MapService } from '../map/map.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { 
-  PrismaClient, 
-  PackageStatusEnum, 
-  RequestStatusEnum, 
+import {
+  PrismaClient,
+  PackageStatusEnum,
+  RequestStatusEnum,
   TripStatusEnum,
 } from '../../../generated/prisma';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { AuthMessages, BadRequestMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  AuthMessages,
+  BadRequestMessages,
+  NotFoundMessages,
+} from '../../common/enums/messages.enum';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update.package.dto';
@@ -43,8 +51,8 @@ describe('PackageService', () => {
     name: 'تهران',
     province: {
       id: 'province-123',
-      name: 'تهران'
-    }
+      name: 'تهران',
+    },
   } as any;
 
   const mockOriginAddress = {
@@ -52,9 +60,9 @@ describe('PackageService', () => {
     userId: 'user-123',
     title: 'خانه',
     latitude: 35.6892,
-    longitude: 51.3890,
+    longitude: 51.389,
     city: 'تهران',
-    province: 'تهران'
+    province: 'تهران',
   } as any;
 
   const mockRecipient = {
@@ -70,7 +78,7 @@ describe('PackageService', () => {
       details: 'روبروی ساختمان قدیم',
       latitude: '35.7219',
       longitude: '51.3347',
-      postalCode: '1234567890'
+      postalCode: '1234567890',
     },
   } as any;
 
@@ -90,19 +98,19 @@ describe('PackageService', () => {
     picturesKey: ['pic1.jpg', 'pic2.jpg'],
     originAddress: mockOriginAddress,
     recipient: mockRecipient,
-    deletedAt: null
+    deletedAt: null,
   } as any;
 
   const mockTrip = {
     id: 'trip-123',
     status: TripStatusEnum.scheduled,
-    origin: { latitude: 35.6892, longitude: 51.3890 },
+    origin: { latitude: 35.6892, longitude: 51.389 },
     destination: { latitude: 35.7219, longitude: 51.3347 },
     waypoints: [],
     normalDistanceKm: 10,
     normalDurationMin: 30,
     totalDeviationDurationMin: 0,
-    matchedRequests: []
+    matchedRequests: [],
   } as any;
 
   const mockBreakdown = {
@@ -110,9 +118,8 @@ describe('PackageService', () => {
     distanceCost: 15000,
     weightCost: 10000,
     specialHandlingCost: 0,
-    cityPremiumCost: 5000
+    cityPremiumCost: 5000,
   };
-
 
   const mockMatchedRequest = {
     id: 'matched-123',
@@ -130,16 +137,16 @@ describe('PackageService', () => {
       originAddress: {
         latitude: '35.6892',
         longitude: '51.3890',
-        city: 'Tehran'
+        city: 'Tehran',
       },
       recipient: {
         address: {
           latitude: '35.7219',
           longitude: '51.3347',
-          city: 'Tehran'
-        }
+          city: 'Tehran',
+        },
       },
-      breakdown: { baseCost: 100000, deviationCost: 0 }
+      breakdown: { baseCost: 100000, deviationCost: 0 },
     },
     trip: {
       status: TripStatusEnum.in_progress,
@@ -150,14 +157,14 @@ describe('PackageService', () => {
         user: {
           firstName: 'Ahmad',
           lastName: 'Mohammadi',
-          phoneNumber: '+989123456789'
-        }
+          phoneNumber: '+989123456789',
+        },
       },
       vehicle: {
         vehicleType: 'truck',
-        model: { brand: { name: 'Volvo' } }
-      }
-    }
+        model: { brand: { name: 'Volvo' } },
+      },
+    },
   } as any;
 
   beforeEach(async () => {
@@ -200,13 +207,15 @@ describe('PackageService', () => {
         details: 'روبروی ساختمان قدیم',
         latitude: '35.7219',
         longitude: '51.3347',
-        postalCode: '1234567890'
+        postalCode: '1234567890',
       },
-      isHighlighted: true
+      isHighlighted: true,
     };
 
     it('should create recipient successfully', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.city.findUniqueOrThrow.mockResolvedValue(mockCity);
       prismaService.packageRecipient.create.mockResolvedValue(mockRecipient);
 
@@ -215,7 +224,7 @@ describe('PackageService', () => {
       expect(result).toEqual(mockRecipient);
       expect(prismaService.city.findUniqueOrThrow).toHaveBeenCalledWith({
         where: { id: 'city-123' },
-        include: { province: true }
+        include: { province: true },
       });
       expect(prismaService.packageRecipient.create).toHaveBeenCalledWith({
         data: {
@@ -232,23 +241,26 @@ describe('PackageService', () => {
               details: 'روبروی ساختمان قدیم',
               latitude: '35.7219',
               longitude: '51.3347',
-              postalCode: '1234567890'
-            }
+              postalCode: '1234567890',
+            },
           },
         },
-        include: { address: true }
+        include: { address: true },
       });
     });
 
     it('should handle Prisma errors', async () => {
       const error = new Error('DB error');
       prismaService.$transaction.mockRejectedValue(error);
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
-        throw new Error('Formatted error');
-      });
+      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('Formatted error');
+        },
+      );
 
-      await expect(service.createRecipient('user-123', recipientDto))
-        .rejects.toThrow('Formatted error');
+      await expect(
+        service.createRecipient('user-123', recipientDto),
+      ).rejects.toThrow('Formatted error');
     });
   });
 
@@ -268,20 +280,20 @@ describe('PackageService', () => {
             {
               fullName: {
                 contains: undefined,
-                mode: 'insensitive'
-              }
+                mode: 'insensitive',
+              },
             },
             {
               address: {
                 title: {
                   contains: undefined,
-                  mode: 'insensitive'
-                }
-              }
-            }
-          ]
+                  mode: 'insensitive',
+                },
+              },
+            },
+          ],
         },
-        include: { address: true }
+        include: { address: true },
       });
     });
 
@@ -299,20 +311,20 @@ describe('PackageService', () => {
             {
               fullName: {
                 contains: 'علی',
-                mode: 'insensitive'
-              }
+                mode: 'insensitive',
+              },
             },
             {
               address: {
                 title: {
                   contains: 'علی',
-                  mode: 'insensitive'
-                }
-              }
-            }
-          ]
+                  mode: 'insensitive',
+                },
+              },
+            },
+          ],
         },
-        include: { address: true }
+        include: { address: true },
       });
     });
   });
@@ -328,19 +340,24 @@ describe('PackageService', () => {
       isPerishable: false,
       pickupAtOrigin: true,
       deliveryAtDestination: true,
-      picturesKey: ['pic1.jpg']
+      picturesKey: ['pic1.jpg'],
     } as any;
 
     it('should create package successfully', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.address.findFirst.mockResolvedValue(mockOriginAddress);
       prismaService.packageRecipient.findFirst.mockResolvedValue(mockRecipient);
       prismaService.package.create.mockResolvedValue(mockPackage);
-      
-      mapService.calculateDistance.mockResolvedValue({ distance: 15, duration: 25 });
+
+      mapService.calculateDistance.mockResolvedValue({
+        distance: 15,
+        duration: 25,
+      });
       pricingService.calculateSuggestedPrice.mockReturnValue({
         suggestedPrice: 50000,
-        breakdown: mockBreakdown
+        breakdown: mockBreakdown,
       });
 
       const result = await service.create('user-123', packageDto);
@@ -349,31 +366,39 @@ describe('PackageService', () => {
       expect(mapService.calculateDistance).toHaveBeenCalledWith({
         origin: {
           latitude: mockOriginAddress.latitude,
-          longitude: mockOriginAddress.longitude
+          longitude: mockOriginAddress.longitude,
         },
         destination: {
           latitude: mockRecipient.address.latitude,
-          longitude: mockRecipient.address.longitude
-        }
+          longitude: mockRecipient.address.longitude,
+        },
       });
       expect(pricingService.calculateSuggestedPrice).toHaveBeenCalled();
     });
 
-    it('should throw when origin address not found', async () => {      
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+    it('should throw when origin address not found', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.address.findFirst.mockResolvedValue(null);
 
-      await expect(service.create('user-123', packageDto))
-        .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} origin address.`));
+      await expect(service.create('user-123', packageDto)).rejects.toThrow(
+        new ForbiddenException(
+          `${AuthMessages.EntityAccessDenied} origin address.`,
+        ),
+      );
     });
 
-    it('should throw when recipient not found', async () => {      
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+    it('should throw when recipient not found', async () => {
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.address.findFirst.mockResolvedValue(mockOriginAddress);
       prismaService.packageRecipient.findFirst.mockResolvedValue(null);
 
-      await expect(service.create('user-123', packageDto))
-        .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} recipient.`));
+      await expect(service.create('user-123', packageDto)).rejects.toThrow(
+        new ForbiddenException(`${AuthMessages.EntityAccessDenied} recipient.`),
+      );
     });
   });
 
@@ -382,20 +407,22 @@ describe('PackageService', () => {
       const packageWithUrls = {
         ...mockPackage,
         picturesKey: ['pic1.jpg', 'pic2.jpg'],
-        picturesUrl: ['url1', 'url2']
+        picturesUrl: ['url1', 'url2'],
       };
-      
+
       prismaService.package.findFirstOrThrow.mockResolvedValue(mockPackage);
-      s3Service.generateGetPresignedUrl.mockResolvedValueOnce('url1').mockResolvedValueOnce('url2');
+      s3Service.generateGetPresignedUrl
+        .mockResolvedValueOnce('url1')
+        .mockResolvedValueOnce('url2');
 
       const result = await service.getById('package-123');
 
       expect(result).toMatchObject(packageWithUrls);
     });
-    // TODO: fix    
+    // TODO: fix
     // it('should handle S3 URL generation errors', async () => {
     //   prismaService.package.findFirstOrThrow.mockResolvedValue(mockPackage);
-      
+
     //   s3Service.generateGetPresignedUrl.mockReset();
     //   s3Service.generateGetPresignedUrl
     //     .mockRejectedValue(new Error('S3 error'))
@@ -413,16 +440,18 @@ describe('PackageService', () => {
   describe('update', () => {
     const updateDto: UpdatePackageDto = {
       dimensions: '35x25x20',
-      finalPrice: 60000
+      finalPrice: 60000,
     };
 
     it('should update package successfully', async () => {
       const updatedPackage = { ...mockPackage, ...updateDto };
-      
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findFirstOrThrow.mockResolvedValue({
         status: PackageStatusEnum.created,
-        suggestedPrice: 50000
+        suggestedPrice: 50000,
       } as any);
       prismaService.package.update.mockResolvedValue(updatedPackage);
 
@@ -431,40 +460,52 @@ describe('PackageService', () => {
       expect(result).toEqual(updatedPackage);
       expect(prismaService.package.update).toHaveBeenCalledWith({
         where: { id: 'package-123' },
-        data: updateDto
+        data: updateDto,
       });
     });
 
     it('should throw when package status is invalid', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findFirstOrThrow.mockResolvedValue({
         status: PackageStatusEnum.matched,
-        suggestedPrice: 50000
+        suggestedPrice: 50000,
       } as any);
 
-      await expect(service.update('package-123', updateDto))
-        .rejects.toThrow(new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${PackageStatusEnum.matched}.`));
+      await expect(service.update('package-123', updateDto)).rejects.toThrow(
+        new BadRequestException(
+          `${BadRequestMessages.BasePackageStatus} ${PackageStatusEnum.matched}.`,
+        ),
+      );
     });
 
     it('should throw when final price is below suggested price', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findFirstOrThrow.mockResolvedValue({
         status: PackageStatusEnum.created,
-        suggestedPrice: 50000
+        suggestedPrice: 50000,
       } as any);
 
-      await expect(service.update('package-123', { finalPrice: 40000 }))
-        .rejects.toThrow(new BadRequestException(BadRequestMessages.InvalidPrice));
+      await expect(
+        service.update('package-123', { finalPrice: 40000 }),
+      ).rejects.toThrow(
+        new BadRequestException(BadRequestMessages.InvalidPrice),
+      );
     });
   });
 
   describe('delete', () => {
     it('should soft delete package successfully', async () => {
       const deletedPackage = { ...mockPackage, deletedAt: new Date() };
-      
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findFirstOrThrow.mockResolvedValue({
-        status: PackageStatusEnum.created
+        status: PackageStatusEnum.created,
       } as any);
       prismaService.package.update.mockResolvedValue(deletedPackage);
 
@@ -473,24 +514,29 @@ describe('PackageService', () => {
       expect(result.deletedAt).toBeDefined();
       expect(prismaService.package.update).toHaveBeenCalledWith({
         where: { id: 'package-123' },
-        data: { deletedAt: expect.any(Date) }
+        data: { deletedAt: expect.any(Date) },
       });
     });
 
     it('should throw when package status is invalid', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findFirstOrThrow.mockResolvedValue({
-        status: PackageStatusEnum.matched
+        status: PackageStatusEnum.matched,
       } as any);
 
-      await expect(service.delete('package-123'))
-        .rejects.toThrow(new BadRequestException(`${BadRequestMessages.BasePackageStatus} ${PackageStatusEnum.matched}.`));
+      await expect(service.delete('package-123')).rejects.toThrow(
+        new BadRequestException(
+          `${BadRequestMessages.BasePackageStatus} ${PackageStatusEnum.matched}.`,
+        ),
+      );
     });
   });
 
   describe('getMatchedTrips', () => {
     const session = {
-      packages: []
+      packages: [],
     } as any;
 
     it('should return matched trips with deviation info', async () => {
@@ -501,16 +547,21 @@ describe('PackageService', () => {
           score: 100,
           originDistance: 500,
           destinationDistance: 300,
-          isOnCorridor: true
-        }
+          isOnCorridor: true,
+        },
       ];
 
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       service.getById = jest.fn().mockResolvedValue(mockPackage);
       matchingService.findMatchedTrips.mockResolvedValue(matchResults);
       tripService.getMultipleById.mockResolvedValue([mockTrip]);
       turfService.sortLocationsByRoute.mockReturnValue([] as any);
-      mapService.calculateDistance.mockResolvedValue({ distance: 12, duration: 35 });
+      mapService.calculateDistance.mockResolvedValue({
+        distance: 12,
+        duration: 35,
+      });
       pricingService.calculateDeviationCost.mockReturnValue(5000);
 
       const result = await service.getMatchedTrips('package-123', session);
@@ -520,13 +571,21 @@ describe('PackageService', () => {
     });
 
     it('should throw when package status is invalid', async () => {
-      const invalidPackage = { ...mockPackage, status: PackageStatusEnum.matched };
-      
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      const invalidPackage = {
+        ...mockPackage,
+        status: PackageStatusEnum.matched,
+      };
+
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       service.getById = jest.fn().mockResolvedValue(invalidPackage);
 
-      await expect(service.getMatchedTrips('package-123', session))
-        .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestPackage));
+      await expect(
+        service.getMatchedTrips('package-123', session),
+      ).rejects.toThrow(
+        new BadRequestException(BadRequestMessages.SendRequestPackage),
+      );
     });
   });
 
@@ -534,26 +593,30 @@ describe('PackageService', () => {
     const requestDto: CreateRequestDto = {
       packageId: 'package-123',
       tripId: 'trip-123',
-      senderNote: 'لطفا با دقت حمل کنید'
+      senderNote: 'لطفا با دقت حمل کنید',
     };
 
     const session = {
-      packages: [{
-        id: 'package-123',
-        matchResults: [{
-          tripId: 'trip-123',
-          isRequestSent: false,
-          score: 100,
-          originDistance: 500,
-          destinationDistance: 300,
-          isOnCorridor: true,
-          deviationInfo: {
-            distance: 2,
-            duration: 5,
-            additionalPrice: 3000
-          }
-        }]
-      }]
+      packages: [
+        {
+          id: 'package-123',
+          matchResults: [
+            {
+              tripId: 'trip-123',
+              isRequestSent: false,
+              score: 100,
+              originDistance: 500,
+              destinationDistance: 300,
+              isOnCorridor: true,
+              deviationInfo: {
+                distance: 2,
+                duration: 5,
+                additionalPrice: 3000,
+              },
+            },
+          ],
+        },
+      ],
     } as any;
 
     it('should create request successfully', async () => {
@@ -563,81 +626,105 @@ describe('PackageService', () => {
         tripId: 'trip-123',
         status: RequestStatusEnum.pending,
         offeredPrice: 45000,
-        deviationCost: 3000
+        deviationCost: 3000,
       };
 
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findUniqueOrThrow.mockResolvedValue({
         ...mockPackage,
-        status: PackageStatusEnum.searching_transporter
+        status: PackageStatusEnum.searching_transporter,
       });
       prismaService.trip.findUniqueOrThrow.mockResolvedValue({
         ...mockTrip,
-        status: TripStatusEnum.scheduled
+        status: TripStatusEnum.scheduled,
       });
       prismaService.tripRequest.create.mockResolvedValue(createdRequest as any);
       pricingService.calculateTransporterEarnings.mockReturnValue(42000);
 
-      const result = await service.createRequest('user-123', requestDto, session);
+      const result = await service.createRequest(
+        'user-123',
+        requestDto,
+        session,
+      );
 
       expect(result).toEqual(createdRequest);
       expect(session.packages[0].matchResults[0].isRequestSent).toBe(true);
     });
 
     it('should throw when user does not own package', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findUniqueOrThrow.mockResolvedValue({
         ...mockPackage,
-        senderId: 'other-user'
+        senderId: 'other-user',
       });
 
-      await expect(service.createRequest('user-123', requestDto, session))
-        .rejects.toThrow(new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`));
+      await expect(
+        service.createRequest('user-123', requestDto, session),
+      ).rejects.toThrow(
+        new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`),
+      );
     });
 
     it('should throw when package status is invalid', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findUniqueOrThrow.mockResolvedValue({
         ...mockPackage,
-        status: PackageStatusEnum.matched
+        status: PackageStatusEnum.matched,
       });
 
-      await expect(service.createRequest('user-123', requestDto, session))
-        .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestPackage));
+      await expect(
+        service.createRequest('user-123', requestDto, session),
+      ).rejects.toThrow(
+        new BadRequestException(BadRequestMessages.SendRequestPackage),
+      );
     });
 
     it('should throw when trip status is invalid', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findUniqueOrThrow.mockResolvedValue({
         ...mockPackage,
-        status: PackageStatusEnum.searching_transporter
+        status: PackageStatusEnum.searching_transporter,
       });
       prismaService.trip.findUniqueOrThrow.mockResolvedValue({
         ...mockTrip,
-        status: TripStatusEnum.completed
+        status: TripStatusEnum.completed,
       });
 
-      await expect(service.createRequest('user-123', requestDto, session))
-        .rejects.toThrow(new BadRequestException(BadRequestMessages.SendRequestTrip));
+      await expect(
+        service.createRequest('user-123', requestDto, session),
+      ).rejects.toThrow(
+        new BadRequestException(BadRequestMessages.SendRequestTrip),
+      );
     });
 
     it('should throw when no matched trips found', async () => {
       const emptySession = {
-        packages: []
+        packages: [],
       } as any;
 
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       prismaService.package.findUniqueOrThrow.mockResolvedValue({
         ...mockPackage,
-        status: PackageStatusEnum.searching_transporter
+        status: PackageStatusEnum.searching_transporter,
       });
       prismaService.trip.findUniqueOrThrow.mockResolvedValue({
         ...mockTrip,
-        status: TripStatusEnum.scheduled
+        status: TripStatusEnum.scheduled,
       });
 
-      await expect(service.createRequest('user-123', requestDto, emptySession))
-        .rejects.toThrow(new NotFoundException(NotFoundMessages.MatchedTrip));
+      await expect(
+        service.createRequest('user-123', requestDto, emptySession),
+      ).rejects.toThrow(new NotFoundException(NotFoundMessages.MatchedTrip));
     });
   });
 
@@ -647,13 +734,13 @@ describe('PackageService', () => {
         {
           id: 'request-1',
           packageId: 'package-123',
-          status: RequestStatusEnum.pending
+          status: RequestStatusEnum.pending,
         },
         {
           id: 'request-2',
           packageId: 'package-123',
-          status: RequestStatusEnum.accepted
-        }
+          status: RequestStatusEnum.accepted,
+        },
       ];
 
       prismaService.tripRequest.findMany.mockResolvedValue(requests as any);
@@ -665,12 +752,12 @@ describe('PackageService', () => {
         where: {
           packageId: 'package-123',
           status: {
-            in: Object.values(RequestStatusEnum)
-          }
+            in: Object.values(RequestStatusEnum),
+          },
         },
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       });
     });
 
@@ -679,55 +766,65 @@ describe('PackageService', () => {
         {
           id: 'request-1',
           packageId: 'package-123',
-          status: RequestStatusEnum.pending
-        }
+          status: RequestStatusEnum.pending,
+        },
       ];
 
-      prismaService.tripRequest.findMany.mockResolvedValue(pendingRequests as any);
+      prismaService.tripRequest.findMany.mockResolvedValue(
+        pendingRequests as any,
+      );
 
-      await service.getAllPackageRequests('package-123', [RequestStatusEnum.pending]);
+      await service.getAllPackageRequests('package-123', [
+        RequestStatusEnum.pending,
+      ]);
 
       expect(prismaService.tripRequest.findMany).toHaveBeenCalledWith({
         where: {
           packageId: 'package-123',
           status: {
-            in: [RequestStatusEnum.pending]
-          }
+            in: [RequestStatusEnum.pending],
+          },
         },
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       });
     });
   });
 
   describe('updateRequest', () => {
     it('should cancel request and update session', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       const canceledRequest = {
         id: 'request-123',
         packageId: 'package-123',
         tripId: 'trip-123',
-        status: RequestStatusEnum.canceled
+        status: RequestStatusEnum.canceled,
       };
 
       const session = {
-        packages: [{
-          id: 'package-123',
-          matchResults: [{
-            tripId: 'trip-123',
-            isRequestSent: true,
-            score: 100,
-            originDistance: 500,
-            destinationDistance: 300,
-            isOnCorridor: true
-          }]
-        }]
+        packages: [
+          {
+            id: 'package-123',
+            matchResults: [
+              {
+                tripId: 'trip-123',
+                isRequestSent: true,
+                score: 100,
+                originDistance: 500,
+                destinationDistance: 300,
+                isOnCorridor: true,
+              },
+            ],
+          },
+        ],
       } as any;
 
       prismaService.tripRequest.update.mockResolvedValue({
         ...canceledRequest,
-        package: { id: 'package-123', senderId: 'user-123' }
+        package: { id: 'package-123', senderId: 'user-123' },
       } as any);
 
       const result = await service.updateRequest('request-123', session);
@@ -737,38 +834,40 @@ describe('PackageService', () => {
       expect(prismaService.tripRequest.update).toHaveBeenCalledWith({
         where: {
           id: 'request-123',
-          status: RequestStatusEnum.pending
+          status: RequestStatusEnum.pending,
         },
         data: {
-          status: RequestStatusEnum.canceled
+          status: RequestStatusEnum.canceled,
         },
         include: {
           package: {
             select: {
               id: true,
-              senderId: true
-            }
-          }
-        }
+              senderId: true,
+            },
+          },
+        },
       });
     });
 
     it('should handle missing session data gracefully', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) => callback(prismaService));
+      prismaService.$transaction.mockImplementation(async (callback) =>
+        callback(prismaService),
+      );
       const canceledRequest = {
         id: 'request-123',
         packageId: 'package-456',
         tripId: 'trip-789',
-        status: RequestStatusEnum.canceled
+        status: RequestStatusEnum.canceled,
       };
 
       const session = {
-        packages: []
+        packages: [],
       } as any;
 
       prismaService.tripRequest.update.mockResolvedValue({
         ...canceledRequest,
-        package: { id: 'package-456', senderId: 'user-456' }
+        package: { id: 'package-456', senderId: 'user-456' },
       } as any);
 
       const result = await service.updateRequest('request-123', session);
@@ -781,18 +880,24 @@ describe('PackageService', () => {
     it('should get trip tracking by code successfully', async () => {
       const matchedRequestWithTracking = {
         ...mockMatchedRequest,
-        trackingUpdates: [{ city: 'Tehran', createdAt: new Date() }]
+        trackingUpdates: [{ city: 'Tehran', createdAt: new Date() }],
       };
-      
-      prismaService.matchedRequest.findUniqueOrThrow.mockResolvedValue(matchedRequestWithTracking);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://s3.example.com/profile.jpg');
+
+      prismaService.matchedRequest.findUniqueOrThrow.mockResolvedValue(
+        matchedRequestWithTracking,
+      );
+      s3Service.generateGetPresignedUrl.mockResolvedValue(
+        'https://s3.example.com/profile.jpg',
+      );
 
       const result = await service.getTrackingByCode('TRK123456789');
 
       expect(result.trackingUpdates).toBeDefined();
       expect(result.package).toBeDefined();
       expect(result.transporter).toBeDefined();
-      expect(result.transporter.profilePictureUrl).toBe('https://s3.example.com/profile.jpg');
+      expect(result.transporter.profilePictureUrl).toBe(
+        'https://s3.example.com/profile.jpg',
+      );
     });
   });
 
@@ -800,12 +905,15 @@ describe('PackageService', () => {
     it('should handle Prisma errors in getAll', async () => {
       const error = new Error('DB error');
       prismaService.package.findMany.mockRejectedValue(error);
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
-        throw new Error('Formatted error');
-      });
+      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('Formatted error');
+        },
+      );
 
-      await expect(service.getAll('user-123'))
-        .rejects.toThrow('Formatted error');
+      await expect(service.getAll('user-123')).rejects.toThrow(
+        'Formatted error',
+      );
     });
 
     it('should handle empty picturesKey array', async () => {
@@ -819,7 +927,9 @@ describe('PackageService', () => {
 
     it('should handle null picturesKey', async () => {
       const packageWithNullPics = { ...mockPackage, picturesKey: null };
-      prismaService.package.findFirstOrThrow.mockResolvedValue(packageWithNullPics);
+      prismaService.package.findFirstOrThrow.mockResolvedValue(
+        packageWithNullPics,
+      );
 
       const result = await service.getById('package-123');
 

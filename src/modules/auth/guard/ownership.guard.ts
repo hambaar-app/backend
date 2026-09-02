@@ -6,8 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Request } from 'express';
-import { RolesEnum, User } from '../../../../generated/prisma';
+import { RolesEnum } from '../../../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OwnershipConfig } from '../types/auth.types';
 import { AuthMessages } from '../../../common/enums/messages.enum';
@@ -31,7 +30,7 @@ export class OwnershipGuard implements CanActivate {
       return true; // No ownership check required
     }
 
-    const request = context.switchToHttp().getRequest() as Request;
+    const request = context.switchToHttp().getRequest();
     const user = request.user;
 
     if (!user || !user.id) {
@@ -50,7 +49,7 @@ export class OwnershipGuard implements CanActivate {
 
     const ownershipName = config.ownershipName ?? config.entity;
     const customWhere = this.getCustomWhere(ownershipName, user.id, entityId);
-    
+
     try {
       const record = await this.getEntityRecord(config.entity, customWhere);
 
@@ -83,41 +82,41 @@ export class OwnershipGuard implements CanActivate {
       vehicle: {
         id: entityId,
         ownerId,
-        deletedAt: null
+        deletedAt: null,
       },
       address: {
         id: entityId,
         userId: ownerId,
-        deletedAt: null
+        deletedAt: null,
       },
       package: {
         id: entityId,
         senderId: ownerId,
-        deletedAt: null
+        deletedAt: null,
       },
       trip: {
         id: entityId,
         transporter: {
-          userId: ownerId
+          userId: ownerId,
         },
-        deletedAt: null
+        deletedAt: null,
       },
       tripRequest: {
         id: entityId,
         trip: {
           transporter: {
-            userId: ownerId
+            userId: ownerId,
           },
         },
-        deletedAt: null
+        deletedAt: null,
       },
       packageRequest: {
         id: entityId,
         package: {
           senderId: ownerId,
         },
-        deletedAt: null
-      }
+        deletedAt: null,
+      },
       // ...
     };
 
