@@ -8,7 +8,7 @@ import {
   Post,
   Res,
   Session,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -18,7 +18,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTooManyRequestsResponse,
-  ApiUnauthorizedResponse
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { SendOtpDto } from './dto/send-otp.dto';
@@ -30,9 +30,15 @@ import { ConfigService } from '@nestjs/config';
 import { AuthTokens } from '../../common/enums/auth.enum';
 import { SignupSenderDto } from './dto/signup-sender.dto';
 import { ProgressTokenGuard, TemporaryTokenGuard } from './guard/token.guard';
-import { AuthMessages, NotFoundMessages } from '../../common/enums/messages.enum';
+import {
+  AuthMessages,
+  NotFoundMessages,
+} from '../../common/enums/messages.enum';
 import { DenyAuthorizedGuard } from './guard/deny-authorized.guard';
-import { SignupTransporterDto, SignupTransporterResponseDto } from './dto/signup-transporter.dto';
+import {
+  SignupTransporterDto,
+  SignupTransporterResponseDto,
+} from './dto/signup-transporter.dto';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
@@ -43,7 +49,10 @@ import { VehicleResponseDto } from '../vehicle/dto/vehicle-response.dto';
 import { StateDto } from './dto/state-response.dto';
 import { CurrentUser } from '../user/current-user.middleware';
 import { User } from '../../../generated/prisma';
-import { AuthResponses, ValidationResponses } from '../../common/api-docs.decorators';
+import {
+  AuthResponses,
+  ValidationResponses,
+} from '../../common/api-docs.decorators';
 import { MultiTokenGuard } from './guard/multi-token.guard';
 
 @Controller('auth')
@@ -56,7 +65,10 @@ export class AuthController {
     private vehicleService: VehicleService,
     config: ConfigService,
   ) {
-    this.cookieMaxAge = config.get<number>('COOKIE_MAX_AGE', 15 * 24 * 3600 * 1000); // 15 days
+    this.cookieMaxAge = config.get<number>(
+      'COOKIE_MAX_AGE',
+      15 * 24 * 3600 * 1000,
+    ); // 15 days
     this.progressMaxAge = 2 * 24 * 60 * 60 * 1000; // 2 days
   }
 
@@ -92,7 +104,7 @@ export class AuthController {
     description: AuthMessages.OtpInvalid,
   })
   @ApiOkResponse({
-    type: CheckOtpResponseDto
+    type: CheckOtpResponseDto,
   })
   @Serialize(CheckOtpResponseDto)
   @HttpCode(HttpStatus.OK)
@@ -102,7 +114,8 @@ export class AuthController {
     @Session() session: SessionData,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { userId, token, type, ...response } = await this.authService.checkOtp(body);
+    const { userId, token, type, ...response } =
+      await this.authService.checkOtp(body);
 
     switch (type) {
       case AuthTokens.Access:
@@ -133,7 +146,7 @@ export class AuthController {
       case AuthTokens.Progress:
         res.cookie(CookieNames.ProgressToken, token, {
           httpOnly: true,
-          
+
           sameSite: 'strict',
           maxAge: this.progressMaxAge,
         });
@@ -157,7 +170,7 @@ export class AuthController {
     description: 'Unique database constraint for => phoneNumber and email',
   })
   @ApiCreatedResponse({
-    type: UserResponseDto
+    type: UserResponseDto,
   })
   @ValidationResponses()
   @Serialize(UserResponseDto)
@@ -208,7 +221,7 @@ export class AuthController {
       'Unique database constraint for => phoneNumber, email, nationalId and driverLicenseNumber',
   })
   @ApiCreatedResponse({
-    type: SignupTransporterResponseDto
+    type: SignupTransporterResponseDto,
   })
   @AuthResponses()
   @ValidationResponses()
@@ -259,7 +272,7 @@ export class AuthController {
       vin, licensePlate, barcode, greenSheetNumber and insuranceNumber`,
   })
   @ApiCreatedResponse({
-    type: VehicleResponseDto
+    type: VehicleResponseDto,
   })
   @AuthResponses()
   @ValidationResponses()
@@ -291,10 +304,14 @@ export class AuthController {
     @Body() body: SubmitDocumentsDto,
     @Session() session: SessionData,
     @CurrentUser() user: User,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
   ): Promise<true> {
-    const { id, phoneNumber } = user;    
-    const { accessToken } = await this.authService.submitDocuments(id, phoneNumber, body);
+    const { id, phoneNumber } = user;
+    const { accessToken } = await this.authService.submitDocuments(
+      id,
+      phoneNumber,
+      body,
+    );
 
     session.accessToken = accessToken;
     res.cookie(CookieNames.AccessToken, accessToken, {
@@ -315,13 +332,13 @@ export class AuthController {
   })
   @AuthResponses()
   @ApiOkResponse({
-    type: StateDto
+    type: StateDto,
   })
   @Serialize(StateDto)
   @UseGuards(MultiTokenGuard)
   @Get('state')
   async getUserState(@Session() session: SessionData) {
-    return this.authService.getUserState(session);    
+    return this.authService.getUserState(session);
   }
 
   @ApiOperation({

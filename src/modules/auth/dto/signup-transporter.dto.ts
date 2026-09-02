@@ -17,11 +17,15 @@ import { IsValidS3Key } from '../../../common/utilities';
 
 export class SignupTransporterDto {
   @IsNotEmpty()
-  @IsAlpha('fa-IR', { message: 'firstName should be a string only contain persian letters' })
+  @IsAlpha('fa-IR', {
+    message: 'firstName should be a string only contain persian letters',
+  })
   firstName: string;
 
   @IsNotEmpty()
-  @IsAlpha('fa-IR', { message: 'lastName should be a string only contain persian letters' })
+  @IsAlpha('fa-IR', {
+    message: 'lastName should be a string only contain persian letters',
+  })
   lastName: string;
 
   @IsNotEmpty()

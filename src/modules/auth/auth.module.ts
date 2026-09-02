@@ -19,12 +19,10 @@ import { NotificationModule } from '../notification/notification.module';
     NotificationModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService]
+  providers: [AuthService],
 })
 export class AuthModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(CurrentUserMiddleware)
-      .forRoutes('auth/transporter/*');
+    consumer.apply(CurrentUserMiddleware).forRoutes('auth/transporter/*');
   }
 }

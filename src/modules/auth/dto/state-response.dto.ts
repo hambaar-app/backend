@@ -3,7 +3,7 @@ import { UserStatesEnum } from '../types/auth.enums';
 import { TransporterResponseDto } from '../../user/dto/transporter-response.dto';
 import { RolesEnum } from '../../../../generated/prisma';
 
-export class StateDto {  
+export class StateDto {
   @Expose()
   userState: UserStatesEnum;
 

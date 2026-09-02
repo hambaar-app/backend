@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { AuthTokens } from '../../../common/enums/auth.enum';
 import { CookieNames } from '../../../common/enums/cookies.enum';
@@ -18,10 +23,13 @@ export class TemporaryTokenGuard implements CanActivate {
       throw new UnauthorizedException(AuthMessages.MissingTempToken);
     }
 
-    const payload = this.tokenService.verifyToken(tempToken, AuthTokens.Temporary);
+    const payload = this.tokenService.verifyToken(
+      tempToken,
+      AuthTokens.Temporary,
+    );
     if (!payload.phoneNumber || payload.phoneNumber !== session.phoneNumber) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
-    } 
+    }
 
     return true;
   }
@@ -34,22 +42,30 @@ export class ProgressTokenGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const session = request.session;
-    const progressToken = request.cookies?.[CookieNames.ProgressToken] as string;
+    const progressToken = request.cookies?.[
+      CookieNames.ProgressToken
+    ] as string;
 
     if (!progressToken) {
       throw new UnauthorizedException(AuthMessages.MissingProgressToken);
     }
 
-    const payload = this.tokenService.verifyToken(progressToken, AuthTokens.Progress);
-    const isOkToken = payload.sub && payload.phoneNumber && (session.phoneNumber === payload.phoneNumber);
-  
+    const payload = this.tokenService.verifyToken(
+      progressToken,
+      AuthTokens.Progress,
+    );
+    const isOkToken =
+      payload.sub &&
+      payload.phoneNumber &&
+      session.phoneNumber === payload.phoneNumber;
+
     if (!isOkToken) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 
     request.user = {
       id: payload.sub,
-      ...request.user
+      ...request.user,
     };
 
     return true;
@@ -69,16 +85,22 @@ export class AccessTokenGuard implements CanActivate {
       throw new UnauthorizedException(AuthMessages.MissingAccessToken);
     }
 
-    const payload = this.tokenService.verifyToken(accessToken, AuthTokens.Access);
-    const isOkToken = payload.sub && payload.phoneNumber && (session.phoneNumber === payload.phoneNumber);
-  
+    const payload = this.tokenService.verifyToken(
+      accessToken,
+      AuthTokens.Access,
+    );
+    const isOkToken =
+      payload.sub &&
+      payload.phoneNumber &&
+      session.phoneNumber === payload.phoneNumber;
+
     if (!isOkToken) {
       throw new UnauthorizedException(AuthMessages.InvalidToken);
     }
 
     request.user = {
       id: payload.sub,
-      ...request.user
+      ...request.user,
     };
 
     return true;
