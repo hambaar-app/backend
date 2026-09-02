@@ -6,13 +6,9 @@ import { TokenModule } from '../token/token.module';
 import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    TokenModule,
-    UserModule,
-  ],
+  imports: [PrismaModule, TokenModule, UserModule],
   providers: [AddressService],
   controllers: [AddressController],
-  exports: [AddressService]
+  exports: [AddressService],
 })
 export class AddressModule {}

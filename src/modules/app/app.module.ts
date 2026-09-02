@@ -37,8 +37,8 @@ import { NotificationModule } from '../notification/notification.module';
         stores: [
           createKeyv(config.getOrThrow<string>('REDIS_URL')),
           createKeyv(config.getOrThrow<string>('OTP_REDIS_URL')),
-        ]
-      })
+        ],
+      }),
     }),
     AuthModule,
     UserModule,
@@ -64,16 +64,14 @@ import { NotificationModule } from '../notification/notification.module';
         transform: true,
       }),
     },
-  ]
+  ],
 })
 export class AppModule {
-  constructor(
-    private readonly config: ConfigService
-  ) {}
+  constructor(private readonly config: ConfigService) {}
 
   async configure(consumer: MiddlewareConsumer) {
     const redisClient = await createClient({
-      url: this.config.getOrThrow<string>('SESSION_REDIS_URL')
+      url: this.config.getOrThrow<string>('SESSION_REDIS_URL'),
     }).connect();
 
     consumer
@@ -85,7 +83,7 @@ export class AppModule {
           saveUninitialized: false,
           store: new RedisStore({
             client: redisClient,
-            prefix: 'user-session'
+            prefix: 'user-session',
           }),
           cookie: {
             httpOnly: true,
@@ -93,14 +91,17 @@ export class AppModule {
             // secure: process.env.NODE_ENV === 'production',
             secure: false,
             sameSite: 'strict',
-            maxAge: this.config.get<number>('COOKIE_MAX_AGE', 15 * 24 * 3600 * 1000) // 15 days
-          }
+            maxAge: this.config.get<number>(
+              'COOKIE_MAX_AGE',
+              15 * 24 * 3600 * 1000,
+            ), // 15 days
+          },
         }),
-      ).forRoutes('*');
-    
+      )
+      .forRoutes('*');
+
     consumer
-      .apply(
-        cookieParser(this.config.get<string>('COOKIE_SECRET'))
-      ).forRoutes('*');
+      .apply(cookieParser(this.config.get<string>('COOKIE_SECRET')))
+      .forRoutes('*');
   }
 }

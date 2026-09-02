@@ -92,7 +92,7 @@ export class AddressController {
   @Get()
   async getAllAddresses(
     @CurrentUser('id') id: string,
-    @Query('search') search?: string
+    @Query('search') search?: string,
   ) {
     return this.addressService.getAll(id, search);
   }
