@@ -18,7 +18,7 @@ export class UpdateTransporterDto {
   @IsOptional()
   @IsString()
   nationalIdDocumentKey?: string;
-  
+
   @IsOptional()
   @IsString()
   licenseDocumentKey?: string;

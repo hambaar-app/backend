@@ -3,7 +3,13 @@ import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { UserService } from './user.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
-import { PrismaClient, RolesEnum, VerificationStatusEnum, GendersEnum, LicenseTypeEnum } from '../../../generated/prisma';
+import {
+  PrismaClient,
+  RolesEnum,
+  VerificationStatusEnum,
+  GendersEnum,
+  LicenseTypeEnum,
+} from '../../../generated/prisma';
 import * as utilities from '../../common/utilities';
 
 jest.mock('../../common/utilities', () => ({
@@ -143,7 +149,9 @@ describe('UserService', () => {
   describe('getProfile', () => {
     it('should get user profile with transporter data successfully', async () => {
       prismaService.user.findUniqueOrThrow.mockResolvedValue(mockProfile);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://presigned-url.com');
+      s3Service.generateGetPresignedUrl.mockResolvedValue(
+        'https://presigned-url.com',
+      );
 
       const result = await service.getProfile('user-123');
 
@@ -172,8 +180,12 @@ describe('UserService', () => {
 
     it('should handle user without transporter', async () => {
       const userWithoutTransporter = { ...mockUser, transporter: null };
-      prismaService.user.findUniqueOrThrow.mockResolvedValue(userWithoutTransporter);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://presigned-url.com');
+      prismaService.user.findUniqueOrThrow.mockResolvedValue(
+        userWithoutTransporter,
+      );
+      s3Service.generateGetPresignedUrl.mockResolvedValue(
+        'https://presigned-url.com',
+      );
 
       const result = await service.getProfile('user-123');
 
@@ -186,23 +198,35 @@ describe('UserService', () => {
 
     it('should handle S3 URL generation errors gracefully', async () => {
       prismaService.user.findUniqueOrThrow.mockResolvedValue(mockProfile);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('https://presigned-url.com');
+      s3Service.generateGetPresignedUrl.mockResolvedValue(
+        'https://presigned-url.com',
+      );
 
       const result = await service.getProfile('user-123');
 
-      expect(result.transporter.profilePictureUrl).toBe('https://presigned-url.com');
-      expect(result.transporter.licenseDocumentUrl).toBe('https://presigned-url.com');
-      expect(result.transporter.nationalIdDocumentUrl).toBe('https://presigned-url.com');
+      expect(result.transporter.profilePictureUrl).toBe(
+        'https://presigned-url.com',
+      );
+      expect(result.transporter.licenseDocumentUrl).toBe(
+        'https://presigned-url.com',
+      );
+      expect(result.transporter.nationalIdDocumentUrl).toBe(
+        'https://presigned-url.com',
+      );
     });
 
     it('should handle Prisma errors', async () => {
       const error = new Error('User not found');
       prismaService.user.findUniqueOrThrow.mockRejectedValue(error);
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
-        throw new Error('Formatted error');
-      });
+      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('Formatted error');
+        },
+      );
 
-      await expect(service.getProfile('user-123')).rejects.toThrow('Formatted error');
+      await expect(service.getProfile('user-123')).rejects.toThrow(
+        'Formatted error',
+      );
     });
   });
 
@@ -248,17 +272,23 @@ describe('UserService', () => {
     it('should handle Prisma errors', async () => {
       const error = new Error('Update failed');
       prismaService.user.update.mockRejectedValue(error);
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
-        throw new Error('Formatted error');
-      });
+      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('Formatted error');
+        },
+      );
 
-      await expect(service.update('user-123', { firstName: 'علی' })).rejects.toThrow('Formatted error');
+      await expect(
+        service.update('user-123', { firstName: 'علی' }),
+      ).rejects.toThrow('Formatted error');
     });
   });
 
   describe('getTransporter', () => {
     it('should get transporter by where input successfully', async () => {
-      prismaService.transporter.findFirstOrThrow.mockResolvedValue(mockTransporter);
+      prismaService.transporter.findFirstOrThrow.mockResolvedValue(
+        mockTransporter,
+      );
 
       const result = await service.getTransporter({ userId: 'user-123' });
 
@@ -282,11 +312,15 @@ describe('UserService', () => {
     it('should handle Prisma errors', async () => {
       const error = new Error('Transporter not found');
       prismaService.transporter.findFirstOrThrow.mockRejectedValue(error);
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
-        throw new Error('Formatted error');
-      });
+      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('Formatted error');
+        },
+      );
 
-      await expect(service.getTransporter({ userId: 'user-123' })).rejects.toThrow('Formatted error');
+      await expect(
+        service.getTransporter({ userId: 'user-123' }),
+      ).rejects.toThrow('Formatted error');
     });
   });
 
@@ -399,11 +433,15 @@ describe('UserService', () => {
     it('should handle Prisma errors', async () => {
       const error = new Error('Update failed');
       prismaService.transporter.update.mockRejectedValue(error);
-      ((utilities.formatPrismaError as unknown) as jest.Mock).mockImplementation(() => {
-        throw new Error('Formatted error');
-      });
+      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('Formatted error');
+        },
+      );
 
-      await expect(service.updateTransporter('user-123', { profilePictureKey: 'new-key' })).rejects.toThrow('Formatted error');
+      await expect(
+        service.updateTransporter('user-123', { profilePictureKey: 'new-key' }),
+      ).rejects.toThrow('Formatted error');
     });
   });
 

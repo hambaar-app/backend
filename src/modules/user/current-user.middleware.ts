@@ -11,7 +11,7 @@ import { AuthMessages } from '../../common/enums/messages.enum';
 
 export const CurrentUser = createParamDecorator(
   (key: string, context: ExecutionContext) => {
-    const request = context.switchToHttp().getRequest() as Request;    
+    const request = context.switchToHttp().getRequest();
     return key ? request.user?.[key] : request.user;
   },
 );
@@ -24,8 +24,8 @@ export class CurrentUserMiddleware implements NestMiddleware {
     const { userId } = req.session;
     const phoneNumber = req.user?.phoneNumber;
 
-    if (userId && !phoneNumber) {            
-      const user = await this.userService.get({ id: userId });      
+    if (userId && !phoneNumber) {
+      const user = await this.userService.get({ id: userId });
       if (!user) throw new ForbiddenException(AuthMessages.AccessDenied);
       req.user = user;
     }
