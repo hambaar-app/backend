@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   const config = new DocumentBuilder()
     .setTitle('HamBaar App')
     .setDescription('HamBaar App API using NestJS and Prisma')
@@ -19,6 +19,9 @@ async function bootstrap() {
   });
 
   const PORT = process.env.PORT ?? 3000;
-  await app.listen(PORT, '0.0.0.0', () => console.log(`Listening on port ${PORT}.`));
+  await app.listen(PORT, '0.0.0.0', () =>
+    console.log(`Listening on port ${PORT}.`),
+  );
 }
-bootstrap();
+
+void bootstrap();
