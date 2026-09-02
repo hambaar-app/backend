@@ -18,7 +18,6 @@ import {
   Min,
 } from 'class-validator';
 import { VehicleTypeEnum } from '../../../../generated/prisma';
-import { IsValidS3Key } from '../../../common/utilities';
 
 export class VehicleDocumentUrlsDto {
   @Expose()
