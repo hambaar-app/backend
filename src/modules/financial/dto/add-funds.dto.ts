@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsString, IsUUID, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
 export class AddFundsDto {
   @IsNotEmpty()
@@ -14,9 +14,9 @@ export class AddFundsDto {
 
 export class AddFundsAndCreateEscrow extends AddFundsDto {
   @IsNotEmpty()
-  @IsUUID()  
+  @IsUUID()
   packageId: string;
-  
+
   @IsNotEmpty()
   @IsUUID()
   tripId: string;

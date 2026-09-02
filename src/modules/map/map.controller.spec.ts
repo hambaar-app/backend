@@ -22,11 +22,11 @@ describe('MapController', () => {
             verifyToken: jest.fn().mockReturnValue({ sub: '123' }),
           },
         },
-      ]
+      ],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<MapController>(MapController);
   });

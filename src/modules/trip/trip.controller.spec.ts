@@ -14,15 +14,13 @@ describe('TripController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TripController],
-      providers: [
-        { provide: TripService, useValue: service }
-      ]
+      providers: [{ provide: TripService, useValue: service }],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .overrideGuard(OwnershipGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(OwnershipGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TripController>(TripController);
   });

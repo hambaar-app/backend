@@ -1,7 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatPrismaError } from '../../common/utilities';
-import { PaymentStatusEnum, TransactionTypeEnum } from '../../../generated/prisma';
+import {
+  PaymentStatusEnum,
+  TransactionTypeEnum,
+} from '../../../generated/prisma';
 import { BadRequestMessages } from '../../common/enums/messages.enum';
 import { AddFundsAndCreateEscrow, AddFundsDto } from './dto/add-funds.dto';
 import { CreateEscrowDto } from './dto/create-escrow.dto';
@@ -17,109 +20,107 @@ export class FinancialService {
     userId: string,
     page = 1,
     limit = 10,
-    tx: PrismaTransaction = this.prisma
+    tx: PrismaTransaction = this.prisma,
   ) {
     const skip = (page - 1) * limit;
-    
-    const wallet = await tx.wallet.findUniqueOrThrow({
-      where: { userId },
-      include: {
-        transactions: {
-          orderBy: {
-            createdAt: 'desc'
+
+    const wallet = await tx.wallet
+      .findUniqueOrThrow({
+        where: { userId },
+        include: {
+          transactions: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+            skip,
+            take: limit,
           },
-          skip,
-          take: limit,
-        }
-      },
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     return {
       ...wallet,
       balance: wallet.balance.toString(),
       totalEarned: wallet.totalEarned.toString(),
       totalSpent: wallet.totalSpent.toString(),
-      transactions: wallet.transactions.map(transaction => ({
+      transactions: wallet.transactions.map((transaction) => ({
         ...transaction,
         amount: transaction.amount.toString(),
         balanceBefore: transaction.balanceBefore?.toString(),
-      }))
+      })),
     };
   }
 
   async addFunds(
     userId: string,
-    {
-      amount,
-      gatewayTransactionId
-    }: AddFundsDto
+    { amount, gatewayTransactionId }: AddFundsDto,
   ) {
     const wallet = await this.getWallet(userId, 1, 0);
 
     // TODO: Check all unpaid matchedRequests
-    return this.prisma.$transaction(async (tx) => {
-      const updatedWallet = await tx.wallet.update({
-        where: { userId },
-        data: {
-          balance: {
-            increment: BigInt(amount)
+    return this.prisma
+      .$transaction(async (tx) => {
+        const updatedWallet = await tx.wallet.update({
+          where: { userId },
+          data: {
+            balance: {
+              increment: BigInt(amount),
+            },
           },
-        }
-      });
+        });
 
-      await tx.transaction.create({
-        data: {
-          walletId: wallet.id,
-          transactionType: TransactionTypeEnum.deposit,
-          amount: BigInt(amount),
-          balanceBefore: BigInt(wallet.balance),
-          reason: 'Funds added to wallet.',
-          gatewayTransactionId
-        }
-      });
+        await tx.transaction.create({
+          data: {
+            walletId: wallet.id,
+            transactionType: TransactionTypeEnum.deposit,
+            amount: BigInt(amount),
+            balanceBefore: BigInt(wallet.balance),
+            reason: 'Funds added to wallet.',
+            gatewayTransactionId,
+          },
+        });
 
-      return updatedWallet;
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+        return updatedWallet;
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
   }
 
-  async createEscrow(
-    {
-      packageId,
-      tripId
-    }: CreateEscrowDto
-  ) {
-    const matchedRequest = await this.prisma.matchedRequest.findUniqueOrThrow({
-      where: {
-        packageId,
-        tripId
-      },
-      include: {
-        package: {
-          include: {
-            sender: true
-          }
+  async createEscrow({ packageId, tripId }: CreateEscrowDto) {
+    const matchedRequest = await this.prisma.matchedRequest
+      .findUniqueOrThrow({
+        where: {
+          packageId,
+          tripId,
         },
-        trip: {
-          include: {
-            transporter: {
-              include: {
-                user: true
-              }
-            }
-          }
+        include: {
+          package: {
+            include: {
+              sender: true,
+            },
+          },
+          trip: {
+            include: {
+              transporter: {
+                include: {
+                  user: true,
+                },
+              },
+            },
+          },
+          request: true,
         },
-        request: true
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     if (matchedRequest.paymentStatus !== PaymentStatusEnum.unpaid) {
       throw new BadRequestException(BadRequestMessages.PaymentProcessed);
@@ -128,25 +129,25 @@ export class FinancialService {
     const senderId = matchedRequest.package.senderId;
     const transporterId = matchedRequest.trip.transporter.userId;
     const finalPrice = matchedRequest.package.finalPrice;
-    
-    const senderWallet = await this.getWallet(senderId, 1, 0);    
+
+    const senderWallet = await this.getWallet(senderId, 1, 0);
     if (Number(senderWallet.balance) < finalPrice) {
       throw new BadRequestException(BadRequestMessages.NotEnoughBalance);
     }
 
-    const transporterWallet = await this.getWallet(transporterId, 1, 0);  
+    const transporterWallet = await this.getWallet(transporterId, 1, 0);
     return this.prisma.$transaction(async (tx) => {
       // Escrow funds from sender
       await tx.wallet.update({
         where: { userId: senderId },
         data: {
           balance: {
-            decrement: BigInt(finalPrice)
+            decrement: BigInt(finalPrice),
           },
           escrowedAmount: {
-            increment: finalPrice
-          }
-        }
+            increment: finalPrice,
+          },
+        },
       });
 
       // Create escrow transaction
@@ -157,8 +158,8 @@ export class FinancialService {
           amount: finalPrice,
           balanceBefore: BigInt(senderWallet.balance),
           reason: `Escrowed payment for package ${matchedRequest.package.id}.`,
-          matchedRequestId: matchedRequest.id
-        }
+          matchedRequestId: matchedRequest.id,
+        },
       });
 
       await tx.transaction.create({
@@ -168,20 +169,20 @@ export class FinancialService {
           amount: matchedRequest.request.offeredPrice,
           balanceBefore: BigInt(transporterWallet.balance),
           reason: `Escrowed payment for package ${matchedRequest.package.id}.`,
-          matchedRequestId: matchedRequest.id
-        }
+          matchedRequestId: matchedRequest.id,
+        },
       });
 
       // Update matched request
       await tx.matchedRequest.update({
         where: { id: matchedRequest.id },
         data: {
-          paymentStatus: PaymentStatusEnum.escrowed
-        }
+          paymentStatus: PaymentStatusEnum.escrowed,
+        },
       });
-      
+
       return {
-        escrowedAmount: finalPrice
+        escrowedAmount: finalPrice,
       };
     });
   }
@@ -193,7 +194,7 @@ export class FinancialService {
       gatewayTransactionId,
       packageId,
       tripId,
-    }: AddFundsAndCreateEscrow
+    }: AddFundsAndCreateEscrow,
   ) {
     await this.addFunds(userId, { amount, gatewayTransactionId });
     return this.createEscrow({ packageId, tripId });
@@ -202,38 +203,40 @@ export class FinancialService {
   async releaseEscrow(
     packageId: string,
     tripId: string,
-    tx: PrismaTransaction
+    tx: PrismaTransaction,
   ) {
-    const matchedRequest = await tx.matchedRequest.findUniqueOrThrow({
-      where: {
-        packageId,
-        tripId
-      },
-      include: {
-        package: {
-          include: {
-            sender: true
-          }
+    const matchedRequest = await tx.matchedRequest
+      .findUniqueOrThrow({
+        where: {
+          packageId,
+          tripId,
         },
-        trip: {
-          include: {
-            transporter: {
-              include: {
-                user: true
-              }
-            }
-          }
+        include: {
+          package: {
+            include: {
+              sender: true,
+            },
+          },
+          trip: {
+            include: {
+              transporter: {
+                include: {
+                  user: true,
+                },
+              },
+            },
+          },
+          request: {
+            select: {
+              offeredPrice: true,
+            },
+          },
         },
-        request: {
-          select: {
-            offeredPrice: true
-          }
-        }
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     if (matchedRequest.paymentStatus !== PaymentStatusEnum.escrowed) {
       throw new BadRequestException(BadRequestMessages.NoEscrowedPayment);
@@ -244,17 +247,17 @@ export class FinancialService {
 
     const escrowedAmount = matchedRequest.package.finalPrice;
     const transporterEarnings = matchedRequest.request.offeredPrice;
-    
+
     const transporterWallet = await this.getWallet(transporterId, 1, 0, tx);
 
     // Release escrow from sender
     await tx.wallet.update({
       where: { userId: senderId },
       data: {
-          escrowedAmount: {
-          decrement: escrowedAmount
-        }
-      }
+        escrowedAmount: {
+          decrement: escrowedAmount,
+        },
+      },
     });
 
     // Pay transporter
@@ -262,12 +265,12 @@ export class FinancialService {
       where: { userId: transporterId },
       data: {
         balance: {
-          increment: BigInt(transporterEarnings)
+          increment: BigInt(transporterEarnings),
         },
         totalEarned: {
-          increment: BigInt(transporterEarnings)
-        }
-      }
+          increment: BigInt(transporterEarnings),
+        },
+      },
     });
 
     // Create release transaction for transporter
@@ -279,7 +282,7 @@ export class FinancialService {
         balanceBefore: BigInt(transporterWallet.balance),
         reason: `Payment received for package ${matchedRequest.packageId}.`,
         matchedRequestId: matchedRequest.id,
-      }
+      },
     });
 
     // Create commission transaction (platform earning)
@@ -292,19 +295,19 @@ export class FinancialService {
         amount: platformEarnings,
         reason: `Commission from package ${matchedRequest.packageId}`,
         matchedRequestId: matchedRequest.id,
-      }
+      },
     });
 
     await tx.wallet.update({
       where: { id: platformWalletId },
       data: {
         balance: {
-          increment: platformEarnings
+          increment: platformEarnings,
         },
         totalEarned: {
-          increment: platformEarnings
-        }
-      }
+          increment: platformEarnings,
+        },
+      },
     });
 
     return true;
@@ -313,11 +316,11 @@ export class FinancialService {
   private async getPlatformWalletId(): Promise<string> {
     const platformUser = await this.prisma.user.findFirst({
       where: {
-        role: 'admin'
+        role: 'admin',
       },
       include: {
-        wallet: true
-      }
+        wallet: true,
+      },
     });
 
     if (!platformUser?.wallet) {

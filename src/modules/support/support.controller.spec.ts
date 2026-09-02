@@ -13,13 +13,11 @@ describe('SupportController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SupportController],
-      providers: [
-        { provide: SupportService, useValue: service }
-      ]
+      providers: [{ provide: SupportService, useValue: service }],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<SupportController>(SupportController);
   });

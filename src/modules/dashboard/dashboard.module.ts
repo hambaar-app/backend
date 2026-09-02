@@ -6,12 +6,8 @@ import { S3Module } from '../s3/s3.module';
 import { TokenModule } from '../token/token.module';
 
 @Module({
-  imports: [
-    TokenModule,
-    PrismaModule,
-    S3Module,
-  ],
+  imports: [TokenModule, PrismaModule, S3Module],
   controllers: [DashboardController],
-  providers: [DashboardService]
+  providers: [DashboardService],
 })
 export class DashboardModule {}

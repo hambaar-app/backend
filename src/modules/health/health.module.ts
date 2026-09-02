@@ -6,12 +6,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RedisHealthIndicator } from './redis-health.indicator';
 
 @Module({
-  imports: [
-    TerminusModule,
-    HttpModule,
-    PrismaModule,
-  ],
+  imports: [TerminusModule, HttpModule, PrismaModule],
   controllers: [HealthController],
-  providers: [RedisHealthIndicator]
+  providers: [RedisHealthIndicator],
 })
 export class HealthModule {}

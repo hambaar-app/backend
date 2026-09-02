@@ -5,12 +5,9 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { TokenModule } from '../token/token.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    TokenModule
-  ],
+  imports: [PrismaModule, TokenModule],
   providers: [FinancialService],
   controllers: [FinancialController],
-  exports: [FinancialService]
+  exports: [FinancialService],
 })
 export class FinancialModule {}

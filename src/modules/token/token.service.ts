@@ -10,30 +10,34 @@ export class TokenService {
   private tempSecretKey: string;
   private progressSecretKey: string;
 
-  constructor(
-    config: ConfigService,
-  ) {
+  constructor(config: ConfigService) {
     this.accessSecretKey = config.getOrThrow<string>('JWT_ACCESS_SECRET_KEY');
     this.tempSecretKey = config.getOrThrow<string>('JWT_TEMP_SECRET_KEY');
-    this.progressSecretKey = config.getOrThrow<string>('JWT_PROGRESS_SECRET_KEY');
+    this.progressSecretKey = config.getOrThrow<string>(
+      'JWT_PROGRESS_SECRET_KEY',
+    );
   }
 
-  private generateToken(payload: jwt.JwtPayload, token: string , { expiresIn }: jwt.SignOptions) {
+  private generateToken(
+    payload: jwt.JwtPayload,
+    token: string,
+    { expiresIn }: jwt.SignOptions,
+  ) {
     return jwt.sign(payload, token, { expiresIn });
   }
 
   private generateAccessToken(payload: jwt.JwtPayload) {
-    const accessSecretKey = this.accessSecretKey
+    const accessSecretKey = this.accessSecretKey;
     return this.generateToken(payload, accessSecretKey, { expiresIn: '20d' });
   }
 
   private generateTempToken(payload: jwt.JwtPayload) {
-    const tempSecretKey = this.tempSecretKey
+    const tempSecretKey = this.tempSecretKey;
     return this.generateToken(payload, tempSecretKey, { expiresIn: '20m' });
   }
 
   private generateProgressToken(payload: jwt.JwtPayload) {
-    const authSecretKey = this.progressSecretKey
+    const authSecretKey = this.progressSecretKey;
     return this.generateToken(payload, authSecretKey, { expiresIn: '1d' });
   }
 

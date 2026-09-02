@@ -44,21 +44,22 @@ export class FinancialController {
   @Post('add-funds')
   async addFunds(
     @Query() query: AddFundsDto,
-    @CurrentUser('id') userId: string
+    @CurrentUser('id') userId: string,
   ) {
     return this.financialService.addFunds(userId, query);
   }
 
   @ApiOperation({
     summary: 'Add funds and Create escrow',
-    description: 'Add funds and Create escrow for a specific package shipping price.'
+    description:
+      'Add funds and Create escrow for a specific package shipping price.',
   })
   @AuthResponses()
   @UseGuards(AccessTokenGuard)
   @Post('add-funds-create-escrow')
   async addFundsAndCreateEscrow(
     @Query() query: AddFundsAndCreateEscrow,
-    @CurrentUser('id') userId: string
+    @CurrentUser('id') userId: string,
   ) {
     return this.financialService.addFundsAndCreateEscrow(userId, query);
   }

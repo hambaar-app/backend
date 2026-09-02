@@ -36,53 +36,69 @@ export class PricingService {
     this.platformCommission = 1 - this.driverShare;
 
     // Multipliers
-    this.fragileMultiplier = config.get<number>('PRICING_FRAGILE_MULTIPLIER', 1.25);
-    this.perishableMultiplier = config.get<number>('PRICING_PERISHABLE_MULTIPLIER', 1.35);
-    this.bothFragilePerishableMultiplier = config.get<number>('PRICING_BOTH_FRAGILE_PERISHABLE', 1.5);
+    this.fragileMultiplier = config.get<number>(
+      'PRICING_FRAGILE_MULTIPLIER',
+      1.25,
+    );
+    this.perishableMultiplier = config.get<number>(
+      'PRICING_PERISHABLE_MULTIPLIER',
+      1.35,
+    );
+    this.bothFragilePerishableMultiplier = config.get<number>(
+      'PRICING_BOTH_FRAGILE_PERISHABLE',
+      1.5,
+    );
 
     // City Premium Factors
     this.majorCityOrigin = config.get<number>('PRICING_MAJOR_CITY_ORIGIN', 0.9);
-    this.majorCityDestination = config.get<number>('PRICING_MAJOR_CITY_DESTINATION', 1.3);
+    this.majorCityDestination = config.get<number>(
+      'PRICING_MAJOR_CITY_DESTINATION',
+      1.3,
+    );
     this.bothMajorCities = config.get<number>('PRICING_BOTH_MAJOR_CITIES', 1.0);
     this.smallCityFactor = config.get<number>('PRICING_SMALL_CITY_FACTOR', 1.2);
 
     // Route Deviation Costs
     this.deviationRate = config.get<number>('PRICING_DEVIATION_RATE', 15000);
-    this.timeDeviationRate = config.get<number>('PRICING_TIME_DEVIATION_RATE', 5000);
+    this.timeDeviationRate = config.get<number>(
+      'PRICING_TIME_DEVIATION_RATE',
+      5000,
+    );
 
     // Major Cities List
     const majorCitiesString = config.get<string>(
-      'PRICING_MAJOR_CITIES', 'تهران,اصفهان,مشهد'
+      'PRICING_MAJOR_CITIES',
+      'تهران,اصفهان,مشهد',
     );
-    this.majorCities = majorCitiesString.split(',').map(city => city.trim());
+    this.majorCities = majorCitiesString.split(',').map((city) => city.trim());
 
     // Distance Pricing Tiers
     this.distanceTiers = [
       {
         minKm: 0,
         maxKm: 100,
-        ratePerKm: config.get<number>('PRICING_TIER_1_RATE', 1000)
+        ratePerKm: config.get<number>('PRICING_TIER_1_RATE', 1000),
       },
       {
         minKm: 101,
         maxKm: 300,
-        ratePerKm: config.get<number>('PRICING_TIER_2_RATE', 950)
+        ratePerKm: config.get<number>('PRICING_TIER_2_RATE', 950),
       },
       {
         minKm: 301,
         maxKm: 600,
-        ratePerKm: config.get<number>('PRICING_TIER_3_RATE', 850)
+        ratePerKm: config.get<number>('PRICING_TIER_3_RATE', 850),
       },
       {
         minKm: 601,
         maxKm: 1000,
-        ratePerKm: config.get<number>('PRICING_TIER_4_RATE', 750)
+        ratePerKm: config.get<number>('PRICING_TIER_4_RATE', 750),
       },
       {
         minKm: 1001,
         maxKm: Infinity,
-        ratePerKm: config.get<number>('PRICING_TIER_5_RATE', 600)
-      }
+        ratePerKm: config.get<number>('PRICING_TIER_5_RATE', 600),
+      },
     ];
   }
 
@@ -98,14 +114,14 @@ export class PricingService {
     // Apply multipliers
     const specialMultiplier = this.calculateSpecialHandlingMultiplier(
       input.isFragile ?? false,
-      input.isPerishable ?? false
+      input.isPerishable ?? false,
     );
     subtotal *= specialMultiplier;
 
     // Apply city premium
     const cityPremium = this.calculateCityPremium(
       input.originCity,
-      input.destinationCity
+      input.destinationCity,
     );
     subtotal *= cityPremium;
 
@@ -121,7 +137,7 @@ export class PricingService {
         deviationCost: 0,
         specialHandlingCost: Math.max(0, specialMultiplier - 1) * finalPrice,
         cityPremiumCost: Math.max(0, cityPremium - 1) * finalPrice,
-      }
+      },
     };
   }
 
@@ -140,7 +156,7 @@ export class PricingService {
 
       const tierCapacity = tier.maxKm - tier.minKm + (tier.minKm ? 1 : 0);
       const applicableDistance = Math.min(remainingDistance, tierCapacity);
-      
+
       totalCost += applicableDistance * tier.ratePerKm;
       remainingDistance -= applicableDistance;
     }
@@ -149,7 +165,7 @@ export class PricingService {
   }
 
   calculateTransporterEarnings(finalPrice: number, deviationPrice?: number) {
-    return Math.floor((finalPrice * this.driverShare) + (deviationPrice ?? 0));
+    return Math.floor(finalPrice * this.driverShare + (deviationPrice ?? 0));
   }
 
   // Platform commission
@@ -163,7 +179,10 @@ export class PricingService {
   }
 
   // Calculate special multipliers
-  private calculateSpecialHandlingMultiplier(isFragile: boolean, isPerishable: boolean): number {
+  private calculateSpecialHandlingMultiplier(
+    isFragile: boolean,
+    isPerishable: boolean,
+  ): number {
     if (isFragile && isPerishable) {
       return this.bothFragilePerishableMultiplier;
     } else if (isFragile) {
@@ -175,14 +194,20 @@ export class PricingService {
   }
 
   // Calculate deviation cost (Based on both distance and duration)
-  calculateDeviationCost(additionalKm: number, additionalMinutes: number): number {
+  calculateDeviationCost(
+    additionalKm: number,
+    additionalMinutes: number,
+  ): number {
     const kmCost = additionalKm * this.deviationRate;
     const timeCost = additionalMinutes * this.timeDeviationRate;
     return kmCost + timeCost;
   }
 
   // Calculate city-based premium factor
-  private calculateCityPremium(originCity: string, destinationCity: string): number {
+  private calculateCityPremium(
+    originCity: string,
+    destinationCity: string,
+  ): number {
     const originMajor = this.isMajorCity(originCity);
     const destMajor = this.isMajorCity(destinationCity);
 
@@ -199,8 +224,8 @@ export class PricingService {
 
   // Check if a city is considered a major city
   private isMajorCity(cityName: string): boolean {
-    return this.majorCities.some(city => 
-      city.toLowerCase() === cityName.toLowerCase()
+    return this.majorCities.some(
+      (city) => city.toLowerCase() === cityName.toLowerCase(),
     );
   }
 }

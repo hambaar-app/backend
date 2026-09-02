@@ -12,50 +12,48 @@ export class NotificationService {
     {
       content,
       packageId,
-      tripId
+      tripId,
     }: {
       content: string;
       packageId?: string;
-      tripId?: string
+      tripId?: string;
     },
-    tx: PrismaTransaction = this.prisma
+    tx: PrismaTransaction = this.prisma,
   ) {
     return tx.notification.create({
       data: {
         userId,
         content,
         packageId,
-        tripId
-      }
+        tripId,
+      },
     });
   }
 
-  async getAll(
-    userId: string,
-    page = 1,
-    limit = 10
-  ) {
+  async getAll(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-    return this.prisma.$transaction(async tx => {
-      // Update notifications => unread: true
-      await tx.notification.updateMany({
-        where: { userId },
-        data: {
-          unread: false
-        }
-      });
+    return this.prisma
+      .$transaction(async (tx) => {
+        // Update notifications => unread: true
+        await tx.notification.updateMany({
+          where: { userId },
+          data: {
+            unread: false,
+          },
+        });
 
-      return this.prisma.notification.findMany({
-        where: { userId },
-        orderBy: {
-          createdAt: 'desc'
-        },
-        skip,
-        take: limit
+        return this.prisma.notification.findMany({
+          where: { userId },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          skip,
+          take: limit,
+        });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
       });
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
   }
 }

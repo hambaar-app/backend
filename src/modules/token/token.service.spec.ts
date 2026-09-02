@@ -22,7 +22,7 @@ describe('TokenService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TokenService,
-        { provide: ConfigService, useValue: configService }
+        { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 

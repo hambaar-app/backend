@@ -8,7 +8,6 @@ import {
 } from '@nestjs/terminus';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisHealthIndicator } from './redis-health.indicator';
-import { Serialize } from 'src/common/serialize.interceptor';
 import { HealthCheckDto } from './health-check.dto';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 
@@ -24,10 +23,10 @@ export class HealthController {
   ) {}
 
   @ApiOperation({
-    summary: 'Complete health check'
+    summary: 'Complete health check',
   })
   @ApiOkResponse({
-    type: HealthCheckDto
+    type: HealthCheckDto,
   })
   @HttpCode(HttpStatus.OK)
   @Get()

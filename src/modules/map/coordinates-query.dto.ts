@@ -1,10 +1,15 @@
-import { IsNotEmpty, IsLatLong, IsLatitude, IsLongitude } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsLatLong,
+  IsLatitude,
+  IsLongitude,
+} from 'class-validator';
 
 export class CoordinateQueryDto {
   @IsNotEmpty()
   @IsLatitude()
   lat: string;
-  
+
   @IsNotEmpty()
   @IsLongitude()
   lng: string;

@@ -23,6 +23,6 @@ import { NotificationModule } from '../notification/notification.module';
   ],
   controllers: [TripController],
   providers: [TripService],
-  exports: [TripService]
+  exports: [TripService],
 })
 export class TripModule {}

@@ -19,58 +19,60 @@ export class SmsService {
     try {
       const url = 'https://s.api.ir/api/sw1/SendSms';
 
-      const response: AxiosResponse<{ success: boolean }> = await firstValueFrom(
-        this.httpService.post(
-          url,
-          {
-            mobiles,
-            message
-          }, 
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.smsApiKey}`,
-            }
-          }
-        ),
-      );
+      const response: AxiosResponse<{ success: boolean }> =
+        await firstValueFrom(
+          this.httpService.post(
+            url,
+            {
+              mobiles,
+              message,
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.smsApiKey}`,
+              },
+            },
+          ),
+        );
 
       return response.data.success;
     } catch (error) {
-      console.error('Failed to send sms.', error);      
+      console.error('Failed to send sms.', error);
       throw new InternalServerErrorException('Failed to send sms.');
     }
   }
 
   async sendOtp(mobile: string, code: number) {
-//     const otpMessage = `
-// کد تأیید هم‌بار: ${code}
-// این کد برای ورود به حساب کاربری شماست. لطفاً آن را با کسی به اشتراک نگذارید.
-// `;
-//     return this.sendSms([mobile], otpMessage);
+    //     const otpMessage = `
+    // کد تأیید هم‌بار: ${code}
+    // این کد برای ورود به حساب کاربری شماست. لطفاً آن را با کسی به اشتراک نگذارید.
+    // `;
+    //     return this.sendSms([mobile], otpMessage);
 
     try {
       const url = 'https://s.api.ir/api/sw1/SmsOTP';
 
-      const response: AxiosResponse<{ success: boolean }> = await firstValueFrom(
-        this.httpService.post(
-          url,
-          {
-            mobile,
-            code: String(code),
-            template: 2
-          }, 
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.smsApiKey}`,
-            }
-          }
-        ),
-      );
+      const response: AxiosResponse<{ success: boolean }> =
+        await firstValueFrom(
+          this.httpService.post(
+            url,
+            {
+              mobile,
+              code: String(code),
+              template: 2,
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.smsApiKey}`,
+              },
+            },
+          ),
+        );
 
       return response.data.success;
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Failed to send otp code.');
     }
   }

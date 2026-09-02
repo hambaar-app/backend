@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TurfService } from './turf.service';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { Turf, TURF_TOKEN, TurfProvider } from './turf.provider';
+import { Turf, TURF_TOKEN } from './turf.provider';
 
 describe('TurfService', () => {
   let service: TurfService;
@@ -11,10 +11,7 @@ describe('TurfService', () => {
     turfProvider = mockDeep<Turf>();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TurfService,
-        { provide: TURF_TOKEN, useValue: turfProvider },
-      ],
+      providers: [TurfService, { provide: TURF_TOKEN, useValue: turfProvider }],
     }).compile();
 
     service = module.get<TurfService>(TurfService);

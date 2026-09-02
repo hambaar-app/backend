@@ -1,10 +1,29 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { MapService } from '../map/map.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatPrismaError, generateCode, generateUniqueCode } from '../../common/utilities';
+import {
+  formatPrismaError,
+  generateCode,
+  generateUniqueCode,
+} from '../../common/utilities';
 import { CreateTripDto } from './dto/create-trip.dto';
-import { AuthMessages, BadRequestMessages, TrackingMessages } from '../../common/enums/messages.enum';
-import { MatchedRequest, Package, PackageStatusEnum, Prisma, RequestStatusEnum, TripStatusEnum, TripTypeEnum } from '../../../generated/prisma';
+import {
+  AuthMessages,
+  BadRequestMessages,
+  TrackingMessages,
+} from '../../common/enums/messages.enum';
+import {
+  MatchedRequest,
+  PackageStatusEnum,
+  Prisma,
+  RequestStatusEnum,
+  TripStatusEnum,
+  TripTypeEnum,
+} from '../../../generated/prisma';
 import { UpdateTripDto } from './dto/update-trip.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
@@ -18,7 +37,10 @@ import { S3Service } from '../s3/s3.service';
 import { TurfService } from '../turf/turf.service';
 import { Location } from '../map/map.types';
 import { NotificationService } from '../notification/notification.service';
-import { getNotificationMessage, NotificationMessages } from '../notification/notification-messages';
+import {
+  getNotificationMessage,
+  NotificationMessages,
+} from '../notification/notification-messages';
 
 @Injectable()
 export class TripService {
@@ -28,7 +50,7 @@ export class TripService {
     private financialService: FinancialService,
     private s3Service: S3Service,
     private turfService: TurfService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
   ) {}
 
   async create(
@@ -40,156 +62,163 @@ export class TripService {
       destinationId,
       ...tripDto
     }: CreateTripDto,
-    tripType: TripTypeEnum = TripTypeEnum.intercity
+    tripType: TripTypeEnum = TripTypeEnum.intercity,
   ) {
-    return this.prisma.$transaction(async tx => {
-      const vehicle = await tx.vehicle.findFirst({
-        where: {
-          id: vehicleId,
-          owner: {
-            userId
-          }
+    return this.prisma
+      .$transaction(async (tx) => {
+        const vehicle = await tx.vehicle.findFirst({
+          where: {
+            id: vehicleId,
+            owner: {
+              userId,
+            },
+          },
+        });
+
+        if (!vehicle) {
+          throw new ForbiddenException(
+            `${AuthMessages.EntityAccessDenied} vehicle.`,
+          );
         }
+
+        const originCity = await tx.city.findUniqueOrThrow({
+          where: { id: originId },
+        });
+
+        const destinationCity = await tx.city.findUniqueOrThrow({
+          where: { id: destinationId },
+        });
+
+        const { distance, duration } = await this.mapService.calculateDistance({
+          origin: {
+            latitude: originCity.latitude,
+            longitude: originCity.longitude,
+          },
+          destination: {
+            latitude: destinationCity.latitude,
+            longitude: destinationCity.longitude,
+          },
+          waypoints,
+        });
+
+        const tripData = {
+          transporterId: vehicle.ownerId,
+          originId,
+          destinationId,
+          vehicleId: vehicle.id,
+          tripType,
+          normalDistanceKm: distance,
+          normalDurationMin: duration,
+          ...tripDto,
+        } as Prisma.TripUncheckedCreateInput;
+
+        if (waypoints) {
+          // TODO: Sort waypoints?
+          tripData.waypoints = {
+            createMany: {
+              data: waypoints,
+            },
+          };
+        }
+
+        const trip = await tx.trip.create({
+          data: tripData,
+        });
+
+        // Add create trip notification
+        await this.notificationService.create(
+          userId,
+          {
+            tripId: trip.id,
+            content: getNotificationMessage(NotificationMessages.TripCreated, {
+              tripCode: trip.code,
+            }),
+          },
+          tx,
+        );
+
+        return trip;
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
       });
-
-      if (!vehicle) {
-        throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} vehicle.`);
-      }
-
-      const originCity = await tx.city.findUniqueOrThrow({
-        where: { id: originId }
-      });
-
-      const destinationCity = await tx.city.findUniqueOrThrow({
-        where: { id: destinationId }
-      });
-
-      const { distance, duration } = await this.mapService.calculateDistance({
-        origin: {
-          latitude: originCity.latitude,
-          longitude: originCity.longitude
-        },
-        destination: {
-          latitude: destinationCity.latitude,
-          longitude: destinationCity.longitude
-        },
-        waypoints
-      });
-
-      const tripData = {
-        transporterId: vehicle.ownerId,
-        originId,
-        destinationId,
-        vehicleId: vehicle.id,
-        tripType,
-        normalDistanceKm: distance,
-        normalDurationMin: duration,
-        ...tripDto,
-      } as Prisma.TripUncheckedCreateInput;
-
-      if (waypoints) {
-        // TODO: Sort waypoints?
-        tripData.waypoints = {
-          createMany: {
-            data: waypoints
-          }
-        };
-      }
-
-      const trip = await tx.trip.create({
-        data: tripData
-      });
-
-      // Add create trip notification
-      await this.notificationService.create(
-        userId,
-        {
-          tripId: trip.id,
-          content: getNotificationMessage(NotificationMessages.TripCreated, { tripCode: trip.code })
-        },
-        tx
-      );
-
-      return trip;
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
   }
 
   async getById(id: string) {
-    return this.prisma.trip.findUniqueOrThrow({
-      where: { id },
-      include: {
-        origin: true,
-        destination: true,
-        waypoints: {
-          where: {
-            isVisible: true
-          }
-        },
-        vehicle: {
-          select: {
-            vehicleType: true,
-            model: {
-              include: {
-                brand: true
-              }
+    return this.prisma.trip
+      .findUniqueOrThrow({
+        where: { id },
+        include: {
+          origin: true,
+          destination: true,
+          waypoints: {
+            where: {
+              isVisible: true,
             },
-            manufactureYear: true,
-            color: true
           },
-        }
-      },
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+          vehicle: {
+            select: {
+              vehicleType: true,
+              model: {
+                include: {
+                  brand: true,
+                },
+              },
+              manufactureYear: true,
+              color: true,
+            },
+          },
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
   }
 
-  async getMultipleById(
-    ids: string[],
-    tx: PrismaTransaction = this.prisma
-  ) {
-    return tx.trip.findMany({
-      where: {
-        id: {
-          in: ids
+  async getMultipleById(ids: string[], tx: PrismaTransaction = this.prisma) {
+    return tx.trip
+      .findMany({
+        where: {
+          id: {
+            in: ids,
+          },
+          status: TripStatusEnum.scheduled,
         },
-        status: TripStatusEnum.scheduled,
-      },
-      include: {
-        origin: true,
-        destination: true,
-        waypoints: true,
-        vehicle: {
-          include: {
-            model: {
-              include: {
-                brand: true
-              }
-            }
-          }
+        include: {
+          origin: true,
+          destination: true,
+          waypoints: true,
+          vehicle: {
+            include: {
+              model: {
+                include: {
+                  brand: true,
+                },
+              },
+            },
+          },
+          matchedRequests: {
+            include: {
+              package: {
+                include: {
+                  originAddress: true,
+                  recipient: {
+                    include: {
+                      address: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
-        matchedRequests: {
-          include: {
-            package: {
-              include: {
-                originAddress: true,
-                recipient: {
-                  include: {
-                    address: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
   }
 
   async getAll(
@@ -199,408 +228,444 @@ export class TripService {
       TripStatusEnum.closed,
       TripStatusEnum.delayed,
       TripStatusEnum.in_progress,
-    ]
+    ],
   ) {
-    return this.prisma.trip.findMany({
-      where: {
-        transporter: {
-          userId
+    return this.prisma.trip
+      .findMany({
+        where: {
+          transporter: {
+            userId,
+          },
+          status: {
+            in: status,
+          },
+          deletedAt: null,
         },
-        status: {
-          in: status
+        include: {
+          origin: true,
+          destination: true,
+          waypoints: {
+            where: {
+              isVisible: true,
+            },
+          },
         },
-        deletedAt: null
-      },
-      include: {
-        origin: true,
-        destination: true,
-        waypoints: {
-          where: {
-            isVisible: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
   }
 
-  async update(
-    id: string,
-    {
-      waypoints,
-      ...tripDto
-    }: UpdateTripDto
-  ) {
-    return this.prisma.$transaction(async tx => {
-      const { status } = await tx.trip.findUniqueOrThrow({
-        where: {
-          id,
-          deletedAt: null
-        },
-        select: {
-          status: true
-        }
-      });
-      
-      if (status !== TripStatusEnum.scheduled) {
-        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${status}*.`);
-      }
-
-      const tripData = tripDto as Prisma.TripUpdateInput;
-
-      if (waypoints) {
-        tripData.waypoints = {
-          createMany: {
-            data: waypoints
-          }
-        };
-
-        await tx.tripWaypoint.deleteMany({
+  async update(id: string, { waypoints, ...tripDto }: UpdateTripDto) {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const { status } = await tx.trip.findUniqueOrThrow({
           where: {
-            tripId: id,
-            isVisible: true
+            id,
+            deletedAt: null,
+          },
+          select: {
+            status: true,
           },
         });
-      }
 
-      return tx.trip.update({
-        where: { id },
-        data: tripData
+        if (status !== TripStatusEnum.scheduled) {
+          throw new BadRequestException(
+            `${BadRequestMessages.BaseTripStatus}*${status}*.`,
+          );
+        }
+
+        const tripData = tripDto as Prisma.TripUpdateInput;
+
+        if (waypoints) {
+          tripData.waypoints = {
+            createMany: {
+              data: waypoints,
+            },
+          };
+
+          await tx.tripWaypoint.deleteMany({
+            where: {
+              tripId: id,
+              isVisible: true,
+            },
+          });
+        }
+
+        return tx.trip.update({
+          where: { id },
+          data: tripData,
+        });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
       });
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });;
   }
 
   async delete(id: string) {
-    return this.prisma.$transaction(async tx => {
-      const { status } = await tx.trip.findUniqueOrThrow({
-        where: {
-          id,
-          deletedAt: null
-        },
-        select: {
-          status: true
-        }
-      });
-      
-      if (status !== TripStatusEnum.scheduled) {
-        throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${status}*.`);
-      }
+    return this.prisma
+      .$transaction(async (tx) => {
+        const { status } = await tx.trip.findUniqueOrThrow({
+          where: {
+            id,
+            deletedAt: null,
+          },
+          select: {
+            status: true,
+          },
+        });
 
-      return tx.trip.update({
-        where: { id },
-        data: {
-          deletedAt: new Date()
+        if (status !== TripStatusEnum.scheduled) {
+          throw new BadRequestException(
+            `${BadRequestMessages.BaseTripStatus}*${status}*.`,
+          );
         }
+
+        return tx.trip.update({
+          where: { id },
+          data: {
+            deletedAt: new Date(),
+          },
+        });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
       });
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
   }
 
   async getAllTripRequests(tripId: string) {
     return this.prisma.tripRequest.findMany({
       where: {
         tripId,
-        status: RequestStatusEnum.pending
+        status: RequestStatusEnum.pending,
       },
       orderBy: {
-        createdAt: 'asc'
-      }
+        createdAt: 'asc',
+      },
     });
   }
 
   async updateRequest(
     requestId: string,
-    {
-      status,
-      transporterNotes
-    }: UpdateRequestDto
+    { status, transporterNotes }: UpdateRequestDto,
   ) {
-    if (status === RequestStatusEnum.rejected) {
-      return this.prisma.$transaction(async tx => {
-        const {
-          package: packageData,
-          trip,
-          ...request
-        } = await this.prisma.tripRequest.update({
+    if (
+      (status as unknown as RequestStatusEnum) === RequestStatusEnum.rejected
+    ) {
+      return this.prisma
+        .$transaction(async (tx) => {
+          const {
+            package: packageData,
+            trip,
+            ...request
+          } = await this.prisma.tripRequest.update({
+            where: { id: requestId },
+            data: { status },
+            include: {
+              package: {
+                select: {
+                  code: true,
+                  senderId: true,
+                },
+              },
+              trip: {
+                select: {
+                  code: true,
+                },
+              },
+            },
+          });
+
+          // Add reject request notification
+          await this.notificationService.create(
+            packageData.senderId,
+            {
+              packageId: request.packageId,
+              tripId: request.tripId,
+              content: getNotificationMessage(
+                NotificationMessages.TripRequestRejected,
+                {
+                  packageCode: packageData.code,
+                  tripCode: trip.code,
+                },
+              ),
+            },
+            tx,
+          );
+
+          return request;
+        })
+        .catch((error: Error) => {
+          formatPrismaError(error);
+          throw error;
+        });
+    }
+
+    return this.prisma
+      .$transaction(async (tx) => {
+        const request = await tx.tripRequest.update({
           where: { id: requestId },
           data: { status },
-          include: {
-            package: {
-              select: {
-                code: true,
-                senderId: true
-              }
-            },
-            trip: {
-              select: {
-                code: true
-              }
-            }
-          }
         });
 
-        // Add reject request notification
+        // Delete other sent requests for this package
+        await tx.tripRequest.updateMany({
+          where: {
+            packageId: request.packageId,
+            NOT: {
+              id: request.id,
+            },
+          },
+          data: {
+            status: RequestStatusEnum.deleted,
+          },
+        });
+
+        // Create MatchedRequest instance
+        const trackingCode = generateUniqueCode();
+        const deliveryCode = generateCode().toString();
+        await tx.matchedRequest.create({
+          data: {
+            requestId: request.id,
+            packageId: request.packageId,
+            tripId: request.tripId,
+            trackingCode,
+            deliveryCode,
+            transporterNotes,
+          },
+        });
+
+        // Update total deviation info in trip
+        const { totalDeviationDistanceKm, totalDeviationDurationMin } =
+          await tx.trip.findUniqueOrThrow({
+            where: { id: request.tripId },
+          });
+
+        const newTotalDeviationDistance =
+          (totalDeviationDistanceKm ?? 0) + request.deviationDistanceKm;
+        const newTotalDeviationDuration =
+          (totalDeviationDurationMin ?? 0) + request.deviationDurationMin;
+
+        const { code: tripCode } = await tx.trip.update({
+          where: { id: request.tripId },
+          data: {
+            totalDeviationDistanceKm: newTotalDeviationDistance,
+            totalDeviationDurationMin: newTotalDeviationDuration,
+          },
+        });
+
+        // Get package and Update its status and breakdown
+        const packageData = await tx.package.findFirstOrThrow({
+          where: { id: request.packageId },
+          select: {
+            code: true,
+            breakdown: true,
+            senderId: true,
+          },
+        });
+
+        // Update breakdown
+        const breakdown = plainToInstance(
+          PriceBreakdownDto,
+          packageData?.breakdown,
+        );
+        if (breakdown) {
+          breakdown.deviationCost = request.deviationCost ?? 0;
+        }
+        const plainBreakdown = instanceToPlain(breakdown);
+
+        await tx.package.update({
+          where: { id: request.packageId },
+          data: {
+            status: PackageStatusEnum.matched,
+            finalPrice: {
+              increment: request.deviationCost,
+            },
+            breakdown: plainBreakdown,
+          },
+        });
+
+        // Create escrow if balance is enough
+        try {
+          await this.financialService.createEscrow({
+            packageId: request.packageId,
+            tripId: request.tripId,
+          });
+        } catch {
+          // Escrow creation failure is intentionally non-fatal here (MVP behavior); request is still accepted.
+        }
+
+        // Add accept request notification
         await this.notificationService.create(
           packageData.senderId,
           {
             packageId: request.packageId,
             tripId: request.tripId,
-            content: getNotificationMessage(NotificationMessages.TripRequestRejected, {
-              packageCode: packageData.code,
-              tripCode: trip.code
-            })
+            content: getNotificationMessage(
+              NotificationMessages.TripRequestAccepted,
+              {
+                packageCode: packageData.code,
+                tripCode,
+              },
+            ),
           },
-          tx
+          tx,
         );
 
-        return request
-      }).catch((error: Error) => {
+        return request;
+      })
+      .catch((error: Error) => {
         formatPrismaError(error);
         throw error;
       });
-    }
-
-    return this.prisma.$transaction(async tx => {
-      const request = await tx.tripRequest.update({
-        where: { id: requestId },
-        data: { status }
-      });
-
-      // Delete other sent requests for this package
-      await tx.tripRequest.updateMany({
-        where: {
-          packageId: request.packageId,
-          NOT: {
-            id: request.id
-          }
-        },
-        data: {
-          status: RequestStatusEnum.deleted
-        }
-      });
-
-      // Create MatchedRequest instance
-      const trackingCode = generateUniqueCode();
-      const deliveryCode = generateCode().toString();
-      await tx.matchedRequest.create({
-        data: {
-          requestId: request.id,
-          packageId: request.packageId,
-          tripId: request.tripId,
-          trackingCode,
-          deliveryCode,
-          transporterNotes,
-        }
-      });
-
-      // Update total deviation info in trip
-      const {
-        totalDeviationDistanceKm,
-        totalDeviationDurationMin
-      } = await tx.trip.findUniqueOrThrow({
-        where: { id: request.tripId }
-      });
-
-      const newTotalDeviationDistance = (totalDeviationDistanceKm ?? 0) + request.deviationDistanceKm;
-      const newTotalDeviationDuration = (totalDeviationDurationMin ?? 0) + request.deviationDurationMin;
-
-      const { code: tripCode } = await tx.trip.update({
-        where: { id: request.tripId },
-        data: {
-          totalDeviationDistanceKm: newTotalDeviationDistance,
-          totalDeviationDurationMin: newTotalDeviationDuration
-        }
-      });
-
-      // Get package and Update its status and breakdown
-      const packageData = await tx.package.findFirstOrThrow({
-        where: { id: request.packageId },
-        select: {
-          code: true,
-          breakdown: true,
-          senderId: true
-        }
-      });
-
-      // Update breakdown
-      const breakdown = plainToInstance(PriceBreakdownDto, packageData?.breakdown);
-      if (breakdown) {
-        breakdown.deviationCost = request.deviationCost ?? 0;
-      }
-      const plainBreakdown = instanceToPlain(breakdown);
-
-      await tx.package.update({
-        where: { id: request.packageId },
-        data: {
-          status: PackageStatusEnum.matched,
-          finalPrice: {
-            increment: request.deviationCost
-          },
-          breakdown: plainBreakdown
-        }
-      });
-
-      // Create escrow if balance is enough
-      try {
-        await this.financialService.createEscrow({
-          packageId: request.packageId,
-          tripId: request.tripId
-        });
-      } catch(error) {}
-
-      // Add accept request notification
-      await this.notificationService.create(
-        packageData.senderId,
-        {
-          packageId: request.packageId,
-          tripId: request.tripId,
-          content: getNotificationMessage(NotificationMessages.TripRequestAccepted, {
-            packageCode: packageData.code,
-            tripCode
-          })
-        },
-        tx
-      );
-
-      return request;
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
   }
 
-  async getAllMatchedRequests(
-    tripId: string,
-    inOrder = false
-  ) {
-    const matchedRequests = await this.prisma.matchedRequest.findMany({
-      where: {
-        tripId
-      },
-      select: {
-        package: {
-          select: {
-            id: true,
-            code: true,
-            sender: {
-              select: {
-                firstName: true,
-                lastName: true,
-                gender: true,
-                phoneNumber: true,
-              }
-            },
-            status: true,
-            items: true,
-            originAddress: true,
-            recipient: {
-              select: {
-                address: true
-              }
-            },
-            weight: true,
-            dimensions: true,
-            packageValue: true,
-            isFragile: true,
-            isPerishable: true,
-            description: true,
-            pickupAtOrigin: true,
-            deliveryAtDestination: true,
-            preferredPickupTime: true,
-            preferredDeliveryTime: true,
-            picturesKey: true
-          }
+  async getAllMatchedRequests(tripId: string, inOrder = false) {
+    const matchedRequests = await this.prisma.matchedRequest
+      .findMany({
+        where: {
+          tripId,
         },
-        request: true,
-        transporterNotes: true,
-        pickupTime: true,
-        deliveryTime: true,
-        paymentStatus: true,
-      },
-      orderBy: {
-        updatedAt: 'desc'
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+        select: {
+          package: {
+            select: {
+              id: true,
+              code: true,
+              sender: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  gender: true,
+                  phoneNumber: true,
+                },
+              },
+              status: true,
+              items: true,
+              originAddress: true,
+              recipient: {
+                select: {
+                  address: true,
+                },
+              },
+              weight: true,
+              dimensions: true,
+              packageValue: true,
+              isFragile: true,
+              isPerishable: true,
+              description: true,
+              pickupAtOrigin: true,
+              deliveryAtDestination: true,
+              preferredPickupTime: true,
+              preferredDeliveryTime: true,
+              picturesKey: true,
+            },
+          },
+          request: true,
+          transporterNotes: true,
+          pickupTime: true,
+          deliveryTime: true,
+          paymentStatus: true,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
-    let sortedMatchedRequests = matchedRequests.map(m => ({
+    let sortedMatchedRequests = matchedRequests.map((m) => ({
       ...m,
       package: {
         ...m.package,
-        items: instanceToPlain(m.package.items) as string[]
-      }
+        items: instanceToPlain(m.package.items) as string[],
+      },
     }));
     if (matchedRequests.length > 0 && inOrder) {
       const trip = await this.prisma.trip.findFirstOrThrow({
         where: { id: tripId },
         select: {
           origin: true,
-          destination: true
-        }
+          destination: true,
+        },
       });
-      sortedMatchedRequests = await this.sortMatchedPackages(trip.origin, trip.destination, sortedMatchedRequests);
+      sortedMatchedRequests = await this.sortMatchedPackages(
+        trip.origin,
+        trip.destination,
+        sortedMatchedRequests,
+      );
     }
 
-    return Promise.all(sortedMatchedRequests.map((async m => {
-      const picturesKey = instanceToPlain(m.package.picturesKey) as string[];
-      const picturePromises = picturesKey?.map(k => this.s3Service.generateGetPresignedUrl(k));
-      const picturesUrl = await Promise.all(picturePromises);
-      return {
-        ...m,
-        package: {
-          ...m.package,
-          picturesUrl,
-          offeredPrice: m.request.offeredPrice,
-          picturesKey: undefined
-        },
-        request: undefined
-      };
-    })));
+    return Promise.all(
+      sortedMatchedRequests.map(async (m) => {
+        const picturesKey = instanceToPlain(m.package.picturesKey) as string[];
+        const picturePromises = picturesKey?.map((k) =>
+          this.s3Service.generateGetPresignedUrl(k),
+        );
+        const picturesUrl = await Promise.all(picturePromises);
+        return {
+          ...m,
+          package: {
+            ...m.package,
+            picturesUrl,
+            offeredPrice: m.request.offeredPrice,
+            picturesKey: undefined,
+          },
+          request: undefined,
+        };
+      }),
+    );
   }
 
   private async sortMatchedPackages(
     origin: Location,
     destination: Location,
-    matchedRequests: any[]
+    matchedRequests: any[],
   ) {
     const locationsMap = new Map(
       matchedRequests
-        .map(m => [
+        .map((m) => [
           m.package.id,
-          m.package.pickupAtOrigin
-          && m.package.status !== PackageStatusEnum.delivered
-          && m.package.status !== PackageStatusEnum.returned
-          && m.package.status !== PackageStatusEnum.cancelled ? {
-            latitude: m.package.originAddress.latitude,
-            longitude: m.package.originAddress.longitude
-          } : m.package.deliveryAtDestination
-          && m.package.status === PackageStatusEnum.matched ? {
-            latitude: m.package.recipient.address.latitude,
-            longitude: m.package.recipient.address.longitude
-          } : undefined
+          m.package.pickupAtOrigin &&
+          m.package.status !== PackageStatusEnum.delivered &&
+          m.package.status !== PackageStatusEnum.returned &&
+          m.package.status !== PackageStatusEnum.cancelled
+            ? {
+                latitude: m.package.originAddress.latitude,
+                longitude: m.package.originAddress.longitude,
+              }
+            : m.package.deliveryAtDestination &&
+                m.package.status === PackageStatusEnum.matched
+              ? {
+                  latitude: m.package.recipient.address.latitude,
+                  longitude: m.package.recipient.address.longitude,
+                }
+              : undefined,
         ])
-        .filter(([_, location]) => location !== undefined) as [string, Location][]
+        .filter(([_, location]) => location !== undefined) as [
+        string,
+        Location,
+      ][],
     );
 
-    const sortedLocations = this.turfService.sortLocationsByRoute(origin, destination, locationsMap);
+    const sortedLocations = this.turfService.sortLocationsByRoute(
+      origin,
+      destination,
+      locationsMap,
+    );
     const sortedPackageIds = Array.from(sortedLocations.keys());
-    
+
     // Create the sorted array
     const sortedRequests: any[] = [];
-    sortedPackageIds.forEach(packageId => {
-      const request = matchedRequests.find(m => m.package.id === packageId);
+    sortedPackageIds.forEach((packageId) => {
+      const request = matchedRequests.find((m) => m.package.id === packageId);
       if (request) {
         sortedRequests.push(request);
       }
@@ -612,129 +677,144 @@ export class TripService {
   private async updateStatus(
     id: string,
     status: TripStatusEnum,
-    tx: PrismaTransaction = this.prisma
+    tx: PrismaTransaction = this.prisma,
   ) {
     return tx.trip.update({
       where: { id },
-      data: { status }
+      data: { status },
     });
   }
 
   async toggleTripAccess(id: string) {
-    const { status: tripStatus } = await this.prisma.trip.findUniqueOrThrow({
-      where: { id },
-      select: {
-        status: true
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+    const { status: tripStatus } = await this.prisma.trip
+      .findUniqueOrThrow({
+        where: { id },
+        select: {
+          status: true,
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
-    const isValidStatus = tripStatus === TripStatusEnum.scheduled 
-      || tripStatus === TripStatusEnum.closed;
+    const isValidStatus =
+      tripStatus === TripStatusEnum.scheduled ||
+      tripStatus === TripStatusEnum.closed;
     if (!isValidStatus) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
+      throw new BadRequestException(
+        `${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`,
+      );
     }
 
-    const updatedStatus = tripStatus === TripStatusEnum.scheduled ?
-      TripStatusEnum.closed : TripStatusEnum.scheduled;
+    const updatedStatus =
+      tripStatus === TripStatusEnum.scheduled
+        ? TripStatusEnum.closed
+        : TripStatusEnum.scheduled;
 
     return this.updateStatus(id, updatedStatus);
   }
 
   async startTrip(id: string) {
-    const {
-      status: tripStatus,
-      origin
-    } = await this.prisma.trip.findUniqueOrThrow({
-      where: { id },
-      select: {
-        status: true,
-        origin: true
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-
-    const isValidStatus = tripStatus === TripStatusEnum.scheduled
-      || tripStatus === TripStatusEnum.closed
-      || tripStatus === TripStatusEnum.delayed;
-    if (!isValidStatus) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
-    }
-    
-    return this.prisma.$transaction(async tx => {
-      await this.updateTracking(id, {
-        city: origin.name,
-        description: TrackingMessages.TripStarted
+    const { status: tripStatus, origin } = await this.prisma.trip
+      .findUniqueOrThrow({
+        where: { id },
+        select: {
+          status: true,
+          origin: true,
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
       });
 
-      return this.updateStatus(id, TripStatusEnum.in_progress, tx);
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+    const isValidStatus =
+      tripStatus === TripStatusEnum.scheduled ||
+      tripStatus === TripStatusEnum.closed ||
+      tripStatus === TripStatusEnum.delayed;
+    if (!isValidStatus) {
+      throw new BadRequestException(
+        `${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`,
+      );
+    }
+
+    return this.prisma
+      .$transaction(async (tx) => {
+        await this.updateTracking(id, {
+          city: origin.name,
+          description: TrackingMessages.TripStarted,
+        });
+
+        return this.updateStatus(id, TripStatusEnum.in_progress, tx);
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
   }
 
-  async pickupPackage(
-    tripId: string,
-    packageId: string
-  ) {
+  async pickupPackage(tripId: string, packageId: string) {
     const {
       id: matchedRequestId,
       package: packageData,
-      trip
-    } = await this.prisma.matchedRequest.findUniqueOrThrow({
-      where: {
-        tripId,
-        packageId
-      },
-      select: {
-        id: true,
-        package: {
-          select: {
-            code: true,
-            senderId: true,
-            status: true,
-            originAddress: true
-          }
+      trip,
+    } = await this.prisma.matchedRequest
+      .findUniqueOrThrow({
+        where: {
+          tripId,
+          packageId,
         },
-        trip: {
-          select: {
-            status: true
-          }
-        }
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+        select: {
+          id: true,
+          package: {
+            select: {
+              code: true,
+              senderId: true,
+              status: true,
+              originAddress: true,
+            },
+          },
+          trip: {
+            select: {
+              status: true,
+            },
+          },
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     if (packageData.status !== PackageStatusEnum.matched) {
-      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${packageData.status}*.`);
+      throw new BadRequestException(
+        `${BadRequestMessages.BasePackageStatus}*${packageData.status}*.`,
+      );
     }
 
     if (trip.status !== TripStatusEnum.in_progress) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`);
+      throw new BadRequestException(
+        `${BadRequestMessages.BaseTripStatus}*${packageData.status}*.`,
+      );
     }
 
-    return this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async (tx) => {
       // Update package status
-      const {
-        status: packageStatus
-      } = await this.updatePackageStatus(packageId, PackageStatusEnum.in_transit);
+      const { status: packageStatus } = await this.updatePackageStatus(
+        packageId,
+        PackageStatusEnum.in_transit,
+      );
 
       // Set pickupTime
       const { pickupTime } = await tx.matchedRequest.update({
         where: {
           tripId,
-          packageId
+          packageId,
         },
         data: {
-          pickupTime: new Date()
-        }
+          pickupTime: new Date(),
+        },
       });
 
       // Update tracking
@@ -744,8 +824,8 @@ export class TripService {
           latitude: packageData.originAddress.latitude,
           longitude: packageData.originAddress.longitude,
           city: packageData.originAddress.city,
-          description: TrackingMessages.PackagePickedUp
-        }
+          description: TrackingMessages.PackagePickedUp,
+        },
       });
 
       // Add pickup package notification
@@ -754,86 +834,92 @@ export class TripService {
         {
           packageId,
           tripId,
-          content: getNotificationMessage(NotificationMessages.PackagePickedUp, { packageCode: packageData.code })
+          content: getNotificationMessage(
+            NotificationMessages.PackagePickedUp,
+            { packageCode: packageData.code },
+          ),
         },
-        tx
+        tx,
       );
 
       return {
         packageStatus,
-        pickupTime
+        pickupTime,
       };
     });
   }
 
-  async deliveryPackage(
-    tripId: string,
-    packageId: string,
-    code: string
-  ) {
+  async deliveryPackage(tripId: string, packageId: string, code: string) {
     const {
       id: matchedRequestId,
       package: packageData,
       trip,
-      deliveryCode
-    } = await this.prisma.matchedRequest.findUniqueOrThrow({
-      where: {
-        tripId,
-        packageId
-      },
-      select: {
-        id: true,
-        package: {
-          select: {
-            code: true,
-            senderId: true,
-            status: true,
-            recipient: {
-              include: {
-                address: true
-              }
-            }
-          }
+      deliveryCode,
+    } = await this.prisma.matchedRequest
+      .findUniqueOrThrow({
+        where: {
+          tripId,
+          packageId,
         },
-        trip: {
-          select: {
-            status: true
-          }
+        select: {
+          id: true,
+          package: {
+            select: {
+              code: true,
+              senderId: true,
+              status: true,
+              recipient: {
+                include: {
+                  address: true,
+                },
+              },
+            },
+          },
+          trip: {
+            select: {
+              status: true,
+            },
+          },
+          deliveryCode: true,
         },
-        deliveryCode: true
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     if (packageData.status !== PackageStatusEnum.in_transit) {
-      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${packageData.status}*.`);
+      throw new BadRequestException(
+        `${BadRequestMessages.BasePackageStatus}*${packageData.status}*.`,
+      );
     }
 
     if (trip.status !== TripStatusEnum.in_progress) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
+      throw new BadRequestException(
+        `${BadRequestMessages.BaseTripStatus}*${trip.status}*.`,
+      );
     }
 
     if (code !== deliveryCode) {
       throw new BadRequestException(BadRequestMessages.WrongDeliveryCode);
     }
 
-    return this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async (tx) => {
       // Update package status
-      const {
-        status: packageStatus
-      } = await this.updatePackageStatus(packageId, PackageStatusEnum.delivered);
+      const { status: packageStatus } = await this.updatePackageStatus(
+        packageId,
+        PackageStatusEnum.delivered,
+      );
 
       // Set deliveryTime
       const { deliveryTime } = await tx.matchedRequest.update({
         where: {
           tripId,
-          packageId
+          packageId,
         },
         data: {
-          deliveryTime: new Date()
-        }
+          deliveryTime: new Date(),
+        },
       });
 
       // Update tracking
@@ -843,8 +929,8 @@ export class TripService {
           latitude: packageData.recipient.address.latitude,
           longitude: packageData.recipient.address.longitude,
           city: packageData.recipient.address.city,
-          description: TrackingMessages.PackageDelivered
-        }
+          description: TrackingMessages.PackageDelivered,
+        },
       });
 
       // Release escrow
@@ -858,14 +944,17 @@ export class TripService {
         {
           packageId,
           tripId,
-          content: getNotificationMessage(NotificationMessages.PackageDelivered, { packageCode: packageData.code })
+          content: getNotificationMessage(
+            NotificationMessages.PackageDelivered,
+            { packageCode: packageData.code },
+          ),
         },
-        tx
+        tx,
       );
 
       return {
         packageStatus,
-        deliveryTime
+        deliveryTime,
       };
     });
   }
@@ -874,33 +963,39 @@ export class TripService {
     const {
       status: tripStatus,
       matchedRequests,
-      transporter
-    } = await this.prisma.trip.findUniqueOrThrow({
-      where: { id },
-      select: {
-        status: true,
-        matchedRequests: {
-          select: {
-            deliveryTime: true
-          }
+      transporter,
+    } = await this.prisma.trip
+      .findUniqueOrThrow({
+        where: { id },
+        select: {
+          status: true,
+          matchedRequests: {
+            select: {
+              deliveryTime: true,
+            },
+          },
+          transporter: {
+            select: {
+              id: true,
+              firstTripDate: true,
+            },
+          },
         },
-        transporter: {
-          select: {
-            id: true,
-            firstTripDate: true,
-          }
-        }
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     if (tripStatus !== TripStatusEnum.in_progress) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`);
+      throw new BadRequestException(
+        `${BadRequestMessages.BaseTripStatus}*${tripStatus}*.`,
+      );
     }
 
-    const allRequestsDelivered = matchedRequests.every(m => m.deliveryTime !== null);
+    const allRequestsDelivered = matchedRequests.every(
+      (m) => m.deliveryTime !== null,
+    );
     if (!allRequestsDelivered) {
       throw new BadRequestException(BadRequestMessages.CannotFinishTrip);
     }
@@ -913,13 +1008,13 @@ export class TripService {
       updateTransporter.lastTripDate = new Date();
     }
 
-    return this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async (tx) => {
       // Update transporter
       await tx.transporter.update({
         where: { id: transporter.id },
-        data: updateTransporter
+        data: updateTransporter,
       });
-      
+
       return this.updateStatus(id, TripStatusEnum.completed, tx);
     });
   }
@@ -928,89 +1023,98 @@ export class TripService {
     tripId: string,
     note: string,
     packageId?: string,
-    tx: PrismaTransaction = this.prisma
+    tx: PrismaTransaction = this.prisma,
   ) {
-    const trip = await tx.trip.findUniqueOrThrow({
-      where: {
-        id: tripId
-      },
-      include: {
-        matchedRequests: {
-          where: {
-            packageId
-          },
-          include: {
-            package: {
-              select: {
-                code: true,
-                senderId: true
-              }
-            }
-          }
+    const trip = await tx.trip
+      .findUniqueOrThrow({
+        where: {
+          id: tripId,
         },
-        transporter: {
-          select: {
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-              }
-            }
-          }
-        }
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+        include: {
+          matchedRequests: {
+            where: {
+              packageId,
+            },
+            include: {
+              package: {
+                select: {
+                  code: true,
+                  senderId: true,
+                },
+              },
+            },
+          },
+          transporter: {
+            select: {
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     if (trip.status === TripStatusEnum.completed) {
-      throw new BadRequestException(`${BadRequestMessages.BaseTripStatus}*${trip.status}*.`);
+      throw new BadRequestException(
+        `${BadRequestMessages.BaseTripStatus}*${trip.status}*.`,
+      );
     }
 
     // If packageId included, the note will send for all matched requests within a trip.
-    const updatedMatchedRequestsPromises = trip.matchedRequests.map(async m => {
-      // Push note
-      const oldNotes = plainToInstance(Array<String>, m.transporterNotes) ?? [];
-      oldNotes.push(note);
-      const plainNewNotes = instanceToPlain(oldNotes);
+    const updatedMatchedRequestsPromises = trip.matchedRequests.map(
+      async (m) => {
+        // Push note
+        const oldNotes =
+          plainToInstance(Array<string>, m.transporterNotes) ?? [];
+        oldNotes.push(note);
+        const plainNewNotes = instanceToPlain(oldNotes);
 
-      // Add create package notification
-      await this.notificationService.create(
-        m.package.senderId,
-        {
-          packageId: m.packageId,
-          tripId: m.tripId,
-          content: getNotificationMessage(NotificationMessages.NewTransporterNote, {
-            packageCode: m.package.code,
-            tripCode: trip.code,
-            noteContent: note
-          })
-        },
-        tx
-      );
+        // Add create package notification
+        await this.notificationService.create(
+          m.package.senderId,
+          {
+            packageId: m.packageId,
+            tripId: m.tripId,
+            content: getNotificationMessage(
+              NotificationMessages.NewTransporterNote,
+              {
+                packageCode: m.package.code,
+                tripCode: trip.code,
+                noteContent: note,
+              },
+            ),
+          },
+          tx,
+        );
 
-      return tx.matchedRequest.update({
-        where: {
-          tripId,
-          packageId: m.packageId
-        },
-        data: {
-          transporterNotes: plainNewNotes
-        }
-      });
-    });
+        return tx.matchedRequest.update({
+          where: {
+            tripId,
+            packageId: m.packageId,
+          },
+          data: {
+            transporterNotes: plainNewNotes,
+          },
+        });
+      },
+    );
 
     // Run queries parallel and Get 'resolved' promises's length
     const results = await Promise.allSettled(updatedMatchedRequestsPromises);
-    const count = results
-      .filter((result): result is PromiseFulfilledResult<MatchedRequest> => 
-        result.status === 'fulfilled' && result.value !== null
-      )
-      .length;
+    const count = results.filter(
+      (result): result is PromiseFulfilledResult<MatchedRequest> =>
+        result.status === 'fulfilled' && result.value !== null,
+    ).length;
 
     return {
-      count
+      count,
     };
   }
 
@@ -1019,210 +1123,235 @@ export class TripService {
     trackingDto: UpdateTrackingDto,
     tx: PrismaTransaction = this.prisma,
   ) {
-    const trip = await tx.trip.findUniqueOrThrow({
-      where: { id: tripId },
-      select: {
-        status: true,
-        matchedRequests: true
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+    const trip = await tx.trip
+      .findUniqueOrThrow({
+        where: { id: tripId },
+        select: {
+          status: true,
+          matchedRequests: true,
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
-    const trackingUpdates = trip.matchedRequests.map(m => ({
+    const trackingUpdates = trip.matchedRequests.map((m) => ({
       matchedRequestId: m.id,
-      ...trackingDto
+      ...trackingDto,
     }));
     return tx.trackingUpdate.createMany({
-      data: trackingUpdates
+      data: trackingUpdates,
     });
   }
 
-  async getTripTracking(
-    tripId: string,
-    packageId: string,
-  ) {
-    return this.prisma.trackingUpdate.findMany({
-      where: {
-        matchedRequest: {
-          tripId,
-          packageId
+  async getTripTracking(tripId: string, packageId: string) {
+    return this.prisma.trackingUpdate
+      .findMany({
+        where: {
+          matchedRequest: {
+            tripId,
+            packageId,
+          },
+          deletedAt: null,
         },
-        deletedAt: null
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
   }
 
   async rateTrip(
     userId: string,
-    {
-      tripId,
-      packageId,
-      rate,
-      comment
-    }: RateTripDto
+    { tripId, packageId, rate, comment }: RateTripDto,
   ) {
     const {
       senderRating,
       package: { senderId, status },
-      trip: { transporterId, transporter: { rate: tRate, rateCount } }
-    } = await this.prisma.matchedRequest.findUniqueOrThrow({
-      where: {
-        tripId,
-        packageId
+      trip: {
+        transporterId,
+        transporter: { rate: tRate, rateCount },
       },
-      select: {
-        senderRating: true,
-        package: {
-          select: {
-            senderId: true,
-            status: true
-          }
+    } = await this.prisma.matchedRequest
+      .findUniqueOrThrow({
+        where: {
+          tripId,
+          packageId,
         },
-        trip: {
-          select: {
-            transporterId: true,
-            transporter: {
-              select: {
-                rate: true,
-                rateCount: true,
-              }
-            }
-          }
-        }
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+        select: {
+          senderRating: true,
+          package: {
+            select: {
+              senderId: true,
+              status: true,
+            },
+          },
+          trip: {
+            select: {
+              transporterId: true,
+              transporter: {
+                select: {
+                  rate: true,
+                  rateCount: true,
+                },
+              },
+            },
+          },
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     if (senderId !== userId) {
-      throw new ForbiddenException(`${AuthMessages.EntityAccessDenied} package.`);
+      throw new ForbiddenException(
+        `${AuthMessages.EntityAccessDenied} package.`,
+      );
     }
 
     if (isNumber(senderRating)) {
       throw new BadRequestException(BadRequestMessages.AlreadyRatedTrip);
     }
 
-    const isValidStatus = status === PackageStatusEnum.delivered
-      || status === PackageStatusEnum.returned;
+    const isValidStatus =
+      status === PackageStatusEnum.delivered ||
+      status === PackageStatusEnum.returned;
     if (!isValidStatus) {
-      throw new BadRequestException(`${BadRequestMessages.BasePackageStatus}*${status}*.`);
+      throw new BadRequestException(
+        `${BadRequestMessages.BasePackageStatus}*${status}*.`,
+      );
     }
 
-    return this.prisma.$transaction(async tx => {
-      // Update transporter rate
-      const newRateCount = rateCount + 1;
-      const newRate = ((tRate * rateCount) + rate) / newRateCount;
+    return this.prisma
+      .$transaction(async (tx) => {
+        // Update transporter rate
+        const newRateCount = rateCount + 1;
+        const newRate = (tRate * rateCount + rate) / newRateCount;
 
-      await tx.transporter.update({
-        where: {
-          id: transporterId
-        },
-        data: {
-          rate: newRate,
-          rateCount: newRateCount
-        }
-      });
+        await tx.transporter.update({
+          where: {
+            id: transporterId,
+          },
+          data: {
+            rate: newRate,
+            rateCount: newRateCount,
+          },
+        });
 
-      return tx.matchedRequest.update({
-        where: {
-          tripId,
-          packageId
-        },
-        data: {
-          senderRating: rate,
-          senderComment: comment
-        }
+        return tx.matchedRequest.update({
+          where: {
+            tripId,
+            packageId,
+          },
+          data: {
+            senderRating: rate,
+            senderComment: comment,
+          },
+        });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
       });
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
   }
 
   async getDirections(tripId: string, origin: Location) {
-    const { destination } = await this.prisma.trip.findFirstOrThrow({
-      where: { id: tripId },
-      select: {
-        destination: true
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
-
-    let matchedRequests = await this.prisma.matchedRequest.findMany({
-      where: {
-        tripId
-      },
-      select: {
-        package: {
-          select: {
-            id: true,
-            status: true,
-            originAddress: true,
-            recipient: {
-              select: {
-                address: true
-              }
-            },
-            pickupAtOrigin: true,
-            deliveryAtDestination: true,
-          }
+    const { destination } = await this.prisma.trip
+      .findFirstOrThrow({
+        where: { id: tripId },
+        select: {
+          destination: true,
         },
-      }
-    }).catch((error: Error) => {
-      formatPrismaError(error);
-      throw error;
-    });
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
+
+    let matchedRequests = await this.prisma.matchedRequest
+      .findMany({
+        where: {
+          tripId,
+        },
+        select: {
+          package: {
+            select: {
+              id: true,
+              status: true,
+              originAddress: true,
+              recipient: {
+                select: {
+                  address: true,
+                },
+              },
+              pickupAtOrigin: true,
+              deliveryAtDestination: true,
+            },
+          },
+        },
+      })
+      .catch((error: Error) => {
+        formatPrismaError(error);
+        throw error;
+      });
 
     if (matchedRequests.length < 1) {
       return {};
     }
 
-    matchedRequests = await this.sortMatchedPackages(origin, destination, matchedRequests);
-
-    const waypoints = matchedRequests.flatMap(m => ([
-        m.package.pickupAtOrigin ? {
-          latitude: m.package.originAddress.latitude,
-          longitude: m.package.originAddress.longitude
-        } : undefined,
-        m.package.deliveryAtDestination ? {
-          latitude: m.package.recipient.address.latitude,
-          longitude: m.package.recipient.address.longitude
-        } : undefined
-      ].filter(v => v !== undefined))
+    matchedRequests = await this.sortMatchedPackages(
+      origin,
+      destination,
+      matchedRequests,
     );
 
-    const sortedWaypoints = this.turfService.sortLocationsByRoute(origin, destination, waypoints);
+    const waypoints = matchedRequests.flatMap((m) =>
+      [
+        m.package.pickupAtOrigin
+          ? {
+              latitude: m.package.originAddress.latitude,
+              longitude: m.package.originAddress.longitude,
+            }
+          : undefined,
+        m.package.deliveryAtDestination
+          ? {
+              latitude: m.package.recipient.address.latitude,
+              longitude: m.package.recipient.address.longitude,
+            }
+          : undefined,
+      ].filter((v) => v !== undefined),
+    );
+
+    const sortedWaypoints = this.turfService.sortLocationsByRoute(
+      origin,
+      destination,
+      waypoints,
+    );
 
     return this.mapService.getDirections({
       origin,
       destination,
-      waypoints: sortedWaypoints
+      waypoints: sortedWaypoints,
     });
   }
 
   private async updatePackageStatus(
     id: string,
     status: PackageStatusEnum,
-    tx: PrismaTransaction = this.prisma
+    tx: PrismaTransaction = this.prisma,
   ) {
     return tx.package.update({
       where: {
         id,
-        deletedAt: null
+        deletedAt: null,
       },
       data: {
-        status
+        status,
       },
     });
   }

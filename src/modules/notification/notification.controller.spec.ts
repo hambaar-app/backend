@@ -10,16 +10,14 @@ describe('NotificationController', () => {
 
   beforeEach(async () => {
     service = mockDeep<NotificationService>();
-    
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationController],
-      providers: [
-        { provide: NotificationService, useValue: service },
-      ]
+      providers: [{ provide: NotificationService, useValue: service }],
     })
-    .overrideGuard(AccessTokenGuard)
-    .useValue({ canActivate: () => true })
-    .compile();
+      .overrideGuard(AccessTokenGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<NotificationController>(NotificationController);
   });

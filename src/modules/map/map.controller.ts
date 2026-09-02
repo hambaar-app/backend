@@ -1,11 +1,24 @@
-import { Controller, Get, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { MapService } from './map.service';
-import { ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiInternalServerErrorResponse,
+  ApiOkResponse,
+  ApiOperation,
+} from '@nestjs/swagger';
 import { Serialize } from '../../common/serialize.interceptor';
 import { CityDto } from './dto/city.dto';
 import { AuthResponses } from '../../common/api-docs.decorators';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
-import { CoordinateQueryDto, CoordinatesQueryDto } from './coordinates-query.dto';
+import {
+  CoordinateQueryDto,
+  CoordinatesQueryDto,
+} from './coordinates-query.dto';
 import { ReverseGeocodeDto } from './dto/reverse-geocode.dto';
 
 @Controller('map')
@@ -19,11 +32,11 @@ export class MapController {
       during trip creation via \`POST /trips\`.`,
   })
   @ApiOkResponse({
-    type: [CityDto]
+    type: [CityDto],
   })
   @AuthResponses()
   @ApiInternalServerErrorResponse({
-    description: 'Failed to get intermediate cities.'
+    description: 'Failed to get intermediate cities.',
   })
   @Serialize(CityDto)
   @UseGuards(AccessTokenGuard)
@@ -39,20 +52,23 @@ export class MapController {
       during trip creation via \`POST /trips\`.`,
   })
   @ApiOkResponse({
-    type: [CityDto]
+    type: [CityDto],
   })
   @AuthResponses()
   @ApiInternalServerErrorResponse({
-    description: 'Failed to get intermediate cities.'
+    description: 'Failed to get intermediate cities.',
   })
   @Serialize(CityDto)
   @UseGuards(AccessTokenGuard)
   @Get('intermediate-cities/with-ids')
   async getIntermediateCitiesWithIds(
     @Query('originId', ParseUUIDPipe) originId: string,
-    @Query('destinationId', ParseUUIDPipe) destinationId: string
+    @Query('destinationId', ParseUUIDPipe) destinationId: string,
   ) {
-    return this.mapService.getIntermediateCitiesWithIds(originId, destinationId);
+    return this.mapService.getIntermediateCitiesWithIds(
+      originId,
+      destinationId,
+    );
   }
 
   @ApiOperation({
@@ -60,11 +76,11 @@ export class MapController {
     description: `Which can be used to update tracking via \`POST /trips/:id/tracking\`.`,
   })
   @ApiOkResponse({
-    type: ReverseGeocodeDto
+    type: ReverseGeocodeDto,
   })
   @AuthResponses()
   @ApiInternalServerErrorResponse({
-    description: 'Failed to get intermediate cities.'
+    description: 'Failed to get intermediate cities.',
   })
   @Serialize(ReverseGeocodeDto)
   @UseGuards(AccessTokenGuard)
@@ -72,17 +88,17 @@ export class MapController {
   async reverseGeocode(@Query() query: CoordinateQueryDto) {
     const location = {
       latitude: query.lat,
-      longitude: query.lng
+      longitude: query.lng,
     };
-    
+
     const result = await this.mapService.reverseGeocode({
       latitude: query.lat,
-      longitude: query.lng
+      longitude: query.lng,
     });
 
     return {
       ...location,
-      ...result
+      ...result,
     };
   }
 }
