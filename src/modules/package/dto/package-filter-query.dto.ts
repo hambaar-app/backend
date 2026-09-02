@@ -9,14 +9,14 @@ export class PackageFilterQueryDto {
     enum: PackageStatusEnum,
     isArray: true,
     required: false,
-    example: ['active', 'pending']
+    example: ['active', 'pending'],
   })
   @IsOptional()
   @IsArray()
-  @IsEnum(PackageStatusEnum, { each: true } )
+  @IsEnum(PackageStatusEnum, { each: true })
   @Transform(({ value }) => {
     if (typeof value === 'string') {
-      return value.split(',').map(v => v.trim());
+      return value.split(',').map((v) => v.trim());
     }
     return Array.isArray(value) ? value : [value];
   })

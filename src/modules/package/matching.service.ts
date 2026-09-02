@@ -4,7 +4,11 @@ import { Prisma, TripStatusEnum } from '../../../generated/prisma';
 import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
 import { SessionData } from 'express-session';
-import { MatchResult, PackageWithLocations, TripWithLocations } from './matching.types';
+import {
+  MatchResult,
+  PackageWithLocations,
+  TripWithLocations,
+} from './matching.types';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { TurfService } from '../turf/turf.service';
 
@@ -15,7 +19,7 @@ export class MatchingService {
   constructor(
     config: ConfigService,
     private prisma: PrismaService,
-    private turfService: TurfService
+    private turfService: TurfService,
   ) {
     this.corridorWidth = config.get<number>('CORRIDOR_WIDTH', 10);
   }
@@ -24,7 +28,7 @@ export class MatchingService {
     packageData: PackageWithLocations,
     session: SessionData,
     maxResults: number = 20,
-    tx: PrismaTransaction = this.prisma
+    tx: PrismaTransaction = this.prisma,
   ): Promise<MatchResult[]> {
     const now = new Date();
 
@@ -33,63 +37,68 @@ export class MatchingService {
     }
 
     // Find or create session package
-    let sessionPackage = session.packages.find(p => p.id === packageData.id);
+    let sessionPackage = session.packages.find((p) => p.id === packageData.id);
     if (!sessionPackage) {
       sessionPackage = {
         id: packageData.id,
-        matchResults: []
+        matchResults: [],
       };
       session.packages.push(sessionPackage);
     }
 
     // Pre-filter trips
-    const candidateTrips = await this.getPreFilteredTrips(packageData, sessionPackage.lastCheckMatching, tx);
+    const candidateTrips = await this.getPreFilteredTrips(
+      packageData,
+      sessionPackage.lastCheckMatching,
+      tx,
+    );
 
     // Analyze each trip for corridor matching in parallel
-    const matchResultPromises = candidateTrips.map(trip => 
+    const matchResultPromises = candidateTrips.map((trip) =>
       this.analyzeTrip(
         trip,
         packageData.originAddress,
         packageData.recipient.address,
-        this.corridorWidth
-      ).catch(error => {
+        this.corridorWidth,
+      ).catch((error) => {
         console.error(`Error analyzing trip ${trip.id}:`, error);
         return null;
-      })
+      }),
     );
 
     const results = await Promise.allSettled(matchResultPromises);
     const newMatchResults = results
-      .filter((result): result is PromiseFulfilledResult<MatchResult> => 
-        result.status === 'fulfilled' && result.value !== null
+      .filter(
+        (result): result is PromiseFulfilledResult<MatchResult> =>
+          result.status === 'fulfilled' && result.value !== null,
       )
-      .map(result => result.value);
+      .map((result) => result.value);
 
     // Merge and sort results
     let updatedResults = [...sessionPackage.matchResults];
     for (const newResult of newMatchResults) {
-      const existingIndex = updatedResults.findIndex(mr => mr.tripId === newResult.tripId);
+      const existingIndex = updatedResults.findIndex(
+        (mr) => mr.tripId === newResult.tripId,
+      );
       if (existingIndex >= 0) {
         updatedResults[existingIndex] = newResult;
       } else {
         updatedResults.push(newResult);
       }
     }
-    updatedResults = updatedResults
-      .sort((a, b) => a.score - b.score);
-    
+    updatedResults = updatedResults.sort((a, b) => a.score - b.score);
+
     // Update session
     sessionPackage.lastCheckMatching = now;
     sessionPackage.matchResults = updatedResults;
 
-    return sessionPackage.matchResults
-      .slice(0, maxResults);
+    return sessionPackage.matchResults.slice(0, maxResults);
   }
 
   private async getPreFilteredTrips(
     packageData: PackageWithLocations,
     lastCheckMatching?: Date,
-    tx: PrismaTransaction = this.prisma
+    tx: PrismaTransaction = this.prisma,
   ) {
     const whereClause: Prisma.TripWhereInput = {
       isActive: true,
@@ -99,7 +108,7 @@ export class MatchingService {
     // Just check new trips after lastCheckMatching
     if (lastCheckMatching) {
       whereClause.updatedAt = {
-        gte: lastCheckMatching
+        gte: lastCheckMatching,
       };
     }
 
@@ -150,21 +159,33 @@ export class MatchingService {
     trip: TripWithLocations,
     packageOrigin: Location,
     packageDestination: Location,
-    corridorWidthKm: number = this.corridorWidth
+    corridorWidthKm: number = this.corridorWidth,
   ): Promise<MatchResult | null> {
-    const tripRoute = this.turfService.createRoute(trip.origin, trip.destination, trip.waypoints);
-    
+    const tripRoute = this.turfService.createRoute(
+      trip.origin,
+      trip.destination,
+      trip.waypoints,
+    );
+
     const packageOriginPoint = this.turfService.createPoint(packageOrigin);
-    const packageDestinationPoint = this.turfService.createPoint(packageDestination);
+    const packageDestinationPoint =
+      this.turfService.createPoint(packageDestination);
 
     // Calculate distances from package points to trip route
-    const originDistance = this.turfService.getDistanceToRoute(packageOriginPoint, tripRoute);
-    const destinationDistance = this.turfService.getDistanceToRoute(packageDestinationPoint, tripRoute);
+    const originDistance = this.turfService.getDistanceToRoute(
+      packageOriginPoint,
+      tripRoute,
+    );
+    const destinationDistance = this.turfService.getDistanceToRoute(
+      packageDestinationPoint,
+      tripRoute,
+    );
 
     // Check if both points are within corridor
     const corridorWidthMeters = corridorWidthKm * 1000;
-    const isOnCorridor = originDistance <= corridorWidthMeters && 
-                        destinationDistance <= corridorWidthMeters;
+    const isOnCorridor =
+      originDistance <= corridorWidthMeters &&
+      destinationDistance <= corridorWidthMeters;
 
     if (!isOnCorridor) {
       return null;
@@ -174,7 +195,7 @@ export class MatchingService {
     const isDirectionCompatible = this.turfService.checkDirectionCompatibility(
       tripRoute,
       packageOriginPoint,
-      packageDestinationPoint
+      packageDestinationPoint,
     );
 
     if (!isDirectionCompatible) {
@@ -184,7 +205,7 @@ export class MatchingService {
     const score = this.calculateMatchingScore(
       originDistance,
       destinationDistance,
-      isOnCorridor
+      isOnCorridor,
     );
 
     return {
@@ -193,7 +214,7 @@ export class MatchingService {
       score,
       originDistance,
       destinationDistance,
-      isOnCorridor
+      isOnCorridor,
     };
   }
 
@@ -202,11 +223,11 @@ export class MatchingService {
   private calculateMatchingScore(
     originDistance: number,
     destinationDistance: number,
-    isOnCorridor: boolean
+    isOnCorridor: boolean,
   ): number {
     // Base score
     let score = (originDistance + destinationDistance) / 2;
-    
+
     // Lower score for packages not on corridor
     if (!isOnCorridor) {
       score += 100_000;

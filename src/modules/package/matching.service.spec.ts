@@ -5,7 +5,11 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaClient, TripStatusEnum } from '../../../generated/prisma';
 import { TurfService } from '../turf/turf.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { PackageWithLocations, TripWithLocations, MatchResult } from './matching.types';
+import {
+  PackageWithLocations,
+  TripWithLocations,
+  MatchResult,
+} from './matching.types';
 import { Location } from '../map/map.types';
 
 describe('MatchingService', () => {
@@ -21,14 +25,14 @@ describe('MatchingService', () => {
     weight: 2000,
     originAddress: {
       latitude: '35.6892',
-      longitude: '51.3890'
+      longitude: '51.3890',
     },
     recipient: {
       address: {
         latitude: '35.7219',
-        longitude: '51.3347'
-      }
-    }
+        longitude: '51.3347',
+      },
+    },
   } as any;
 
   const mockTripData: TripWithLocations = {
@@ -36,25 +40,25 @@ describe('MatchingService', () => {
     status: TripStatusEnum.scheduled,
     origin: {
       latitude: '35.6850',
-      longitude: '51.3800'
+      longitude: '51.3800',
     },
     destination: {
       latitude: '35.7250',
-      longitude: '51.3400'
+      longitude: '51.3400',
     },
-    waypoints: []
+    waypoints: [],
   };
 
   const mockRoute = {
     type: 'LineString',
     coordinates: [
       ['51.3800', '35.6850'],
-      ['51.3400', '35.7250']
-    ]
+      ['51.3400', '35.7250'],
+    ],
   };
 
   const mockSession = {
-    packages: []
+    packages: [],
   } as any;
 
   const existingMatchResult: MatchResult = {
@@ -63,28 +67,30 @@ describe('MatchingService', () => {
     score: 800,
     originDistance: 1000,
     destinationDistance: 600,
-    isOnCorridor: true
+    isOnCorridor: true,
   };
 
   const sessionWithExistingData = {
-    packages: [{
-      id: 'package-123',
-      matchResults: [existingMatchResult],
-      lastCheckMatching: new Date(Date.now() - 60000)
-    }]
+    packages: [
+      {
+        id: 'package-123',
+        matchResults: [existingMatchResult],
+        lastCheckMatching: new Date(Date.now() - 60000),
+      },
+    ],
   } as any;
-  
+
   beforeEach(async () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
-    
+
     configService = mockDeep<ConfigService>();
     prismaService = mockDeep<PrismaClient>();
     turfService = mockDeep<TurfService>();
 
     configService.get.mockImplementation((key: string, defaultValue?: any) => {
       const config = {
-        CORRIDOR_WIDTH: 2
+        CORRIDOR_WIDTH: 2,
       };
       return config[key] || defaultValue;
     });
@@ -113,19 +119,30 @@ describe('MatchingService', () => {
         score: 0,
         originDistance: 500,
         destinationDistance: 300,
-        isOnCorridor: true
+        isOnCorridor: true,
       };
 
       // Mock the private method calls
-      jest.spyOn(service as any, 'getPreFilteredTrips').mockResolvedValue(candidateTrips);
-      jest.spyOn(service as any, 'analyzeTrip').mockResolvedValue(expectedMatchResult);
+      jest
+        .spyOn(service as any, 'getPreFilteredTrips')
+        .mockResolvedValue(candidateTrips);
+      jest
+        .spyOn(service as any, 'analyzeTrip')
+        .mockResolvedValue(expectedMatchResult);
 
-      const result = await service.findMatchedTrips(mockPackageData, mockSession, 20, prismaService);
+      const result = await service.findMatchedTrips(
+        mockPackageData,
+        mockSession,
+        20,
+        prismaService,
+      );
 
       expect(result).toEqual([expectedMatchResult]);
       expect(mockSession.packages).toHaveLength(1);
       expect(mockSession.packages[0].id).toBe('package-123');
-      expect(mockSession.packages[0].matchResults).toEqual([expectedMatchResult]);
+      expect(mockSession.packages[0].matchResults).toEqual([
+        expectedMatchResult,
+      ]);
       expect(mockSession.packages[0].lastCheckMatching).toBeDefined();
     });
 
@@ -136,15 +153,17 @@ describe('MatchingService', () => {
         score: 600,
         originDistance: 800,
         destinationDistance: 400,
-        isOnCorridor: true
+        isOnCorridor: true,
       };
 
       const sessionWithExistingData = {
-        packages: [{
-          id: 'package-123',
-          matchResults: [existingMatchResult],
-          lastCheckMatching: new Date(Date.now() - 60000)
-        }]
+        packages: [
+          {
+            id: 'package-123',
+            matchResults: [existingMatchResult],
+            lastCheckMatching: new Date(Date.now() - 60000),
+          },
+        ],
       } as any;
 
       const newMatchResult: MatchResult = {
@@ -153,17 +172,19 @@ describe('MatchingService', () => {
         score: 400,
         originDistance: 500,
         destinationDistance: 300,
-        isOnCorridor: true
+        isOnCorridor: true,
       };
 
-      service['getPreFilteredTrips'] = jest.fn().mockResolvedValue([mockTripData]);
+      service['getPreFilteredTrips'] = jest
+        .fn()
+        .mockResolvedValue([mockTripData]);
       service['analyzeTrip'] = jest.fn().mockResolvedValue(newMatchResult);
 
       const result = await service.findMatchedTrips(
-        mockPackageData, 
-        sessionWithExistingData, 
-        20, 
-        prismaService
+        mockPackageData,
+        sessionWithExistingData,
+        20,
+        prismaService,
       );
 
       expect(result).toHaveLength(2);
@@ -178,28 +199,32 @@ describe('MatchingService', () => {
         score: 400,
         originDistance: 500,
         destinationDistance: 300,
-        isOnCorridor: true
+        isOnCorridor: true,
       };
 
-      service['getPreFilteredTrips'] = jest.fn().mockResolvedValue([mockTripData]);
+      service['getPreFilteredTrips'] = jest
+        .fn()
+        .mockResolvedValue([mockTripData]);
       service['analyzeTrip'] = jest.fn().mockResolvedValue(updatedMatchResult);
 
       const result = await service.findMatchedTrips(
-        mockPackageData, 
-        sessionWithExistingData, 
-        20, 
-        prismaService
+        mockPackageData,
+        sessionWithExistingData,
+        20,
+        prismaService,
       );
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(updatedMatchResult);
-      expect(sessionWithExistingData.packages[0].matchResults[0]).toEqual(updatedMatchResult);
+      expect(sessionWithExistingData.packages[0].matchResults[0]).toEqual(
+        updatedMatchResult,
+      );
     });
 
     it('should limit results to maxResults', async () => {
       const manyTrips = Array.from({ length: 30 }, (_, i) => ({
         ...mockTripData,
-        id: `trip-${i}`
+        id: `trip-${i}`,
       }));
 
       const manyMatchResults = manyTrips.map((trip, i) => ({
@@ -208,16 +233,23 @@ describe('MatchingService', () => {
         score: i * 100,
         originDistance: i * 50,
         destinationDistance: i * 30,
-        isOnCorridor: true
+        isOnCorridor: true,
       }));
 
       service['getPreFilteredTrips'] = jest.fn().mockResolvedValue(manyTrips);
-      service['analyzeTrip'] = jest.fn()
-        .mockImplementation(async (trip) => 
-          manyMatchResults.find(mr => mr.tripId === trip.id) || null
+      service['analyzeTrip'] = jest
+        .fn()
+        .mockImplementation(
+          async (trip) =>
+            manyMatchResults.find((mr) => mr.tripId === trip.id) || null,
         );
 
-      const result = await service.findMatchedTrips(mockPackageData, mockSession, 20, prismaService);
+      const result = await service.findMatchedTrips(
+        mockPackageData,
+        mockSession,
+        20,
+        prismaService,
+      );
 
       expect(result).toHaveLength(20);
       expect(result[0].score).toBeLessThan(result[19].score); // Verify sorting
@@ -270,7 +302,11 @@ describe('MatchingService', () => {
     it('should filter trips by weight capacity', async () => {
       const heavyPackage = { ...mockPackageData, weight: 5000 };
 
-      await service['getPreFilteredTrips'](heavyPackage, undefined, prismaService);
+      await service['getPreFilteredTrips'](
+        heavyPackage,
+        undefined,
+        prismaService,
+      );
 
       expect(prismaService.trip.findMany).toHaveBeenCalledWith({
         where: {
@@ -278,96 +314,115 @@ describe('MatchingService', () => {
           status: TripStatusEnum.scheduled,
           OR: [
             { maxPackageWeightGr: { gte: 5000 } },
-            { maxPackageWeightGr: null }
-          ]
+            { maxPackageWeightGr: null },
+          ],
         },
         include: {
           origin: {
             select: {
               id: true,
               latitude: true,
-              longitude: true
-            }
+              longitude: true,
+            },
           },
           destination: {
             select: {
               id: true,
               latitude: true,
-              longitude: true
-            }
+              longitude: true,
+            },
           },
           waypoints: {
             select: {
               id: true,
               latitude: true,
               longitude: true,
-              name: true
-            }
-          }
+              name: true,
+            },
+          },
         },
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       });
     });
 
     it('should filter by lastCheckMatching when provided', async () => {
       const lastCheck = new Date('2024-01-15T10:00:00Z');
 
-      await service['getPreFilteredTrips'](mockPackageData, lastCheck, prismaService);
+      await service['getPreFilteredTrips'](
+        mockPackageData,
+        lastCheck,
+        prismaService,
+      );
 
       expect(prismaService.trip.findMany).toHaveBeenCalledWith({
         where: {
           isActive: true,
           status: TripStatusEnum.scheduled,
           updatedAt: {
-            gte: lastCheck
+            gte: lastCheck,
           },
           OR: [
             { maxPackageWeightGr: { gte: 2000 } },
-            { maxPackageWeightGr: null }
-          ]
+            { maxPackageWeightGr: null },
+          ],
         },
         include: expect.any(Object),
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       });
     });
 
     it('should not filter by weight when package weight is not provided', async () => {
       const packageWithoutWeight = { ...mockPackageData, weight: null };
 
-      await service['getPreFilteredTrips'](packageWithoutWeight, undefined, prismaService);
+      await service['getPreFilteredTrips'](
+        packageWithoutWeight,
+        undefined,
+        prismaService,
+      );
 
       expect(prismaService.trip.findMany).toHaveBeenCalledWith({
         where: {
           isActive: true,
-          status: TripStatusEnum.scheduled
+          status: TripStatusEnum.scheduled,
         },
         include: expect.any(Object),
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       });
     });
   });
 
   describe('analyzeTrip', () => {
     it('should return match result for compatible trip', async () => {
-      const packageOrigin: Location = { latitude: '35.6892', longitude: '51.3890' };
-      const packageDestination: Location = { latitude: '35.7219', longitude: '51.3347' };
+      const packageOrigin: Location = {
+        latitude: '35.6892',
+        longitude: '51.3890',
+      };
+      const packageDestination: Location = {
+        latitude: '35.7219',
+        longitude: '51.3347',
+      };
 
       turfService.createRoute.mockReturnValue(mockRoute as any);
-      turfService.createPoint.mockReturnValue({ type: 'Point', coordinates: [0, 0] } as any);
-      turfService.getDistanceToRoute.mockReturnValueOnce(800).mockReturnValueOnce(600); // Within corridor
+      turfService.createPoint.mockReturnValue({
+        type: 'Point',
+        coordinates: [0, 0],
+      } as any);
+      turfService.getDistanceToRoute
+        .mockReturnValueOnce(800)
+        .mockReturnValueOnce(600); // Within corridor
       turfService.checkDirectionCompatibility.mockReturnValue(true);
 
       const result = await service['analyzeTrip'](
         mockTripData,
         packageOrigin,
         packageDestination,
-        2
+        2,
       );
 
       expect(result).toEqual({
@@ -376,62 +431,95 @@ describe('MatchingService', () => {
         score: 0, // (800 + 600) / 2 - 500 - 500 = -300, but Math.max(0, -300) = 0
         originDistance: 800,
         destinationDistance: 600,
-        isOnCorridor: true
+        isOnCorridor: true,
       });
     });
 
     it('should return null when origin is outside corridor', async () => {
-      const packageOrigin: Location = { latitude: '35.6892', longitude: '51.3890' };
-      const packageDestination: Location = { latitude: '35.7219', longitude: '51.3347' };
+      const packageOrigin: Location = {
+        latitude: '35.6892',
+        longitude: '51.3890',
+      };
+      const packageDestination: Location = {
+        latitude: '35.7219',
+        longitude: '51.3347',
+      };
 
       turfService.createRoute.mockReturnValue(mockRoute as any);
-      turfService.createPoint.mockReturnValue({ type: 'Point', coordinates: [0, 0] } as any);
-      turfService.getDistanceToRoute.mockReturnValueOnce(3000).mockReturnValueOnce(600); // Origin outside corridor
+      turfService.createPoint.mockReturnValue({
+        type: 'Point',
+        coordinates: [0, 0],
+      } as any);
+      turfService.getDistanceToRoute
+        .mockReturnValueOnce(3000)
+        .mockReturnValueOnce(600); // Origin outside corridor
       turfService.checkDirectionCompatibility.mockReturnValue(true);
 
       const result = await service['analyzeTrip'](
         mockTripData,
         packageOrigin,
         packageDestination,
-        2
+        2,
       );
 
       expect(result).toBeNull();
     });
 
     it('should return null when destination is outside corridor', async () => {
-      const packageOrigin: Location = { latitude: '35.6892', longitude: '51.3890' };
-      const packageDestination: Location = { latitude: '35.7219', longitude: '51.3347' };
+      const packageOrigin: Location = {
+        latitude: '35.6892',
+        longitude: '51.3890',
+      };
+      const packageDestination: Location = {
+        latitude: '35.7219',
+        longitude: '51.3347',
+      };
 
       turfService.createRoute.mockReturnValue(mockRoute as any);
-      turfService.createPoint.mockReturnValue({ type: 'Point', coordinates: [0, 0] } as any);
-      turfService.getDistanceToRoute.mockReturnValueOnce(800).mockReturnValueOnce(3000); // Destination outside corridor
+      turfService.createPoint.mockReturnValue({
+        type: 'Point',
+        coordinates: [0, 0],
+      } as any);
+      turfService.getDistanceToRoute
+        .mockReturnValueOnce(800)
+        .mockReturnValueOnce(3000); // Destination outside corridor
       turfService.checkDirectionCompatibility.mockReturnValue(true);
 
       const result = await service['analyzeTrip'](
         mockTripData,
         packageOrigin,
         packageDestination,
-        2
+        2,
       );
 
       expect(result).toBeNull();
     });
 
     it('should return null when direction is incompatible', async () => {
-      const packageOrigin: Location = { latitude: '35.6892', longitude: '51.3890' };
-      const packageDestination: Location = { latitude: '35.7219', longitude: '51.3347' };
+      const packageOrigin: Location = {
+        latitude: '35.6892',
+        longitude: '51.3890',
+      };
+      const packageDestination: Location = {
+        latitude: '35.7219',
+        longitude: '51.3347',
+      };
 
       turfService.createRoute.mockReturnValue(mockRoute as any);
-      turfService.createPoint.mockReturnValue({ type: 'Point', coordinates: [0, 0] } as any);
-      turfService.getDistanceToRoute.mockReturnValueOnce(800).mockReturnValueOnce(600);
+      turfService.createPoint.mockReturnValue({
+        type: 'Point',
+        coordinates: [0, 0],
+      } as any);
+      turfService.getDistanceToRoute
+        .mockReturnValueOnce(800)
+        .mockReturnValueOnce(600);
       turfService.checkDirectionCompatibility.mockReturnValue(false);
 
       const result = await service['analyzeTrip'](
         mockTripData,
         packageOrigin,
         packageDestination,
-        2
+        2,
       );
 
       expect(result).toBeNull();
@@ -442,29 +530,40 @@ describe('MatchingService', () => {
         ...mockTripData,
         waypoints: [
           { latitude: '35.7000', longitude: '51.3600' },
-          { latitude: '35.7100', longitude: '51.3500' }
-        ]
+          { latitude: '35.7100', longitude: '51.3500' },
+        ],
       };
 
-      const packageOrigin: Location = { latitude: '35.6892', longitude: '51.3890' };
-      const packageDestination: Location = { latitude: '35.7219', longitude: '51.3347' };
+      const packageOrigin: Location = {
+        latitude: '35.6892',
+        longitude: '51.3890',
+      };
+      const packageDestination: Location = {
+        latitude: '35.7219',
+        longitude: '51.3347',
+      };
 
       turfService.createRoute.mockReturnValue(mockRoute as any);
-      turfService.createPoint.mockReturnValue({ type: 'Point', coordinates: [0, 0] } as any);
-      turfService.getDistanceToRoute.mockReturnValueOnce(800).mockReturnValueOnce(600);
+      turfService.createPoint.mockReturnValue({
+        type: 'Point',
+        coordinates: [0, 0],
+      } as any);
+      turfService.getDistanceToRoute
+        .mockReturnValueOnce(800)
+        .mockReturnValueOnce(600);
       turfService.checkDirectionCompatibility.mockReturnValue(true);
 
       await service['analyzeTrip'](
         tripWithWaypoints,
         packageOrigin,
         packageDestination,
-        2
+        2,
       );
 
       expect(turfService.createRoute).toHaveBeenCalledWith(
         tripWithWaypoints.origin,
         tripWithWaypoints.destination,
-        tripWithWaypoints.waypoints
+        tripWithWaypoints.waypoints,
       );
     });
   });
@@ -488,10 +587,10 @@ describe('MatchingService', () => {
     it('should apply bonuses for both close pickup and delivery', () => {
       const score = service['calculateMatchingScore'](500, 800, true);
       expect(score).toBe(0); // (500 + 800) / 2 - 500 - 500 = -150, but Math.max(0, -150) = 0
-      
+
       const scoreBoth = service['calculateMatchingScore'](500, 800, true);
       expect(scoreBoth).toBe(0); // Same calculation as above
-      
+
       // Test case where both get bonuses
       const scoreBothClose = service['calculateMatchingScore'](500, 500, true);
       expect(scoreBothClose).toBe(0); // (500 + 500) / 2 - 500 - 500 = -500, but Math.max(0, -500) = 0
@@ -508,20 +607,27 @@ describe('MatchingService', () => {
       const emptySession = {} as any;
 
       service['getPreFilteredTrips'] = jest.fn().mockResolvedValue([]);
-      
-      const result = await service.findMatchedTrips(mockPackageData, emptySession, 20, prismaService);
+
+      const result = await service.findMatchedTrips(
+        mockPackageData,
+        emptySession,
+        20,
+        prismaService,
+      );
 
       expect(result).toEqual([]);
-      expect(emptySession.packages).toEqual([{
-        id: 'package-123',
-        matchResults: [],
-        lastCheckMatching: expect.any(Date)
-      }]);
+      expect(emptySession.packages).toEqual([
+        {
+          id: 'package-123',
+          matchResults: [],
+          lastCheckMatching: expect.any(Date),
+        },
+      ]);
     });
     // TODO
     // it('should handle no candidate trips', async () => {
     //   jest.spyOn(service as any, 'getPreFilteredTrips').mockResolvedValue([]);
-      
+
     //   const result = await service.findMatchedTrips(mockPackageData, mockSession, 20, prismaService);
 
     //   expect(result).toEqual([]);

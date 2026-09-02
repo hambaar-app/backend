@@ -5,7 +5,7 @@ export interface PackageWithLocations extends Package {
   originAddress: Location;
   recipient: {
     address: Location;
-  }
+  };
 }
 
 export interface TripWithLocations {

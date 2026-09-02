@@ -12,7 +12,6 @@ import { TripModule } from '../trip/trip.module';
 import { TurfModule } from '../turf/turf.module';
 import { NotificationModule } from '../notification/notification.module';
 
-
 @Module({
   imports: [
     PrismaModule,
@@ -23,13 +22,10 @@ import { NotificationModule } from '../notification/notification.module';
     S3Module,
     TripModule,
     TurfModule,
-    NotificationModule
+    NotificationModule,
   ],
-  providers: [
-    PackageService,
-    MatchingService,
-  ],
-  controllers: [PackageController]
+  providers: [PackageService, MatchingService],
+  controllers: [PackageController],
 })
 export class PackageModule {
   configure() {}
