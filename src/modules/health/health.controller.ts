@@ -2,10 +2,10 @@ import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckService,
-  HttpHealthIndicator,
   MemoryHealthIndicator,
   PrismaHealthIndicator,
 } from '@nestjs/terminus';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisHealthIndicator } from './redis-health.indicator';
 import { HealthCheckDto } from './health-check.dto';
@@ -15,11 +15,11 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 export class HealthController {
   constructor(
     private health: HealthCheckService,
-    private http: HttpHealthIndicator,
     private db: PrismaHealthIndicator,
     private redis: RedisHealthIndicator,
     private memory: MemoryHealthIndicator,
     private prisma: PrismaService,
+    private config: ConfigService,
   ) {}
 
   @ApiOperation({
@@ -32,11 +32,15 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
+    const heapMb =
+      this.config.get<number>('MEMORY_HEAP_THRESHOLD_MB', 150);
+    const heapBytes = heapMb * 1024 * 1024;
+
     return this.health.check([
-      () => this.http.pingCheck('nestjs-docs', 'https://docs.nestjs.com'),
       () => this.db.pingCheck('database', this.prisma),
       () => this.redis.isHealthy('redis'),
-      () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024), // 150MB
+      () => this.memory.checkHeap('memory_heap', heapBytes),
     ]);
   }
 }
+
