@@ -61,6 +61,7 @@ export class EnvSchema {
   @IsOptional() @IsInt() SEND_WINDOW?: number;
   @IsOptional() @IsInt() BASE_BLOCK_TIME?: number;
   @IsOptional() @IsInt() CORRIDOR_WIDTH?: number;
+  @IsOptional() @IsInt() PRISMA_TX_TIMEOUT_MS?: number;
 
   @IsOptional() @IsString() AWS_REGION?: string;
 
