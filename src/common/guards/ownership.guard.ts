@@ -1,0 +1,141 @@
+import {
+  BadRequestException,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { RolesEnum } from '../../../generated/prisma';
+import { PrismaService } from '../../modules/prisma/prisma.service';
+import { OwnershipConfig } from '../../modules/auth/types/auth.types';
+import { AuthMessages } from '../enums/messages.enum';
+
+@Injectable()
+export class OwnershipGuard implements CanActivate {
+  private readonly logger = new Logger(OwnershipGuard.name);
+
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const config = this.reflector.get<OwnershipConfig>(
+      'ownership',
+      context.getHandler(),
+    );
+
+    if (!config) {
+      return true; // No ownership check required
+    }
+
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    if (!user || !user.id) {
+      throw new ForbiddenException('User not authenticated');
+    }
+
+    // Admin can access all resources
+    if (user.role === RolesEnum.admin) {
+      return true;
+    }
+
+    const entityId = request.params[config.paramName ?? 'id'];
+    if (!entityId) {
+      throw new BadRequestException('Entity Id is required.');
+    }
+
+    const ownershipName = config.ownershipName ?? config.entity;
+    const customWhere = this.getCustomWhere(ownershipName, user.id, entityId);
+
+    try {
+      const record = await this.getEntityRecord(config.entity, customWhere);
+
+      if (!record) {
+        throw new ForbiddenException(
+          `${AuthMessages.EntityAccessDenied} ${config.entity}.`,
+        );
+      }
+
+      return true;
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error('Ownership check error:', error as Error);
+      throw new ForbiddenException(AuthMessages.AccessDenied);
+    }
+  }
+
+  // Entity customWhere mapping
+  private getCustomWhere(
+    entity: string,
+    ownerId: string,
+    entityId: string,
+  ): Record<string, any> {
+    const entityCustomWhereMap: Record<string, Record<string, any>> = {
+      vehicle: {
+        id: entityId,
+        ownerId,
+        deletedAt: null,
+      },
+      address: {
+        id: entityId,
+        userId: ownerId,
+        deletedAt: null,
+      },
+      package: {
+        id: entityId,
+        senderId: ownerId,
+        deletedAt: null,
+      },
+      trip: {
+        id: entityId,
+        transporter: {
+          userId: ownerId,
+        },
+        deletedAt: null,
+      },
+      tripRequest: {
+        id: entityId,
+        trip: {
+          transporter: {
+            userId: ownerId,
+          },
+        },
+        deletedAt: null,
+      },
+      packageRequest: {
+        id: entityId,
+        package: {
+          senderId: ownerId,
+        },
+        deletedAt: null,
+      },
+      // ...
+    };
+
+    return entityCustomWhereMap[entity];
+  }
+
+  private async getEntityRecord(
+    entity: string,
+    customWhere: Record<string, any>,
+  ): Promise<boolean> {
+    const model = this.prisma[entity as keyof PrismaService] as any;
+
+    if (!model || typeof model.findFirst !== 'function') {
+      throw new Error(`Invalid entity: ${entity}`);
+    }
+
+    return model.findFirst({
+      where: customWhere,
+    });
+  }
+}
