@@ -1,71 +1,68 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ConfigService } from '@nestjs/config';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { AuthService } from './auth.service';
 import { TokenService } from '../token/token.service';
 import { UserService } from '../user/user.service';
 import { VehicleService } from '../vehicle/vehicle.service';
-import { NotificationService } from '../notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { SmsService } from '../sms/sms.service';
-import { TooManyRequestsException } from '../../common/custom.exceptions';
-import {
-  AuthMessages,
-  NotFoundMessages,
-} from '../../common/enums/messages.enum';
-import { AuthTokens } from '../../common/enums/auth.enum';
+import { OtpService } from './domain/otp.service';
+import { TransporterSignupService } from './application/transporter-signup.service';
+import { AuthStateMachine } from './domain/auth-state.machine';
 import {
   RolesEnum,
   VerificationStatusEnum,
   GendersEnum,
-  LicenseTypeEnum,
-  PrismaClient,
 } from '../../../generated/prisma';
+import { AuthTokens } from '../../common/enums/auth.enum';
+import { NotFoundMessages } from '../../common/enums/messages.enum';
 import { UserStatesEnum } from './types/auth.enums';
-import * as utilities from '../../common/utilities';
-import { Keyv } from '@keyv/redis';
-
-jest.mock('../../common/utilities', () => ({
-  generateCode: jest.fn(() => 12345),
-  formatPrismaError: jest.fn(),
-}));
 
 describe('AuthService', () => {
   let service: AuthService;
   let tokenService: DeepMockProxy<TokenService>;
   let userService: DeepMockProxy<UserService>;
   let vehicleService: DeepMockProxy<VehicleService>;
-  let prismaService: DeepMockProxy<PrismaClient>;
-  let smsService: DeepMockProxy<SmsService>;
-  let configService: DeepMockProxy<ConfigService>;
-  let keyvMock: DeepMockProxy<Keyv>;
-  let notificationService: DeepMockProxy<NotificationService>;
+  let prismaService: DeepMockProxy<PrismaService>;
+  let otpService: DeepMockProxy<OtpService>;
+  let signupService: DeepMockProxy<TransporterSignupService>;
+  let stateMachine: DeepMockProxy<AuthStateMachine>;
 
-  const mockUser = {
+  const mockSender = {
     id: 'user-123',
     phoneNumber: '+989123456789',
     role: RolesEnum.sender,
   } as any;
 
   const mockTransporter = {
-    id: 'trans-123',
+    id: 'user-456',
+    phoneNumber: '+989876543210',
     role: RolesEnum.transporter,
-    vehicles: [
-      {
-        id: 'vehicle-123',
-      },
-    ],
+    firstName: 'احمد',
+    lastName: 'محمدی',
+    vehicles: [],
     verificationStatus: { status: VerificationStatusEnum.pending },
   } as any;
 
-  const mockTransporterInProgress = {
-    ...mockTransporter,
-    vehicles: [],
-    verificationStatus: { status: VerificationStatusEnum.pending },
-    nationalIdDocumentKey: null,
-    licenseDocumentKey: null,
+  const mockVehicle = { id: 'vehicle-1' } as any;
+
+  const signupSenderDto = {
+    firstName: 'احمد',
+    lastName: 'محمدی',
+    phoneNumber: '+989123456789',
+    gender: GendersEnum.male,
+  };
+
+  const signupTransporterDto = {
+    firstName: 'احمد',
+    lastName: 'محمدی',
+    phoneNumber: '+989876543210',
+    gender: GendersEnum.male,
+    birthDate: new Date('1990-01-01'),
+    nationalId: '1234567890',
+    licenseNumber: '0987654321',
+    licenseType: 'grade_one' as any,
+    licenseExpiryDate: new Date('2030-01-01'),
   };
 
   beforeEach(async () => {
@@ -74,27 +71,10 @@ describe('AuthService', () => {
     tokenService = mockDeep<TokenService>();
     userService = mockDeep<UserService>();
     vehicleService = mockDeep<VehicleService>();
-    prismaService = mockDeep<PrismaClient>();
-    smsService = mockDeep<SmsService>();
-    configService = mockDeep<ConfigService>();
-    keyvMock = mockDeep<Keyv>();
-    notificationService = mockDeep<NotificationService>();
-
-    const cacheManager = { stores: [null, keyvMock] };
-
-    configService.get.mockImplementation((key: string, defaultValue?: any) => {
-      const config = {
-        OTP_EXPIRATION_TIME: 120000,
-        MAX_SEND_ATTEMPTS: 5,
-        MAX_CHECK_ATTEMPTS: 10,
-        SEND_WINDOW: 1800000,
-        BASE_BLOCK_TIME: 1200000,
-      };
-      return config[key] || defaultValue;
-    });
-
-    // Reset utility mocks to default values
-    (utilities.generateCode as jest.Mock).mockReturnValue(12345);
+    prismaService = mockDeep<PrismaService>();
+    otpService = mockDeep<OtpService>();
+    signupService = mockDeep<TransporterSignupService>();
+    stateMachine = mockDeep<AuthStateMachine>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -103,10 +83,9 @@ describe('AuthService', () => {
         { provide: UserService, useValue: userService },
         { provide: VehicleService, useValue: vehicleService },
         { provide: PrismaService, useValue: prismaService },
-        { provide: SmsService, useValue: smsService },
-        { provide: ConfigService, useValue: configService },
-        { provide: CACHE_MANAGER, useValue: cacheManager },
-        { provide: NotificationService, useValue: notificationService },
+        { provide: OtpService, useValue: otpService },
+        { provide: TransporterSignupService, useValue: signupService },
+        { provide: AuthStateMachine, useValue: stateMachine },
       ],
     }).compile();
 
@@ -114,89 +93,36 @@ describe('AuthService', () => {
   });
 
   describe('sendOtp', () => {
-    it('should send OTP successfully', async () => {
-      keyvMock.get.mockResolvedValue(null as any);
-      keyvMock.set.mockResolvedValue(true);
-      smsService.sendOtp.mockResolvedValue(true);
+    it('should delegate to OtpService', async () => {
+      otpService.sendOtp.mockResolvedValue(true);
 
-      const result = await service.sendOtp({ phoneNumber: '+989123456789' });
+      const result = await service.sendOtp({
+        phoneNumber: '+989123456789',
+      });
 
       expect(result).toBe(true);
-      expect(smsService.sendOtp).toHaveBeenCalledWith('+989123456789', 12345);
-    });
-
-    it('should throw when user is blocked', async () => {
-      const blockedData = {
-        attempts: {
-          blockedUntil: Date.now() + 600000,
-          sendAttempts: 0,
-          checkAttempts: 0,
-          lastSendAttempt: 0,
-        },
-      };
-      keyvMock.get.mockResolvedValue(blockedData as any);
-
-      await expect(
-        service.sendOtp({ phoneNumber: '+989123456789' }),
-      ).rejects.toThrow(TooManyRequestsException);
-    });
-
-    it('should throw when max send attempts exceeded', async () => {
-      const userData = {
-        attempts: {
-          sendAttempts: 5,
-          checkAttempts: 0,
-          lastSendAttempt: Date.now() - 60000,
-        },
-      };
-      keyvMock.get.mockResolvedValue(userData as any);
-
-      await expect(
-        service.sendOtp({ phoneNumber: '+989123456789' }),
-      ).rejects.toThrow(TooManyRequestsException);
-    });
-
-    it('should throw when OTP not expired', async () => {
-      const userData = {
-        otp: { expiresIn: Date.now() + 60000 },
-        attempts: {
-          sendAttempts: 1,
-          checkAttempts: 0,
-          lastSendAttempt: Date.now() - 60000,
-        },
-      };
-      keyvMock.get.mockResolvedValue(userData as any);
-
-      await expect(
-        service.sendOtp({ phoneNumber: '+989123456789' }),
-      ).rejects.toThrow(new UnauthorizedException(AuthMessages.OtpNotExpired));
+      expect(otpService.sendOtp).toHaveBeenCalledWith('+989123456789');
     });
   });
 
   describe('checkOtp', () => {
-    const now = Date.now();
-
-    it('should verify OTP for new user', async () => {
-      const validOtpData = {
-        otp: { code: 12345, expiresIn: now + 60000, createdAt: now - 60000 },
-        attempts: {
-          sendAttempts: 1,
-          checkAttempts: 0,
-          lastSendAttempt: now - 60000,
-        },
-      };
-      keyvMock.get.mockResolvedValue(validOtpData as any);
-      keyvMock.set.mockResolvedValue(true);
+    it('should issue a temp token for a new user', async () => {
+      otpService.verify.mockResolvedValue(undefined);
       userService.getByPhoneNumber.mockResolvedValue(null);
-      (tokenService['generateTempToken'] as jest.Mock).mockReturnValue(
-        'temp-token',
-      );
+      tokenService.generateTempToken.mockReturnValue('temp-token');
 
       const result = await service.checkOtp({
         phoneNumber: '+989123456789',
-        code: validOtpData.otp.code,
+        code: '123456',
       });
 
+      expect(otpService.verify).toHaveBeenCalledWith(
+        '+989123456789',
+        '123456',
+      );
+      expect(tokenService.generateTempToken).toHaveBeenCalledWith({
+        phoneNumber: '+989123456789',
+      });
       expect(result).toEqual({
         isNewUser: true,
         token: 'temp-token',
@@ -204,357 +130,283 @@ describe('AuthService', () => {
       });
     });
 
-    it('should verify OTP for existing sender', async () => {
-      const validOtpData = {
-        otp: { code: 12345, expiresIn: now + 60000, createdAt: now - 60000 },
-        attempts: {
-          sendAttempts: 1,
-          checkAttempts: 0,
-          lastSendAttempt: now - 60000,
-        },
-      };
-      keyvMock.get.mockResolvedValue(validOtpData as any);
-      keyvMock.set.mockResolvedValue(true);
-      userService.getByPhoneNumber.mockResolvedValue(mockUser);
-      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue(
-        'access-token',
-      );
+    it('should issue an access token with Authenticated state for an existing sender', async () => {
+      otpService.verify.mockResolvedValue(undefined);
+      userService.getByPhoneNumber.mockResolvedValue(mockSender);
+      tokenService.generateAccessToken.mockReturnValue('access-token');
 
       const result = await service.checkOtp({
         phoneNumber: '+989123456789',
-        code: validOtpData.otp.code,
+        code: '123456',
       });
 
-      expect(result).toEqual({
+      expect(tokenService.generateAccessToken).toHaveBeenCalledWith({
+        sub: 'user-123',
+        phoneNumber: '+989123456789',
+      });
+      expect(result).toMatchObject({
         isNewUser: false,
         userId: 'user-123',
-        role: RolesEnum.sender,
-        token: 'access-token',
         type: AuthTokens.Access,
+        token: 'access-token',
         userState: UserStatesEnum.Authenticated,
       });
     });
 
-    it('should handle transporter in progress', async () => {
-      const validOtpData = {
-        otp: { code: 12345, expiresIn: now + 60000, createdAt: now - 60000 },
-        attempts: {
-          sendAttempts: 1,
-          checkAttempts: 0,
-          lastSendAttempt: now - 60000,
-        },
-      };
-      keyvMock.get.mockResolvedValue(validOtpData as any);
-      keyvMock.set.mockResolvedValue(true);
-      userService.getByPhoneNumber.mockResolvedValue({
-        ...mockUser,
-        role: RolesEnum.transporter,
+    it('should issue a progress token for a transporter in progress', async () => {
+      otpService.verify.mockResolvedValue(undefined);
+      userService.getByPhoneNumber.mockResolvedValue(mockTransporter);
+      userService.getTransporter.mockResolvedValue(mockTransporter as any);
+      stateMachine.compute.mockReturnValue({
+        userState: UserStatesEnum.PersonalInfoSubmitted,
+        transporter: mockTransporter,
       });
-      userService.getTransporter.mockResolvedValue(mockTransporterInProgress);
-      (tokenService['generateProgressToken'] as jest.Mock).mockReturnValue(
-        'progress-token',
-      );
+      tokenService.generateProgressToken.mockReturnValue('progress-token');
 
       const result = await service.checkOtp({
-        phoneNumber: '+989123456789',
-        code: validOtpData.otp.code,
+        phoneNumber: '+989876543210',
+        code: '123456',
       });
 
-      expect(result.type).toBe(AuthTokens.Progress);
-      expect(result.userState).toBe(UserStatesEnum.PersonalInfoSubmitted);
-    });
-
-    it('should throw when OTP expired', async () => {
-      const expiredData = {
-        otp: { code: 12345, expiresIn: now - 60000 },
-        attempts: {
-          sendAttempts: 1,
-          checkAttempts: 0,
-          lastSendAttempt: now - 60000,
-        },
-      };
-      keyvMock.get.mockResolvedValue(expiredData as any);
-
-      await expect(
-        service.checkOtp({ phoneNumber: '+989123456789', code: 12345 }),
-      ).rejects.toThrow(new UnauthorizedException(AuthMessages.OtpExpired));
-    });
-
-    it('should throw when invalid OTP code', async () => {
-      const validOtpData = {
-        otp: { code: 12345, expiresIn: now + 60000, createdAt: now - 60000 },
-        attempts: {
-          sendAttempts: 1,
-          checkAttempts: 0,
-          lastSendAttempt: now - 60000,
-        },
-      };
-      keyvMock.get.mockResolvedValue(validOtpData as any);
-      keyvMock.set.mockResolvedValue(true);
-
-      await expect(
-        service.checkOtp({ phoneNumber: '+989123456789', code: 54321 }),
-      ).rejects.toThrow(new UnauthorizedException(AuthMessages.OtpInvalid));
-    });
-  });
-
-  describe('signupSender', () => {
-    const senderDto = {
-      firstName: 'احمد',
-      lastName: 'محمدی',
-      phoneNumber: '+989123456789',
-      gender: GendersEnum.male,
-    };
-
-    it('should create sender successfully', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) =>
-        callback(prismaService),
-      );
-      prismaService.user.create.mockResolvedValue(mockUser);
-      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue(
-        'access-token',
-      );
-
-      const result = await service.signupSender(senderDto);
-
-      expect(result).toEqual({
-        sender: mockUser,
-        accessToken: 'access-token',
+      expect(stateMachine.compute).toHaveBeenCalled();
+      expect(tokenService.generateProgressToken).toHaveBeenCalledWith({
+        sub: 'user-456',
+        phoneNumber: '+989876543210',
       });
-      expect(prismaService.user.create).toHaveBeenCalledWith({
-        data: {
-          ...senderDto,
-          wallet: { create: {} },
-          role: RolesEnum.sender,
-          phoneVerifiedAt: expect.any(Date),
-        },
+      expect(result).toMatchObject({
+        type: AuthTokens.Progress,
+        token: 'progress-token',
+        userState: UserStatesEnum.PersonalInfoSubmitted,
       });
     });
-  });
 
-  describe('signupTransporter', () => {
-    const transporterDto = {
-      firstName: 'علی',
-      lastName: 'احمدی',
-      phoneNumber: '+989123456789',
-      gender: GendersEnum.male,
-      birthDate: new Date('1985-01-01'),
-      nationalId: '1234567890',
-      licenseNumber: '0987654321',
-      licenseType: LicenseTypeEnum.grade_one,
-      licenseExpiryDate: new Date('2025-12-31'),
-    };
-
-    it('should create transporter successfully', async () => {
-      prismaService.$transaction.mockImplementation(async (callback) =>
-        callback(prismaService),
-      );
-      const createdTransporter = {
-        ...mockUser,
-        role: RolesEnum.transporter,
+    it('should keep the access token for a transporter in DocumentsSubmitted', async () => {
+      otpService.verify.mockResolvedValue(undefined);
+      userService.getByPhoneNumber.mockResolvedValue(mockTransporter);
+      userService.getTransporter.mockResolvedValue(mockTransporter as any);
+      stateMachine.compute.mockReturnValue({
+        userState: UserStatesEnum.DocumentsSubmitted,
         transporter: mockTransporter,
-      };
-      prismaService.user.create.mockResolvedValue(createdTransporter);
-      (tokenService['generateProgressToken'] as jest.Mock).mockReturnValue(
-        'progress-token',
-      );
-
-      const result = await service.signupTransporter(transporterDto);
-
-      expect(result.progressToken).toBe('progress-token');
-      expect(prismaService.user.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          role: RolesEnum.transporter,
-          transporter: {
-            create: expect.objectContaining({
-              nationalId: '1234567890',
-              licenseNumber: '0987654321',
-            }),
-          },
-        }),
-        include: { transporter: true },
       });
+      tokenService.generateAccessToken.mockReturnValue('access-token');
+
+      const result = await service.checkOtp({
+        phoneNumber: '+989876543210',
+        code: '123456',
+      });
+
+      expect(result).toMatchObject({
+        type: AuthTokens.Access,
+        token: 'access-token',
+        userState: UserStatesEnum.DocumentsSubmitted,
+      });
+    });
+  });
+
+  describe('signupSender / signupTransporter', () => {
+    it('should delegate signupSender', async () => {
+      const expected = { sender: mockSender, accessToken: 't' };
+      signupService.signupSender.mockResolvedValue(expected as any);
+
+      const result = await service.signupSender(signupSenderDto);
+
+      expect(signupService.signupSender).toHaveBeenCalledWith(signupSenderDto);
+      expect(result).toBe(expected);
+    });
+
+    it('should delegate signupTransporter', async () => {
+      const expected = { transporter: {}, progressToken: 't' };
+      signupService.signupTransporter.mockResolvedValue(expected as any);
+
+      const result = await service.signupTransporter(signupTransporterDto);
+
+      expect(signupService.signupTransporter).toHaveBeenCalledWith(
+        signupTransporterDto,
+      );
+      expect(result).toBe(expected);
     });
   });
 
   describe('submitDocuments', () => {
-    it('should submit documents successfully', async () => {
-      const documentsDto = {
-        nationalIdDocumentKey: 'national-id-key',
-        licenseDocumentKey: 'license-key',
-        registrationCardKey: 'reg-card-key',
-        insuranceDocumentKey: 'insurance-key',
-        technicalInspectionKey: 'tech-key',
-        greenSheetKey: 'green-sheet-key',
-        cardKey: 'card-key',
-        vehiclePicsKey: ['vehicle-pics-key'],
-      };
+    const body = {
+      nationalIdDocumentKey: 'transporter/user-456/national-id-1',
+      licenseDocumentKey: 'transporter/user-456/license-1',
+      greenSheetKey: 'transporter/user-456/vehicle/green-sheet-1',
+      cardKey: 'transporter/user-456/vehicle/card-1',
+      vehiclePicsKey: ['transporter/user-456/vehicle/pic-1'],
+    };
 
-      prismaService.$transaction.mockImplementation(async (callback) =>
-        callback(prismaService),
+    it('should update both transporter and vehicle in one transaction and issue an access token', async () => {
+      prismaService.$transaction.mockImplementation(
+        async (callback) => callback(prismaService),
       );
-      userService.getTransporter.mockResolvedValue(mockTransporter);
-      (tokenService['generateAccessToken'] as jest.Mock).mockReturnValue(
-        'access-token',
-      );
+      userService.getTransporter.mockResolvedValue({
+        vehicles: [{ id: 'vehicle-1' }],
+      } as any);
+      tokenService.generateAccessToken.mockReturnValue('access-token');
 
       const result = await service.submitDocuments(
-        'user-123',
-        '+989123456789',
-        documentsDto,
+        'user-456',
+        '+989876543210',
+        body,
       );
 
-      expect(result.accessToken).toBe('access-token');
-      expect(userService.updateTransporter).toHaveBeenCalled();
-      expect(vehicleService.update).toHaveBeenCalledWith(
-        'vehicle-123',
-        expect.any(Object),
+      expect(prismaService.$transaction).toHaveBeenCalled();
+      expect(userService.updateTransporter).toHaveBeenCalledWith(
+        'user-456',
+        {
+          nationalIdDocumentKey: 'transporter/user-456/national-id-1',
+          licenseDocumentKey: 'transporter/user-456/license-1',
+        },
         prismaService,
       );
+      expect(userService.getTransporter).toHaveBeenCalledWith(
+        { userId: 'user-456' },
+        prismaService,
+      );
+      expect(vehicleService.update).toHaveBeenCalledWith(
+        'vehicle-1',
+        {
+          verificationDocuments: {
+            greenSheetKey: 'transporter/user-456/vehicle/green-sheet-1',
+            cardKey: 'transporter/user-456/vehicle/card-1',
+            vehiclePicsKey: ['transporter/user-456/vehicle/pic-1'],
+          },
+        },
+        prismaService,
+      );
+      expect(tokenService.generateAccessToken).toHaveBeenCalledWith({
+        sub: 'user-456',
+        phoneNumber: '+989876543210',
+      });
+      expect(result).toEqual({ accessToken: 'access-token' });
+    });
+
+    it('should propagate transaction failures (rollback handled by Prisma)', async () => {
+      const error = new Error('update failed');
+      prismaService.$transaction.mockRejectedValue(error);
+
+      await expect(
+        service.submitDocuments('user-456', '+989876543210', body),
+      ).rejects.toThrow('update failed');
+    });
+  });
+
+  describe('registerVehicle', () => {
+    it('should create the vehicle and set the session state', async () => {
+      vehicleService.create.mockResolvedValue(mockVehicle);
+      const session = { userState: undefined } as any;
+
+      const result = await service.registerVehicle(
+        'user-456',
+        {} as any,
+        session,
+      );
+
+      expect(vehicleService.create).toHaveBeenCalledWith('user-456', {});
+      expect(result).toBe(mockVehicle);
+      expect(session.userState).toBe(UserStatesEnum.VehicleInfoSubmitted);
     });
   });
 
   describe('getUserState', () => {
-    it('should return cached authenticated state', async () => {
-      const session = { userState: UserStatesEnum.Authenticated } as any;
+    const session = (overrides: Record<string, unknown> = {}) =>
+      ({
+        userId: 'user-123',
+        phoneNumber: '+989123456789',
+        userState: undefined,
+        ...overrides,
+      }) as any;
 
-      const result = await service.getUserState(session);
+    it('should return the cached Authenticated state without DB access', async () => {
+      const result = await service.getUserState(
+        session({ userState: UserStatesEnum.Authenticated }),
+      );
 
       expect(result).toEqual({ userState: UserStatesEnum.Authenticated });
+      expect(userService.get).not.toHaveBeenCalled();
     });
 
-    it('should compute initial state for sender', async () => {
-      const session = { userId: 'user-123' } as any;
-      userService.get.mockResolvedValue(mockUser);
+    it('should throw NotFound when the user is missing for a cached non-authenticated state', async () => {
+      userService.get.mockResolvedValue(null);
 
-      const result = await service.getUserState(session);
+      await expect(
+        service.getUserState(
+          session({ userState: UserStatesEnum.PersonalInfoSubmitted }),
+        ),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.getUserState(
+          session({ userState: UserStatesEnum.PersonalInfoSubmitted }),
+        ),
+      ).rejects.toThrow(NotFoundMessages.User);
+    });
+
+    it('should return transporter data for a cached state of a transporter', async () => {
+      userService.get.mockResolvedValue(mockTransporter);
+      userService.getTransporter.mockResolvedValue(mockTransporter as any);
+
+      const result = await service.getUserState(
+        session({
+          userId: 'user-456',
+          userState: UserStatesEnum.PersonalInfoSubmitted,
+        }),
+      );
+
+      expect(result).toMatchObject({
+        userState: UserStatesEnum.PersonalInfoSubmitted,
+        transporter: { id: 'user-456', role: RolesEnum.transporter },
+      });
+    });
+
+    it('should return null for a cached non-authenticated state of a sender', async () => {
+      userService.get.mockResolvedValue(mockSender);
+
+      const result = await service.getUserState(
+        session({ userState: UserStatesEnum.PersonalInfoSubmitted }),
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw NotFound when the user is missing with no cached state', async () => {
+      userService.get.mockResolvedValue(null);
+
+      await expect(service.getUserState(session())).rejects.toThrow(
+        NotFoundMessages.User,
+      );
+    });
+
+    it('should compute and persist Authenticated for a sender with no cached state', async () => {
+      userService.get.mockResolvedValue(mockSender);
+      const ses = session();
+
+      const result = await service.getUserState(ses);
 
       expect(result).toEqual({
         userState: UserStatesEnum.Authenticated,
         role: RolesEnum.sender,
       });
-      expect(session.userState).toBe(UserStatesEnum.Authenticated);
+      expect(ses.userState).toBe(UserStatesEnum.Authenticated);
     });
 
-    it('should compute state for transporter', async () => {
-      const session = { userId: 'trans-123' } as any;
-      userService.get.mockResolvedValue({
-        ...mockUser,
+    it('should compute a state for a transporter and persist it in the session', async () => {
+      userService.get.mockResolvedValue(mockTransporter);
+      userService.getTransporter.mockResolvedValue(mockTransporter as any);
+      stateMachine.compute.mockReturnValue({
+        userState: UserStatesEnum.PersonalInfoSubmitted,
+        transporter: mockTransporter,
+      });
+      const ses = session({ userId: 'user-456' });
+
+      const result = await service.getUserState(ses);
+
+      expect(result).toMatchObject({
+        userState: UserStatesEnum.PersonalInfoSubmitted,
         role: RolesEnum.transporter,
       });
-      userService.getTransporter.mockResolvedValue(mockTransporterInProgress);
-
-      const result = await service.getUserState(session);
-
-      expect(result?.userState).toBe(UserStatesEnum.PersonalInfoSubmitted);
-      expect(result?.role).toBe(RolesEnum.transporter);
-    });
-
-    it('should throw when user not found', async () => {
-      const session = { userId: 'missing-user' } as any;
-      userService.get.mockResolvedValue(null);
-
-      await expect(service.getUserState(session)).rejects.toThrow(
-        new NotFoundException(NotFoundMessages.User),
-      );
-    });
-  });
-
-  describe('computeTransporterState', () => {
-    it('should return PersonalInfoSubmitted when no vehicles', async () => {
-      userService.getTransporter.mockResolvedValue(mockTransporterInProgress);
-
-      const result = await service['computeTransporterState']('trans-123');
-
-      expect(result.userState).toBe(UserStatesEnum.PersonalInfoSubmitted);
-    });
-
-    it('should return VehicleInfoSubmitted when vehicle exists', async () => {
-      userService.getTransporter.mockResolvedValue({
-        ...mockTransporter,
-        vehicles: [{ verificationDocuments: null }],
-        nationalIdDocumentKey: null,
-        licenseDocumentKey: null,
-      });
-
-      const result = await service['computeTransporterState']('trans-123');
-
-      expect(result.userState).toBe(UserStatesEnum.VehicleInfoSubmitted);
-    });
-
-    it('should return DocumentsSubmitted when all docs exist', async () => {
-      userService.getTransporter.mockResolvedValue({
-        ...mockTransporter,
-        vehicles: [{ verificationDocuments: { some: 'data' } }],
-        nationalIdDocumentKey: 'national-key',
-        licenseDocumentKey: 'license-key',
-      });
-
-      const result = await service['computeTransporterState']('trans-123');
-
-      expect(result.userState).toBe(UserStatesEnum.DocumentsSubmitted);
-    });
-
-    it('should return Authenticated when verified', async () => {
-      userService.getTransporter.mockResolvedValue({
-        ...mockTransporter,
-        verificationStatus: { status: VerificationStatusEnum.verified },
-      });
-
-      const result = await service['computeTransporterState']('trans-123');
-
-      expect(result.userState).toBe(UserStatesEnum.Authenticated);
-    });
-  });
-
-  describe('Error scenarios', () => {
-    it('should handle missing OTP', async () => {
-      keyvMock.get.mockResolvedValue({
-        attempts: { sendAttempts: 0, checkAttempts: 0, lastSendAttempt: 0 },
-      } as any);
-
-      await expect(
-        service.checkOtp({ phoneNumber: '+989123456789', code: 12345 }),
-      ).rejects.toThrow(new UnauthorizedException(AuthMessages.OtpExpired));
-    });
-
-    it('should block after max check attempts', async () => {
-      const userData = {
-        otp: { code: 54321, expiresIn: Date.now() + 60000 },
-        attempts: {
-          sendAttempts: 1,
-          checkAttempts: 10,
-          lastSendAttempt: Date.now() - 60000,
-        },
-      };
-      keyvMock.get.mockResolvedValue(userData as any);
-      keyvMock.set.mockResolvedValue(true);
-
-      await expect(
-        service.checkOtp({ phoneNumber: '+989123456789', code: 12345 }),
-      ).rejects.toThrow(TooManyRequestsException);
-    });
-
-    it('should handle Prisma errors', async () => {
-      const error = new Error('DB error');
-      prismaService.$transaction.mockImplementation(async (callback) =>
-        callback(prismaService),
-      );
-      prismaService.user.create.mockRejectedValue(error);
-      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
-        () => {
-          throw new Error('Formatted error');
-        },
-      );
-
-      await expect(
-        service.signupSender({
-          firstName: 'احمد',
-          lastName: 'محمدی',
-          phoneNumber: '+989123456789',
-          gender: GendersEnum.male,
-        }),
-      ).rejects.toThrow('Formatted error');
+      expect((result as any).transporter).toBeDefined();
+      expect(ses.userState).toBe(UserStatesEnum.PersonalInfoSubmitted);
     });
   });
 });

@@ -38,6 +38,10 @@ export class EnvSchema {
   @IsString() @MinLength(16) JWT_TEMP_SECRET_KEY!: string;
   @IsString() @MinLength(16) JWT_PROGRESS_SECRET_KEY!: string;
 
+  @IsOptional() @IsString() JWT_ACCESS_EXPIRES_IN?: string;
+  @IsOptional() @IsString() JWT_TEMP_EXPIRES_IN?: string;
+  @IsOptional() @IsString() JWT_PROGRESS_EXPIRES_IN?: string;
+
   @IsString() AWS_ACCESS_KEY!: string;
   @IsString() AWS_SECRET_KEY!: string;
   @IsString() AWS_BUCKET_NAME!: string;

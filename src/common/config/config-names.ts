@@ -29,6 +29,9 @@ export const ConfigKey = {
     JwtAccessSecret: 'JWT_ACCESS_SECRET_KEY',
     JwtTempSecret: 'JWT_TEMP_SECRET_KEY',
     JwtProgressSecret: 'JWT_PROGRESS_SECRET_KEY',
+    JwtAccessExpiresIn: 'JWT_ACCESS_EXPIRES_IN',
+    JwtTempExpiresIn: 'JWT_TEMP_EXPIRES_IN',
+    JwtProgressExpiresIn: 'JWT_PROGRESS_EXPIRES_IN',
   },
   Pricing: {
     BasePrice: 'PRICING_BASE_PRICE',

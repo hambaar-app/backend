@@ -3,14 +3,21 @@ import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { AuthTokens } from '../../common/enums/auth.enum';
 import { AuthMessages } from '../../common/enums/messages.enum';
+import {
+  AccessTokenPayload,
+  ProgressTokenPayload,
+  TemporaryTokenPayload,
+} from './token.types';
 
 @Injectable()
 export class TokenService {
   private accessSecretKey: string;
   private tempSecretKey: string;
   private progressSecretKey: string;
+  private config: ConfigService;
 
   constructor(config: ConfigService) {
+    this.config = config;
     this.accessSecretKey = config.getOrThrow<string>('JWT_ACCESS_SECRET_KEY');
     this.tempSecretKey = config.getOrThrow<string>('JWT_TEMP_SECRET_KEY');
     this.progressSecretKey = config.getOrThrow<string>(
@@ -18,27 +25,28 @@ export class TokenService {
     );
   }
 
-  private generateToken(
-    payload: jwt.JwtPayload,
-    token: string,
-    { expiresIn }: jwt.SignOptions,
-  ) {
-    return jwt.sign(payload, token, { expiresIn });
+  generateAccessToken(payload: AccessTokenPayload): string {
+    const expiresIn = this.config.get<jwt.SignOptions['expiresIn']>(
+      'JWT_ACCESS_EXPIRES_IN',
+      '20d',
+    );
+    return this.generateToken(payload, this.accessSecretKey, { expiresIn });
   }
 
-  private generateAccessToken(payload: jwt.JwtPayload) {
-    const accessSecretKey = this.accessSecretKey;
-    return this.generateToken(payload, accessSecretKey, { expiresIn: '20d' });
+  generateTempToken(payload: TemporaryTokenPayload): string {
+    const expiresIn = this.config.get<jwt.SignOptions['expiresIn']>(
+      'JWT_TEMP_EXPIRES_IN',
+      '20m',
+    );
+    return this.generateToken(payload, this.tempSecretKey, { expiresIn });
   }
 
-  private generateTempToken(payload: jwt.JwtPayload) {
-    const tempSecretKey = this.tempSecretKey;
-    return this.generateToken(payload, tempSecretKey, { expiresIn: '20m' });
-  }
-
-  private generateProgressToken(payload: jwt.JwtPayload) {
-    const authSecretKey = this.progressSecretKey;
-    return this.generateToken(payload, authSecretKey, { expiresIn: '1d' });
+  generateProgressToken(payload: ProgressTokenPayload): string {
+    const expiresIn = this.config.get<jwt.SignOptions['expiresIn']>(
+      'JWT_PROGRESS_EXPIRES_IN',
+      '1d',
+    );
+    return this.generateToken(payload, this.progressSecretKey, { expiresIn });
   }
 
   verifyToken(token: string, type: AuthTokens) {
@@ -72,5 +80,13 @@ export class TokenService {
       }
       throw new UnauthorizedException(`${type} verification failed`);
     }
+  }
+
+  private generateToken(
+    payload: jwt.JwtPayload,
+    secret: string,
+    { expiresIn }: jwt.SignOptions,
+  ) {
+    return jwt.sign(payload, secret, { expiresIn });
   }
 }

@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { UserService } from './user.service';
+import { UserService, S3StoragePort, S3_STORAGE_PORT } from './user.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { S3Service } from '../s3/s3.service';
 import {
   PrismaClient,
   RolesEnum,
@@ -19,7 +18,7 @@ jest.mock('../../common/utilities', () => ({
 describe('UserService', () => {
   let service: UserService;
   let prismaService: DeepMockProxy<PrismaClient>;
-  let s3Service: DeepMockProxy<S3Service>;
+  let storage: DeepMockProxy<S3StoragePort>;
 
   const mockUser = {
     id: 'user-123',
@@ -91,13 +90,13 @@ describe('UserService', () => {
     jest.resetAllMocks();
 
     prismaService = mockDeep<PrismaClient>();
-    s3Service = mockDeep<S3Service>();
+    storage = mockDeep<S3StoragePort>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: PrismaService, useValue: prismaService },
-        { provide: S3Service, useValue: s3Service },
+        { provide: S3_STORAGE_PORT, useValue: storage },
       ],
     }).compile();
 
@@ -149,7 +148,7 @@ describe('UserService', () => {
   describe('getProfile', () => {
     it('should get user profile with transporter data successfully', async () => {
       prismaService.user.findUniqueOrThrow.mockResolvedValue(mockProfile);
-      s3Service.generateGetPresignedUrl.mockResolvedValue(
+      storage.generateGetPresignedUrl.mockResolvedValue(
         'https://presigned-url.com',
       );
 
@@ -183,7 +182,7 @@ describe('UserService', () => {
       prismaService.user.findUniqueOrThrow.mockResolvedValue(
         userWithoutTransporter,
       );
-      s3Service.generateGetPresignedUrl.mockResolvedValue(
+      storage.generateGetPresignedUrl.mockResolvedValue(
         'https://presigned-url.com',
       );
 
@@ -198,7 +197,7 @@ describe('UserService', () => {
 
     it('should handle S3 URL generation errors gracefully', async () => {
       prismaService.user.findUniqueOrThrow.mockResolvedValue(mockProfile);
-      s3Service.generateGetPresignedUrl.mockResolvedValue(
+      storage.generateGetPresignedUrl.mockResolvedValue(
         'https://presigned-url.com',
       );
 
@@ -446,9 +445,9 @@ describe('UserService', () => {
   });
 
   describe('Error scenarios', () => {
-    it('should handle S3 service errors in getProfile', async () => {
+    it('should handle storage errors in getProfile', async () => {
       prismaService.user.findUniqueOrThrow.mockResolvedValue(mockProfile);
-      s3Service.generateGetPresignedUrl.mockResolvedValue('');
+      storage.generateGetPresignedUrl.mockResolvedValue('');
 
       const result = await service.getProfile('user-123');
       expect(result).toBeDefined();

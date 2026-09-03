@@ -39,10 +39,8 @@ import {
   SignupTransporterDto,
   SignupTransporterResponseDto,
 } from './dto/signup-transporter.dto';
-import { VehicleService } from '../vehicle/vehicle.service';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
 import { SubmitDocumentsDto } from './dto/submit-documents.dto';
-import { UserStatesEnum } from './types/auth.enums';
 import { UserResponseDto } from '../user/dto/user-response.dto';
 import { Serialize } from '../../common/serialize.interceptor';
 import { VehicleResponseDto } from '../vehicle/dto/vehicle-response.dto';
@@ -54,21 +52,20 @@ import {
   ValidationResponses,
 } from '../../common/api-docs.decorators';
 import { MultiTokenGuard } from './guard/multi-token.guard';
+import { getCookieOptions, CookieOptions } from '../../common/cookies/cookie-options';
+import { setUserState } from './domain/session-utils';
+import { UserStatesEnum } from './types/auth.enums';
 
 @Controller('auth')
 export class AuthController {
-  private cookieMaxAge: number;
-  private progressMaxAge: number;
+  private readonly cookieOptions: CookieOptions;
+  private readonly progressMaxAge: number;
 
   constructor(
-    private authService: AuthService,
-    private vehicleService: VehicleService,
+    private readonly authService: AuthService,
     config: ConfigService,
   ) {
-    this.cookieMaxAge = config.get<number>(
-      'COOKIE_MAX_AGE',
-      15 * 24 * 3600 * 1000,
-    ); // 15 days
+    this.cookieOptions = getCookieOptions(config);
     this.progressMaxAge = 2 * 24 * 60 * 60 * 1000; // 2 days
   }
 
@@ -122,32 +119,19 @@ export class AuthController {
         session.accessToken = token;
         session.userId = userId;
 
-        res.cookie(CookieNames.AccessToken, token, {
-          httpOnly: true,
-          // TODO: Fix this when you deploy on a https server
-          // secure: process.env.NODE_ENV === 'production',
-          secure: false,
-          sameSite: 'strict',
-          maxAge: this.cookieMaxAge,
-        });
+        res.cookie(CookieNames.AccessToken, token, this.cookieOptions);
         break;
 
       case AuthTokens.Temporary:
         res.cookie(CookieNames.TemporaryToken, token, {
-          httpOnly: true,
-          // TODO: Fix this when you deploy on a https server
-          // secure: process.env.NODE_ENV === 'production',
-          secure: false,
-          sameSite: 'strict',
+          ...this.cookieOptions,
           maxAge: 20 * 60 * 1000,
         });
         break;
 
       case AuthTokens.Progress:
         res.cookie(CookieNames.ProgressToken, token, {
-          httpOnly: true,
-
-          sameSite: 'strict',
+          ...this.cookieOptions,
           maxAge: this.progressMaxAge,
         });
         break;
@@ -189,17 +173,10 @@ export class AuthController {
     const { sender, accessToken } = await this.authService.signupSender(body);
 
     session.accessToken = accessToken;
-    res.cookie(CookieNames.AccessToken, accessToken, {
-      httpOnly: true,
-      // TODO: Fix this when you deploy on a https server
-      // secure: process.env.NODE_ENV === 'production',
-      secure: false,
-      sameSite: 'strict',
-      maxAge: this.cookieMaxAge,
-    });
+    res.cookie(CookieNames.AccessToken, accessToken, this.cookieOptions);
     res.clearCookie(CookieNames.TemporaryToken);
 
-    session.userState = UserStatesEnum.Authenticated;
+    setUserState(session, UserStatesEnum.Authenticated);
     session.userId = sender.id;
     session.phoneNumber = sender.phoneNumber;
 
@@ -242,16 +219,12 @@ export class AuthController {
       await this.authService.signupTransporter(body);
 
     res.cookie(CookieNames.ProgressToken, progressToken, {
-      httpOnly: true,
-      // TODO: Fix this when you deploy on a https server
-      // secure: process.env.NODE_ENV === 'production',
-      secure: false,
-      sameSite: 'strict',
+      ...this.cookieOptions,
       maxAge: this.progressMaxAge,
     });
     res.clearCookie(CookieNames.TemporaryToken);
 
-    session.userState = UserStatesEnum.PersonalInfoSubmitted;
+    setUserState(session, UserStatesEnum.PersonalInfoSubmitted);
     session.userId = transporter.userId;
     session.phoneNumber = transporter.phoneNumber;
 
@@ -285,9 +258,7 @@ export class AuthController {
     @Session() session: SessionData,
     @CurrentUser('id') id: string,
   ) {
-    const vehicle = await this.vehicleService.create(id, body);
-    session.userState = UserStatesEnum.VehicleInfoSubmitted;
-    return vehicle;
+    return this.authService.registerVehicle(id, body, session);
   }
 
   @ApiOperation({
@@ -314,14 +285,7 @@ export class AuthController {
     );
 
     session.accessToken = accessToken;
-    res.cookie(CookieNames.AccessToken, accessToken, {
-      httpOnly: true,
-      // TODO: Fix this when you deploy on a https server
-      // secure: process.env.NODE_ENV === 'production',
-      secure: false,
-      sameSite: 'strict',
-      maxAge: this.cookieMaxAge,
-    });
+    res.cookie(CookieNames.AccessToken, accessToken, this.cookieOptions);
     res.clearCookie(CookieNames.ProgressToken);
 
     return true;

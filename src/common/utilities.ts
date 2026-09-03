@@ -1,4 +1,3 @@
-import * as crypto from 'crypto';
 import { Prisma } from '../../generated/prisma';
 import {
   BadRequestException,
@@ -16,13 +15,13 @@ import {
 } from 'class-validator';
 import { differenceInCalendarMonths, isAfter, isValid } from 'date-fns';
 
-export const generateCode = () => {
-  return crypto.randomInt(11_111, 99_999);
-};
-
-export const generateUniqueCode = () => {
-  return Date.now().toString() + crypto.randomInt(1_111_111, 9_999_999);
-};
+export {
+  generateCode,
+  generateSecureOtp,
+  generateUniqueCode,
+  generateTripCode,
+  generateTrackingCode,
+} from './utils/codes';
 
 export const formatPrismaError = (error: Error): never => {
   if (process.env.NODE_ENV === 'development') console.error(error);

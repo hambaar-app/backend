@@ -43,13 +43,7 @@ export class SmsService {
     }
   }
 
-  async sendOtp(mobile: string, code: number) {
-    //     const otpMessage = `
-    // کد تأیید هم‌بار: ${code}
-    // این کد برای ورود به حساب کاربری شماست. لطفاً آن را با کسی به اشتراک نگذارید.
-    // `;
-    //     return this.sendSms([mobile], otpMessage);
-
+  async sendOtp(mobile: string, code: string) {
     try {
       const url = 'https://s.api.ir/api/sw1/SmsOTP';
 
@@ -59,7 +53,7 @@ export class SmsService {
             url,
             {
               mobile,
-              code: String(code),
+              code,
               template: 2,
             },
             {
