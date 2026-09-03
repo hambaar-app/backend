@@ -1,15 +1,10 @@
-import { MiddlewareConsumer, Module, ValidationPipe } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
 import { APP_PIPE } from '@nestjs/core';
-import { createClient } from 'redis';
-import * as session from 'express-session';
-import * as cookieParser from 'cookie-parser';
-import { RedisStore } from 'connect-redis';
-import { CookieNames } from 'src/common/enums/cookies.enum';
 import { AuthModule } from '../auth/auth.module';
 import { UserModule } from '../user/user.module';
 import { VehicleModule } from '../vehicle/vehicle.module';
@@ -23,12 +18,16 @@ import { MapModule } from '../map/map.module';
 import { HealthModule } from '../health/health.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { NotificationModule } from '../notification/notification.module';
+import { SessionModule } from '../../infra/session/session.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { validateEnv } from '../../common/config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV}`,
+      validate: validateEnv,
     }),
     CacheModule.registerAsync({
       isGlobal: true,
@@ -40,6 +39,18 @@ import { NotificationModule } from '../notification/notification.module';
         ],
       }),
     }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: config.get<number>('THROTTLE_TTL', 60) * 1000,
+            limit: config.get<number>('THROTTLE_LIMIT', 100),
+          },
+        ],
+      }),
+    }),
+    SessionModule,
     AuthModule,
     UserModule,
     DashboardModule,
@@ -62,46 +73,10 @@ import { NotificationModule } from '../notification/notification.module';
       useValue: new ValidationPipe({
         whitelist: true,
         transform: true,
+        forbidNonWhitelisted: true,
       }),
     },
   ],
 })
-export class AppModule {
-  constructor(private readonly config: ConfigService) {}
+export class AppModule {}
 
-  async configure(consumer: MiddlewareConsumer) {
-    const redisClient = await createClient({
-      url: this.config.getOrThrow<string>('SESSION_REDIS_URL'),
-    }).connect();
-
-    consumer
-      .apply(
-        session({
-          name: CookieNames.SessionId,
-          secret: this.config.getOrThrow<string>('SESSION_SECRET'),
-          resave: false,
-          saveUninitialized: false,
-          store: new RedisStore({
-            client: redisClient,
-            prefix: 'user-session',
-          }),
-          cookie: {
-            httpOnly: true,
-            // TODO: Fix this when you deploy on a https server
-            // secure: process.env.NODE_ENV === 'production',
-            secure: false,
-            sameSite: 'strict',
-            maxAge: this.config.get<number>(
-              'COOKIE_MAX_AGE',
-              15 * 24 * 3600 * 1000,
-            ), // 15 days
-          },
-        }),
-      )
-      .forRoutes('*');
-
-    consumer
-      .apply(cookieParser(this.config.get<string>('COOKIE_SECRET')))
-      .forRoutes('*');
-  }
-}
