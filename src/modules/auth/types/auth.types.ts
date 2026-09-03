@@ -4,7 +4,7 @@ import { RolesEnum } from 'generated/prisma';
 import { TransporterCompactDto } from 'src/modules/user/dto/transporter-response.dto';
 
 export interface OtpData {
-  code: number;
+  code: string;
   expiresIn: number;
   createdAt: number;
 }

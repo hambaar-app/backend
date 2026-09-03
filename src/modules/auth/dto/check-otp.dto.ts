@@ -1,10 +1,9 @@
 import {
-  IsInt,
   IsNotEmpty,
   IsPhoneNumber,
   IsString,
-  Max,
-  Min,
+  Matches,
+  Length,
 } from 'class-validator';
 import { Expose } from 'class-transformer';
 import { StateDto } from './state-response.dto';
@@ -16,10 +15,10 @@ export class CheckOtpDto {
   phoneNumber: string;
 
   @IsNotEmpty()
-  @Max(99999)
-  @Min(10000)
-  @IsInt()
-  code: number;
+  @IsString()
+  @Length(6, 6)
+  @Matches(/^\d{6}$/, { message: 'code must be a 6-digit number' })
+  code: string;
 }
 
 export class CheckOtpResponseDto extends StateDto {
