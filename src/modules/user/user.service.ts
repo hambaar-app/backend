@@ -1,17 +1,26 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, User } from '../../../generated/prisma';
 import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
-import { formatPrismaError } from '../../common/utilities';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { S3Service } from '../s3/s3.service';
+import { formatPrismaError } from '../../common/utilities';
+
+export const S3_STORAGE_PORT = Symbol('S3_STORAGE_PORT');
+
+/**
+ * Minimal interim storage port so UserService stays testable without a
+ * real S3 client. Phase 5 replaces this with the full StoragePort.
+ */
+export interface S3StoragePort {
+  generateGetPresignedUrl(key: string | undefined | null): Promise<string>;
+}
 
 @Injectable()
 export class UserService {
   constructor(
-    private prisma: PrismaService,
-    private s3Service: S3Service,
+    private readonly prisma: PrismaService,
+    @Inject(S3_STORAGE_PORT) private readonly storage: S3StoragePort,
   ) {}
 
   async get(
@@ -50,13 +59,13 @@ export class UserService {
       ...profile,
       transporter: {
         ...profile.transporter,
-        profilePictureUrl: await this.s3Service.generateGetPresignedUrl(
+        profilePictureUrl: await this.storage.generateGetPresignedUrl(
           profile.transporter?.profilePictureKey,
         ),
-        licenseDocumentUrl: await this.s3Service.generateGetPresignedUrl(
+        licenseDocumentUrl: await this.storage.generateGetPresignedUrl(
           profile.transporter?.licenseDocumentKey,
         ),
-        nationalIdDocumentUrl: await this.s3Service.generateGetPresignedUrl(
+        nationalIdDocumentUrl: await this.storage.generateGetPresignedUrl(
           profile.transporter?.nationalIdDocumentKey,
         ),
       },
