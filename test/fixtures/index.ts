@@ -8,3 +8,4 @@
 export * from './user.fixture';
 export * from './session.fixture';
 export * from './location.fixture';
+export * from './match.fixture';

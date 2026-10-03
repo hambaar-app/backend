@@ -24,7 +24,7 @@ One `phase-N-*.md` file per phase — the **implementation spec + as-built recor
 | [phase-1-foundation.md](./phase-1-foundation.md) | Phase 1 spec + as-built | ✅ Completed |
 | [phase-2-security-config.md](./phase-2-security-config.md) | Phase 2 spec + as-built | ✅ Completed |
 | [phase-3-auth-session.md](./phase-3-auth-session.md) | Phase 3 spec + as-built | ✅ Completed |
-| [phase-4-core-business.md](./phase-4-core-business.md) | Phase 4 spec + partial as-built + **Phases 1–4 rollup (§10)** | 🚧 In progress (Task 1 + Task 2 landed) |
+| [phase-4-core-business.md](./phase-4-core-business.md) | Phase 4 spec + partial as-built + **Phases 1–4 rollup (§10)** | 🚧 In progress (Tasks 1–3 landed) |
 | [phase-5-supporting-modules.md](./phase-5-supporting-modules.md) | Phase 5 spec (modules + infra adapters) | ✅ Spec complete |
 | [phase-6-integration-ci.md](./phase-6-integration-ci.md) | Phase 6 spec (integration, CI, final gates) | ✅ Spec complete |
 

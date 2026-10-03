@@ -1,6 +1,6 @@
 # Phase 4 — Core Business: Package, Trip, Matching, Pricing, Turf
 
-> **Status:** 🚧 In progress (partial: Task 1 + Task 2 landed) · **Spec version:** 1.1 (2026-09-04)
+> **Status:** 🚧 In progress (partial: Tasks 1–3 landed) · **Spec version:** 1.2 (2026-10-03)
 >
 > **Audit issues in scope:** A-1 (package 22 KB / trip 32 KB god services), A-2, A-3 (final boilerplate removal), A-4 (session mutation in transactions), B-4, B-9, B-10, S-8 (tracking PII).
 > **Depends on:** Phase 2 (filter, runner-friendly error handling), Phase 3 (config/token patterns, session-utils).
@@ -72,8 +72,7 @@ matches current output for a fixed input — record the golden value).
 
 ## 4. Task 3 — Matching & Turf (`src/modules/package/matching/`)
 
-> **Status:** ⬜ Not started (no files under `src/modules/package/matching/` yet;
-> `git diff master...HEAD --name-only` shows only `prisma/` + `pricing/` touched).
+> **Status:** ✅ Landed (branch `refactor/phase-4-matching`).
 
 Extract pure, highly-tested pieces from `matching.service.ts`:
 
@@ -175,7 +174,7 @@ status transition + failure path; tracking PII test asserts the phone is masked.
 
 - [x] `TransactionRunner` added with configurable timeout + `run`/`runIsolated` (`3110252`); adoption across package/trip paths still pending — A-3 not yet resolved phase-wide
 - [x] Pricing engine + 6 strategies with table-driven tests + golden parity (`7985842`); golden output test for backward equality present as `pricing.engine.spec.ts`
-- [ ] Matching/scoring extracted and 100% tested; console logging removed (Logger)
+- [ ] Matching/scoring extracted and 100% tested; console logging removed (Logger) — **done for matching (Task 3); Turf full specs remain Task 6**
 - [ ] Trip split complete: request/tracking domain services 100%
 - [ ] Package split complete: recipient/request/tracking services 100%
 - [ ] Tracking PII masked + tested; `JsonArray` internal import removed
@@ -270,3 +269,26 @@ status transition + failure path; tracking PII test asserts the phone is masked.
 - Docs plumbing: `/docs` removed from `.gitignore` (it was added together with a mass
   `docs/` deletion in `2c50a47`, which is why `docs/` was untracked) so this improvement set is
   committable; `/generated` stays ignored. Root `phase-1-foundation.md` deleted (docs/ canonical).
+
+### 10.8 Task 3 as-built (2026-10-03, branch `refactor/phase-4-matching`)
+
+- Files: `src/modules/package/matching/matching-scorer.ts` (+spec),
+  `trip-candidate-query.ts` (+spec), `corridor-analyzer.ts` (+spec);
+  slimmed `src/modules/package/matching.service.ts` (delegates, `Logger`,
+  `ConfigKey.Pricing.CorridorWidth`); `turf.service.ts` `console.error` → `Logger`;
+  `test/fixtures/match.fixture.ts` (+ barrel export).
+- Parity: scorer/query/analyzer moved verbatim; `MatchingService` keeps public
+  signature + session merge/sort/limit + swallow-`null` `allSettled` behavior;
+  private `getPreFilteredTrips`/`analyzeTrip`/`calculateMatchingScore` kept as thin
+  delegates (backward-compatible for spies). No API-visible change (BREAKING 4.0 stands).
+- Decisions: `ConfigKey` used now (pays down D-2 pattern for matching; pricing
+  factory migration still pending); `CorridorAnalyzer` is a plain class constructed
+  inside the service (pricing-facade pattern — no module wiring change).
+- Gotcha: `expect.anything()` does **not** match `jest-mock-extended` `mockDeep`
+  proxies — assert by reference (`prismaService`) instead.
+- Verification: `tsc` exit 0; `npm test -- src/modules/package src/modules/turf
+  src/modules/prisma src/modules/pricing` — 17 suites / 183 tests green;
+  scoped `eslint --fix` on touched files — **0 errors** (2 `require-await`
+  warnings: `analyzeTrip` stays `async` for the `.catch` chain — same as before).
+  Matching units at 100/100/100/95+; `turf.service.ts` full 100% remains Task 6
+  (only the touched `getDistanceToRoute` fallback path is now covered).
