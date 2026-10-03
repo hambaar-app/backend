@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PackageService } from './package.service';
+import { PackageService } from './application/package.service';
+import { RecipientService } from './domain/recipient.service';
+import { PackageRequestService } from './domain/package-request.service';
+import { TrackingService } from './domain/tracking.service';
 import { PackageController } from './package.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TokenModule } from '../token/token.module';
@@ -24,7 +27,13 @@ import { NotificationModule } from '../notification/notification.module';
     TurfModule,
     NotificationModule,
   ],
-  providers: [PackageService, MatchingService],
+  providers: [
+    PackageService,
+    MatchingService,
+    RecipientService,
+    PackageRequestService,
+    TrackingService,
+  ],
   controllers: [PackageController],
 })
 export class PackageModule {
