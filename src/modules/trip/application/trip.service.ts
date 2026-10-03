@@ -22,6 +22,7 @@ import { UpdateTripDto } from '../dto/update-trip.dto';
 import { PrismaTransaction } from '../../prisma/prisma.types';
 import { FinancialService } from '../../financial/financial.service';
 import { NotificationService } from '../../notification/notification.service';
+import { CityRepository } from '../../prisma/repositories/city.repository';
 import {
   getNotificationMessage,
   NotificationMessages,
@@ -49,6 +50,7 @@ export class TripService {
     private notificationService: NotificationService,
     private runner: TransactionRunner,
     private trackingService: TripTrackingService,
+    private cities: CityRepository,
   ) {}
 
   async create(
@@ -78,13 +80,12 @@ export class TripService {
         );
       }
 
-      const originCity = await tx.city.findUniqueOrThrow({
-        where: { id: originId },
-      });
+      const originCity = await this.cities.findCityOrThrow(originId, tx);
 
-      const destinationCity = await tx.city.findUniqueOrThrow({
-        where: { id: destinationId },
-      });
+      const destinationCity = await this.cities.findCityOrThrow(
+        destinationId,
+        tx,
+      );
 
       const { distance, duration } = await this.mapService.calculateDistance({
         origin: {

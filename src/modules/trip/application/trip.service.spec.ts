@@ -19,6 +19,7 @@ import {
   TrackingMessages,
 } from '../../../common/enums/messages.enum';
 import { NotificationService } from '../../notification/notification.service';
+import { CityRepository } from '../../prisma/repositories/city.repository';
 
 describe('TripService', () => {
   let service: TripService;
@@ -28,6 +29,7 @@ describe('TripService', () => {
   let notificationService: DeepMockProxy<NotificationService>;
   let runner: DeepMockProxy<TransactionRunner>;
   let trackingService: DeepMockProxy<TripTrackingService>;
+  let cities: DeepMockProxy<CityRepository>;
 
   const mockVehicle = {
     id: 'vehicle-123',
@@ -113,6 +115,7 @@ describe('TripService', () => {
     notificationService = mockDeep<NotificationService>();
     runner = mockDeep<TransactionRunner>();
     trackingService = mockDeep<TripTrackingService>();
+    cities = mockDeep<CityRepository>();
 
     runner.run.mockImplementation((fn: any) => fn(prisma));
 
@@ -125,6 +128,7 @@ describe('TripService', () => {
         { provide: NotificationService, useValue: notificationService },
         { provide: TransactionRunner, useValue: runner },
         { provide: TripTrackingService, useValue: trackingService },
+        { provide: CityRepository, useValue: cities },
       ],
     }).compile();
 
@@ -134,7 +138,7 @@ describe('TripService', () => {
   describe('create', () => {
     it('should create trip successfully', async () => {
       prisma.vehicle.findFirst.mockResolvedValue(mockVehicle);
-      prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
+      cities.findCityOrThrow.mockResolvedValue(mockCity);
       mapService.calculateDistance.mockResolvedValue({
         distance: 100,
         duration: 120,
@@ -147,6 +151,11 @@ describe('TripService', () => {
       expect(prisma.vehicle.findFirst).toHaveBeenCalledWith({
         where: { id: 'vehicle-123', owner: { userId: 'user-123' } },
       });
+      expect(cities.findCityOrThrow).toHaveBeenCalledWith(
+        'city-origin',
+        prisma,
+      );
+      expect(cities.findCityOrThrow).toHaveBeenCalledWith('city-dest', prisma);
       expect(mapService.calculateDistance).toHaveBeenCalled();
       expect(prisma.trip.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -168,7 +177,7 @@ describe('TripService', () => {
       };
 
       prisma.vehicle.findFirst.mockResolvedValue(mockVehicle);
-      prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
+      cities.findCityOrThrow.mockResolvedValue(mockCity);
       mapService.calculateDistance.mockResolvedValue({
         distance: 100,
         duration: 120,
@@ -200,7 +209,7 @@ describe('TripService', () => {
 
     it('should run creation inside TransactionRunner', async () => {
       prisma.vehicle.findFirst.mockResolvedValue(mockVehicle);
-      prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
+      cities.findCityOrThrow.mockResolvedValue(mockCity);
       mapService.calculateDistance.mockResolvedValue({
         distance: 100,
         duration: 120,
@@ -753,7 +762,7 @@ describe('TripService', () => {
       };
 
       prisma.vehicle.findFirst.mockResolvedValue(mockVehicle);
-      prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
+      cities.findCityOrThrow.mockResolvedValue(mockCity);
       mapService.calculateDistance.mockResolvedValue({
         distance: 100,
         duration: 120,
