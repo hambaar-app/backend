@@ -1,10 +1,12 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Feature, LineString, Point } from 'geojson';
 import { Turf, TURF_TOKEN } from './turf.provider';
 import { Location } from '../map/map.types';
 
 @Injectable()
 export class TurfService {
+  private readonly logger = new Logger(TurfService.name);
+
   constructor(@Inject(TURF_TOKEN) private turf: Turf) {}
 
   // Helper method for create Point with location
@@ -42,7 +44,7 @@ export class TurfService {
       const nearestPoint = this.turf.nearestPointOnLine(route, point);
       return this.turf.distance(point, nearestPoint, { units: 'meters' });
     } catch (error) {
-      console.error('Error calculating distance to route:', error);
+      this.logger.error('Error calculating distance to route:', error);
       return this.getDistanceToRouteSimple(point, route);
     }
   }

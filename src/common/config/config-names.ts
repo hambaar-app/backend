@@ -6,6 +6,7 @@
 export const ConfigKey = {
   Database: {
     Url: 'DATABASE_URL',
+    TransactionTimeoutMs: 'PRISMA_TX_TIMEOUT_MS',
   },
   Redis: {
     Url: 'REDIS_URL',

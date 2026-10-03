@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, TripStatusEnum } from '../../../generated/prisma';
 import { Location } from '../map/map.types';
 import { ConfigService } from '@nestjs/config';
 import { SessionData } from 'express-session';
@@ -11,17 +10,29 @@ import {
 } from './matching.types';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { TurfService } from '../turf/turf.service';
+import { ConfigKey } from '../../common/config/config-names';
+import { MatchingScorer } from './matching/matching-scorer';
+import { CorridorAnalyzer } from './matching/corridor-analyzer';
+import { buildTripCandidateWhere } from './matching/trip-candidate-query';
 
 @Injectable()
 export class MatchingService {
-  private corridorWidth: number;
+  private readonly logger = new Logger(MatchingService.name);
+  private readonly corridorWidth: number;
+  private readonly scorer: MatchingScorer;
+  private readonly analyzer: CorridorAnalyzer;
 
   constructor(
     config: ConfigService,
     private prisma: PrismaService,
-    private turfService: TurfService,
+    turfService: TurfService,
   ) {
-    this.corridorWidth = config.get<number>('CORRIDOR_WIDTH', 10);
+    this.corridorWidth = config.get<number>(
+      ConfigKey.Pricing.CorridorWidth,
+      10,
+    );
+    this.scorer = new MatchingScorer();
+    this.analyzer = new CorridorAnalyzer(turfService, this.scorer);
   }
 
   async findMatchedTrips(
@@ -61,7 +72,7 @@ export class MatchingService {
         packageData.recipient.address,
         this.corridorWidth,
       ).catch((error) => {
-        console.error(`Error analyzing trip ${trip.id}:`, error);
+        this.logger.error(`Error analyzing trip ${trip.id}:`, error);
         return null;
       }),
     );
@@ -100,25 +111,10 @@ export class MatchingService {
     lastCheckMatching?: Date,
     tx: PrismaTransaction = this.prisma,
   ) {
-    const whereClause: Prisma.TripWhereInput = {
-      isActive: true,
-      status: TripStatusEnum.scheduled,
-    };
-
-    // Just check new trips after lastCheckMatching
-    if (lastCheckMatching) {
-      whereClause.updatedAt = {
-        gte: lastCheckMatching,
-      };
-    }
-
-    // Filter by weight capacity
-    if (packageData.weight) {
-      whereClause.OR = [
-        { maxPackageWeightGr: { gte: packageData.weight } },
-        { maxPackageWeightGr: null },
-      ];
-    }
+    const whereClause = buildTripCandidateWhere({
+      weight: packageData.weight,
+      lastCheckMatching,
+    });
 
     // TODO: Filter by departure time
 
@@ -161,85 +157,26 @@ export class MatchingService {
     packageDestination: Location,
     corridorWidthKm: number = this.corridorWidth,
   ): Promise<MatchResult | null> {
-    const tripRoute = this.turfService.createRoute(
-      trip.origin,
-      trip.destination,
-      trip.waypoints,
+    return this.analyzer.analyzeTrip(
+      trip,
+      packageOrigin,
+      packageDestination,
+      corridorWidthKm,
     );
-
-    const packageOriginPoint = this.turfService.createPoint(packageOrigin);
-    const packageDestinationPoint =
-      this.turfService.createPoint(packageDestination);
-
-    // Calculate distances from package points to trip route
-    const originDistance = this.turfService.getDistanceToRoute(
-      packageOriginPoint,
-      tripRoute,
-    );
-    const destinationDistance = this.turfService.getDistanceToRoute(
-      packageDestinationPoint,
-      tripRoute,
-    );
-
-    // Check if both points are within corridor
-    const corridorWidthMeters = corridorWidthKm * 1000;
-    const isOnCorridor =
-      originDistance <= corridorWidthMeters &&
-      destinationDistance <= corridorWidthMeters;
-
-    if (!isOnCorridor) {
-      return null;
-    }
-
-    // Check package and trip are in the same direction.
-    const isDirectionCompatible = this.turfService.checkDirectionCompatibility(
-      tripRoute,
-      packageOriginPoint,
-      packageDestinationPoint,
-    );
-
-    if (!isDirectionCompatible) {
-      return null;
-    }
-
-    const score = this.calculateMatchingScore(
-      originDistance,
-      destinationDistance,
-      isOnCorridor,
-    );
-
-    return {
-      tripId: trip.id,
-      isRequestSent: false,
-      score,
-      originDistance,
-      destinationDistance,
-      isOnCorridor,
-    };
   }
 
   // Note: Score lower is better.
-  // MVP version
+  // MVP version — kept as a thin delegate so existing callers/tests keep
+  // working; new code should use `MatchingScorer` directly.
   private calculateMatchingScore(
     originDistance: number,
     destinationDistance: number,
     isOnCorridor: boolean,
   ): number {
-    // Base score
-    let score = (originDistance + destinationDistance) / 2;
-
-    // Lower score for packages not on corridor
-    if (!isOnCorridor) {
-      score += 100_000;
-    }
-
-    // Score for trips that start/end very close to package points
-    if (originDistance < 1000) score -= 500;
-    if (destinationDistance < 1000) score -= 500;
-
-    // TODO: Add time-based scoring (preferred times)
-    // TODO: Add transporter rating scoring
-
-    return Math.max(0, score); // Ensure non-negative score
+    return this.scorer.calculateMatchingScore(
+      originDistance,
+      destinationDistance,
+      isOnCorridor,
+    );
   }
 }

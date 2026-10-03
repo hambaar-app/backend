@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaClient, TripStatusEnum } from '../../../generated/prisma';
 import { TurfService } from '../turf/turf.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConfigKey } from '../../common/config/config-names';
 import {
   PackageWithLocations,
   TripWithLocations,
@@ -653,6 +654,116 @@ describe('MatchingService', () => {
 
     it('should handle corridor width configuration', () => {
       expect(service['corridorWidth']).toBe(2);
+    });
+
+    it('should read corridor width via ConfigKey', () => {
+      expect(ConfigKey.Pricing.CorridorWidth).toBe('CORRIDOR_WIDTH');
+      expect(configService.get).toHaveBeenCalledWith(
+        ConfigKey.Pricing.CorridorWidth,
+        10,
+      );
+    });
+
+    it('should default corridor width to 10 when config is missing', async () => {
+      const emptyConfig = mockDeep<ConfigService>();
+      emptyConfig.get.mockImplementation(
+        (_key: string, defaultValue?: unknown) => defaultValue,
+      );
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          MatchingService,
+          { provide: ConfigService, useValue: emptyConfig },
+          { provide: PrismaService, useValue: prismaService },
+          { provide: TurfService, useValue: turfService },
+        ],
+      }).compile();
+
+      expect(
+        module.get<MatchingService>(MatchingService)['corridorWidth'],
+      ).toBe(10);
+    });
+
+    it('should log via Logger and skip trips that fail analysis', async () => {
+      const candidateTrips = [
+        mockTripData,
+        { ...mockTripData, id: 'trip-456' },
+      ];
+      const validMatchResult: MatchResult = {
+        tripId: 'trip-123',
+        isRequestSent: false,
+        score: 400,
+        originDistance: 500,
+        destinationDistance: 300,
+        isOnCorridor: true,
+      };
+
+      jest
+        .spyOn(service as any, 'getPreFilteredTrips')
+        .mockResolvedValue(candidateTrips);
+      jest
+        .spyOn(service as any, 'analyzeTrip')
+        .mockResolvedValueOnce(validMatchResult)
+        .mockRejectedValueOnce(new Error('Analysis failed'));
+      const loggerSpy = jest
+        .spyOn((service as any).logger, 'error')
+        .mockImplementation(() => undefined);
+      const freshSession = { packages: [] } as any;
+
+      const result = await service.findMatchedTrips(
+        mockPackageData,
+        freshSession,
+        20,
+        prismaService,
+      );
+
+      expect(result).toEqual([validMatchResult]);
+      expect(loggerSpy).toHaveBeenCalledTimes(1);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Error analyzing trip trip-456:',
+        expect.any(Error),
+      );
+    });
+
+    it('should delegate scoring to MatchingScorer without drift', () => {
+      expect(service['calculateMatchingScore'](2000, 2000, true)).toBe(2000);
+      expect(service['calculateMatchingScore'](100, 100, true)).toBe(0);
+    });
+
+    it('should use default maxResults and tx when not provided', async () => {
+      jest.spyOn(service as any, 'getPreFilteredTrips').mockResolvedValue([]);
+
+      const freshSession = { packages: [] } as any;
+      const result = await service.findMatchedTrips(
+        mockPackageData,
+        freshSession,
+      );
+
+      expect(result).toEqual([]);
+      expect(service['getPreFilteredTrips']).toHaveBeenCalledWith(
+        mockPackageData,
+        undefined,
+        prismaService,
+      );
+      expect(freshSession.packages[0].matchResults).toEqual([]);
+    });
+
+    it('should use configured corridor width when analyzeTrip width is omitted', async () => {
+      const analyzerSpy = jest
+        .spyOn((service as any).analyzer, 'analyzeTrip')
+        .mockResolvedValue(null);
+
+      await service['analyzeTrip'](
+        mockTripData,
+        mockPackageData.originAddress,
+        mockPackageData.recipient.address,
+      );
+
+      expect(analyzerSpy).toHaveBeenCalledWith(
+        mockTripData,
+        mockPackageData.originAddress,
+        mockPackageData.recipient.address,
+        2,
+      );
     });
   });
 });
