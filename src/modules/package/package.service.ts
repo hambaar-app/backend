@@ -24,7 +24,7 @@ import { PricingService } from '../pricing/pricing.service';
 import { S3Service } from '../s3/s3.service';
 import { SessionData } from 'express-session';
 import { MatchingService } from './matching.service';
-import { TripService } from '../trip/trip.service';
+import { TripService } from '../trip/application/trip.service';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { JsonArray } from '../../../generated/prisma/runtime/library';
 import { CreateRequestDto } from '../trip/dto/create-request.dto';
