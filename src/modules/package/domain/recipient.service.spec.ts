@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RecipientService } from './recipient.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionRunner } from '../../prisma/transaction-runner';
+import { CityRepository } from '../../prisma/repositories/city.repository';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaClient } from '../../../../generated/prisma';
 import { CreateRecipientDto } from '../dto/create-recipient.dto';
@@ -10,6 +11,7 @@ describe('RecipientService', () => {
   let service: RecipientService;
   let prisma: DeepMockProxy<PrismaClient>;
   let runner: DeepMockProxy<TransactionRunner>;
+  let cities: DeepMockProxy<CityRepository>;
 
   const mockCity = {
     id: 'city-123',
@@ -39,6 +41,7 @@ describe('RecipientService', () => {
 
     prisma = mockDeep<PrismaClient>();
     runner = mockDeep<TransactionRunner>();
+    cities = mockDeep<CityRepository>();
 
     runner.run.mockImplementation((fn: any) => fn(prisma));
 
@@ -47,6 +50,7 @@ describe('RecipientService', () => {
         RecipientService,
         { provide: PrismaService, useValue: prisma },
         { provide: TransactionRunner, useValue: runner },
+        { provide: CityRepository, useValue: cities },
       ],
     }).compile();
 
@@ -56,16 +60,16 @@ describe('RecipientService', () => {
   describe('createRecipient', () => {
     it('should create recipient with denormalized city and province', async () => {
       const created = { id: 'recipient-123', ...recipientDto };
-      prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
+      cities.findCityWithProvince.mockResolvedValue(mockCity);
       prisma.packageRecipient.create.mockResolvedValue(created as any);
 
       const result = await service.createRecipient('user-123', recipientDto);
 
       expect(result).toEqual(created);
-      expect(prisma.city.findUniqueOrThrow).toHaveBeenCalledWith({
-        where: { id: 'city-123' },
-        include: { province: true },
-      });
+      expect(cities.findCityWithProvince).toHaveBeenCalledWith(
+        'city-123',
+        prisma,
+      );
       expect(prisma.packageRecipient.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           address: expect.objectContaining({
@@ -85,7 +89,7 @@ describe('RecipientService', () => {
         ...recipientDto,
         address: { ...recipientDto.address, title: undefined },
       } as any;
-      prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
+      cities.findCityWithProvince.mockResolvedValue(mockCity);
       prisma.packageRecipient.create.mockResolvedValue({} as any);
 
       await service.createRecipient('user-123', dtoWithoutTitle);
@@ -101,7 +105,7 @@ describe('RecipientService', () => {
     });
 
     it('should run creation inside TransactionRunner', async () => {
-      prisma.city.findUniqueOrThrow.mockResolvedValue(mockCity);
+      cities.findCityWithProvince.mockResolvedValue(mockCity);
       prisma.packageRecipient.create.mockResolvedValue({} as any);
 
       await service.createRecipient('user-123', recipientDto);

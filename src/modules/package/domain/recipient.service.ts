@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionRunner } from '../../prisma/transaction-runner';
+import { CityRepository } from '../../prisma/repositories/city.repository';
 import { CreateRecipientDto } from '../dto/create-recipient.dto';
 
 /**
@@ -15,6 +16,7 @@ export class RecipientService {
   constructor(
     private prisma: PrismaService,
     private runner: TransactionRunner,
+    private cities: CityRepository,
   ) {}
 
   async createRecipient(
@@ -22,12 +24,7 @@ export class RecipientService {
     { address: { cityId, ...address }, ...recipientDto }: CreateRecipientDto,
   ) {
     return this.runner.run(async (tx) => {
-      const city = await tx.city.findUniqueOrThrow({
-        where: { id: cityId },
-        include: {
-          province: true,
-        },
-      });
+      const city = await this.cities.findCityWithProvince(cityId, tx);
 
       return tx.packageRecipient.create({
         data: {
