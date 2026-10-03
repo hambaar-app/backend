@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PackageService } from './package.service';
 import { MatchingService } from './matching.service';
-import { TripService } from '../trip/trip.service';
+import { TripService } from '../trip/application/trip.service';
 import { S3Service } from '../s3/s3.service';
 import { TurfService } from '../turf/turf.service';
 import { PricingService } from '../pricing/pricing.service';

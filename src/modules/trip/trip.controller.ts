@@ -13,7 +13,9 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { TripService } from './trip.service';
+import { TripService } from './application/trip.service';
+import { TripRequestService } from './domain/trip-request.service';
+import { TripTrackingService } from './domain/trip-tracking.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import { CreateTripDto } from './dto/create-trip.dto';
 import {
@@ -49,7 +51,11 @@ import { CoordinateQueryDto } from '../map/coordinates-query.dto';
 
 @Controller('trips')
 export class TripController {
-  constructor(private tripService: TripService) {}
+  constructor(
+    private tripService: TripService,
+    private requestService: TripRequestService,
+    private trackingService: TripTrackingService,
+  ) {}
 
   @ApiOperation({
     summary: 'Create a new trip',
@@ -168,7 +174,7 @@ export class TripController {
   })
   @Get(':id/requests')
   async getAllTripRequests(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tripService.getAllTripRequests(id);
+    return this.requestService.getAllTripRequests(id);
   }
 
   @ApiOperation({
@@ -186,7 +192,7 @@ export class TripController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateRequestDto,
   ) {
-    return this.tripService.updateRequest(id, body);
+    return this.requestService.updateRequest(id, body);
   }
 
   @ApiOperation({
@@ -211,7 +217,7 @@ export class TripController {
     @Query('inOrder', new ParseBoolPipe({ optional: true }))
     inOrder: boolean = false,
   ) {
-    return this.tripService.getAllMatchedRequests(id, inOrder);
+    return this.requestService.getAllMatchedRequests(id, inOrder);
   }
 
   @ApiOperation({
@@ -356,7 +362,7 @@ export class TripController {
     @Param('id', ParseUUIDPipe) tripId: string,
     @Body() body: AddNoteDto,
   ) {
-    return this.tripService.addTripNote(tripId, body.note, body.packageId);
+    return this.trackingService.addTripNote(tripId, body.note, body.packageId);
   }
 
   @ApiOperation({
@@ -373,7 +379,7 @@ export class TripController {
     @Param('id', ParseUUIDPipe) tripId: string,
     @Body() body: BroadcastNoteDto,
   ) {
-    return this.tripService.addTripNote(tripId, body.note);
+    return this.trackingService.addTripNote(tripId, body.note);
   }
 
   @ApiOperation({
@@ -392,7 +398,7 @@ export class TripController {
     @Param('id', ParseUUIDPipe) tripId: string,
     @Body() body: UpdateTrackingDto,
   ) {
-    return this.tripService.updateTracking(tripId, body);
+    return this.trackingService.updateTracking(tripId, body);
   }
 
   @ApiOperation({
@@ -414,7 +420,7 @@ export class TripController {
     @Param('tripId', ParseUUIDPipe) tripId: string,
     @Param('packageId', ParseUUIDPipe) packageId: string,
   ) {
-    return this.tripService.getTripTracking(tripId, packageId);
+    return this.trackingService.getTripTracking(tripId, packageId);
   }
 
   @ApiOperation({
@@ -431,7 +437,7 @@ export class TripController {
   @HttpCode(HttpStatus.OK)
   @Post('rate')
   async rateTrip(@Body() body: RateTripDto, @CurrentUser('id') userId: string) {
-    return this.tripService.rateTrip(userId, body);
+    return this.trackingService.rateTrip(userId, body);
   }
 
   @ApiOperation({
@@ -451,7 +457,7 @@ export class TripController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query() origin: CoordinateQueryDto,
   ) {
-    return this.tripService.getDirections(id, {
+    return this.trackingService.getDirections(id, {
       latitude: origin.lat,
       longitude: origin.lng,
     });
