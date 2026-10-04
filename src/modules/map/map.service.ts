@@ -9,7 +9,6 @@ import {
   RoutingDto,
   Location,
   ReverseGeocodingResponse,
-  NeshanRoute,
   VehicleTypes,
 } from './map.types';
 import { CityDto } from './dto/city.dto';
@@ -17,6 +16,7 @@ import { CityRepository } from '../prisma/repositories/city.repository';
 import { CoordinatesQueryDto } from './coordinates-query.dto';
 import { PORTS } from '../../infra/ports/ports.tokens';
 import { MapsPort } from '../../infra/ports/ports';
+import { extractSignificantPoints } from './route-filters';
 
 @Injectable()
 export class MapService {
@@ -117,7 +117,7 @@ export class MapService {
       }
 
       const route = routeResponse.routes[0];
-      const significantPoints = this.extractSignificantPoints(route);
+      const significantPoints = extractSignificantPoints(route);
 
       // Process points
       const reverseGeocodePromises = significantPoints.map(
@@ -139,9 +139,11 @@ export class MapService {
               };
             }
             return null;
-          } catch (error) {
+          } catch (error: unknown) {
+            const detail =
+              error instanceof Error ? error.message : String(error);
             console.warn(
-              `Failed to reverse geocode point ${point.lat}, ${point.lng}: ${error.message}.`,
+              `Failed to reverse geocode point ${point.lat}, ${point.lng}: ${detail}.`,
             );
             return null;
           }
@@ -160,10 +162,10 @@ export class MapService {
           longitude: String(c!.longitude),
         };
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         'Error getting intermediate cities:',
-        error.response?.data || error.message,
+        axiosFailureDetail(error),
       );
       throw new InternalServerErrorException(
         'Failed to get intermediate cities.',
@@ -171,79 +173,20 @@ export class MapService {
     }
   }
 
-  private extractSignificantPoints(
-    route: NeshanRoute,
-  ): Array<{ lat: number; lng: number }> {
-    const points: Array<{ lat: number; lng: number }> = [];
-    const minDistanceThreshold = 10000; // minimum distance between points
-    const priorityStepTypes = [
-      'roundabout',
-      'rotary',
-      'merge',
-      'turn',
-      'fork',
-      'on ramp',
-      'off ramp',
-      'roundabout turn',
-      'exit roundabout',
-      'exit rotary',
-    ];
-
-    // Include origin
-    const firstStep = route.legs[0].steps[0];
-    points.push({
-      lat: firstStep.start_location[1],
-      lng: firstStep.start_location[0],
-    });
-
-    // Select points from steps with priority point types or significant instructions (Includes 'وارد')
-    let lastPoint: { lat: number; lng: number } | undefined;
-    for (const leg of route.legs) {
-      for (const step of leg.steps) {
-        const currentPoint = {
-          lat: step.start_location[1],
-          lng: step.start_location[0],
-        };
-
-        const pushPointCondition =
-          ((step.instruction && step.instruction.includes('وارد')) ||
-            priorityStepTypes.includes(step.type) ||
-            step.distance.value > minDistanceThreshold) &&
-          (!lastPoint ||
-            this.haversineDistance(lastPoint, currentPoint) >
-              minDistanceThreshold);
-        if (pushPointCondition) {
-          points.push(currentPoint);
-          lastPoint = currentPoint;
-        }
-      }
-    }
-
-    return points;
-  }
-
-  // calculates the great-circle distance between two points on the Earth's surface,
-  // given their latitude and longitude coordinates.
-  private haversineDistance(
-    point1: { lat: number; lng: number },
-    point2: { lat: number; lng: number },
-  ): number {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = (+point1.lat * Math.PI) / 180;
-    const φ2 = (+point2.lat * Math.PI) / 180;
-    const Δφ = ((+point2.lat - +point1.lat) * Math.PI) / 180;
-    const Δλ = ((+point2.lng - +point1.lng) * Math.PI) / 180;
-
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  }
-
   // Make a pause between API requests
   private async delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
+}
+
+/** Best-effort detail string for unknown axios-style failures. */
+function axiosFailureDetail(error: unknown): unknown {
+  if (typeof error === 'object' && error !== null) {
+    const { response, message } = error as {
+      response?: { data?: unknown };
+      message?: unknown;
+    };
+    return response?.data ?? message;
+  }
+  return error;
 }
