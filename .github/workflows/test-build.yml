@@ -6,34 +6,57 @@ on:
   pull_request:
     branches: [ "master" ]
 
-env:
-  NODE_ENV: production
-  DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@hambaar.postgres:5432/${{ secrets.POSTGRES_DB }}
-  REDIS_URL: redis://:${{ secrets.REDIS_PASSWORD }}@hambaar.redis:6379
-  JWT_ACCESS_SECRET_KEY: ${{ secrets.JWT_ACCESS_SECRET_KEY }}
-  JWT_PROGRESS_SECRET_KEY: ${{ secrets.JWT_PROGRESS_SECRET_KEY }}
-  JWT_TEMP_SECRET_KEY: ${{ secrets.JWT_TEMP_SECRET_KEY }}
-  COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
-  SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-  AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-  AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-  AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
-  AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
-  MAP_API_KEY: ${{ secrets.MAP_API_KEY }}
-  MAP_API_URL: ${{ secrets.MAP_API_URL }}
-  SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
-
 jobs:
   test:
     runs-on: ubuntu-latest
     container: node:22-bookworm-slim
+    # Unit suite is fully mocked (no DB/Redis/network): the only env it may
+    # see is NODE_ENV. No secrets here (T-6).
+    env:
+      NODE_ENV: test
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Update and Upgrade image
+        run: apt-get update -y
+          && apt-get upgrade -y
+          && apt-get install -y openssl
+          && apt-get install -y bash
+
+      - name: Install Dependencies
+        run: npm ci --include=dev
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+
+      # No lint gate: repo-wide CRLF/prettier debt predates the refactor
+      # and would fail a clean check. Local workflow stays `npm run lint`
+      # (--fix). Tracked for a whitespace-normalization pass post-refactor.
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run Unit Tests with Coverage
+        run: npm test -- --coverage
+
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: test
+    container: node:22-bookworm-slim
     services:
       postgres:
-        image: postgres
+        image: postgres:17
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hambaar_test
         ports:
           - 5432:5432
         options: >-
@@ -41,9 +64,9 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-          
+
       redis:
-        image: redis
+        image: redis:8
         ports:
           - 6379:6379
         options: >-
@@ -51,45 +74,64 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-          
+    # Dummy (non-secret) values only — SMS/Neshan/S3 are faked at the port
+    # boundary inside the suite. NOTE: `npm run test:integration` carries
+    # localhost defaults for local runs, so CI invokes push + jest directly.
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/hambaar_test
+      REDIS_URL: redis://redis:6379
+      OTP_REDIS_URL: redis://redis:6379/1
+      SESSION_REDIS_URL: redis://redis:6379/2
+      SESSION_SECRET: ci-session-secret-min-16-chars
+      COOKIE_SECRET: ci-cookie-secret
+      JWT_ACCESS_SECRET_KEY: ci-jwt-access-secret-min-16
+      JWT_TEMP_SECRET_KEY: ci-jwt-temp-secret-min-16
+      JWT_PROGRESS_SECRET_KEY: ci-jwt-progress-secret-min-16
+      AWS_ACCESS_KEY: ci
+      AWS_SECRET_KEY: ci
+      AWS_BUCKET_NAME: ci-bucket
+      AWS_ENDPOINT: https://s3.ci.local
+      MAP_API_KEY: ci
+      MAP_API_URL: https://maps.ci.local
+      SMS_API_KEY: ci
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
-        
+
       - name: Update and Upgrade image
         run: apt-get update -y
           && apt-get upgrade -y
           && apt-get install -y openssl
           && apt-get install -y bash
-        
+
       - name: Install Dependencies
         run: npm ci --include=dev
-        
-      # TODO: Uncomment when add e2e tests
-      # - name: Push DB with prisma
-      #   run: npm run prisma:push
-      
+
       - name: Generate Prisma Client
         run: npm run prisma:generate
 
-      - name: Run Unit Tests
-        run: npm test
+      - name: Push Test Schema
+        run: npx prisma db push --skip-generate
+
+      - name: Run Integration Tests
+        run: npx jest --config ./test/jest-integration.json
 
   build:
     runs-on: ubuntu-latest
-    needs: test
+    needs: integration
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    
+
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
-        
+
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-        
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -99,7 +141,7 @@ jobs:
             type=ref,event=branch
             type=sha,prefix=main-
             latest
-        
+
       - name: Build Image and Push to DockerHub
         uses: docker/build-push-action@v5
         with:
