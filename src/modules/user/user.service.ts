@@ -4,7 +4,6 @@ import { Prisma, User } from '../../../generated/prisma';
 import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { formatPrismaError } from '../../common/utilities';
 import { PORTS } from '../../infra/ports/ports.tokens';
 import { StoragePort } from '../../infra/ports/ports';
 
@@ -29,23 +28,18 @@ export class UserService {
   }
 
   async getProfile(userId: string) {
-    const profile = await this.prisma.user
-      .findUniqueOrThrow({
-        where: { id: userId },
-        include: {
-          transporter: {
-            include: {
-              licenseStatus: true,
-              nationalIdStatus: true,
-              verificationStatus: true,
-            },
+    const profile = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: {
+        transporter: {
+          include: {
+            licenseStatus: true,
+            nationalIdStatus: true,
+            verificationStatus: true,
           },
         },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+      },
+    });
 
     return {
       ...profile,
@@ -69,40 +63,30 @@ export class UserService {
     { phoneNumber: _phoneNumber, ...userDto }: UpdateUserDto,
   ) {
     // NOTE: phoneNumber is intentionally stripped from user updates (phone changes go through OTP flow — see auth module)
-    return this.prisma.user
-      .update({
-        where: { id },
-        data: userDto,
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    return this.prisma.user.update({
+      where: { id },
+      data: userDto,
+    });
   }
 
   async getTransporter(
     transporterWhereInput: Prisma.TransporterWhereInput,
     tx: PrismaService | PrismaTransaction = this.prisma,
   ) {
-    return tx.transporter
-      .findFirstOrThrow({
-        where: transporterWhereInput,
-        include: {
-          user: true,
-          nationalIdStatus: true,
-          licenseStatus: true,
-          verificationStatus: true,
-          vehicles: {
-            include: {
-              verificationStatus: true,
-            },
+    return tx.transporter.findFirstOrThrow({
+      where: transporterWhereInput,
+      include: {
+        user: true,
+        nationalIdStatus: true,
+        licenseStatus: true,
+        verificationStatus: true,
+        vehicles: {
+          include: {
+            verificationStatus: true,
           },
         },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+      },
+    });
   }
 
   async updateTransporter(
@@ -122,7 +106,7 @@ export class UserService {
     }
 
     if (transporterDto.licenseNumber) {
-      updatedData.nationalIdStatus = {
+      updatedData.licenseStatus = {
         create: {
           status: 'pending',
           description: null,
@@ -130,20 +114,15 @@ export class UserService {
       };
     }
 
-    return tx.transporter
-      .update({
-        where: {
-          userId,
-        },
-        data: updatedData,
-        include: {
-          nationalIdStatus: true,
-          licenseStatus: true,
-        },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    return tx.transporter.update({
+      where: {
+        userId,
+      },
+      data: updatedData,
+      include: {
+        nationalIdStatus: true,
+        licenseStatus: true,
+      },
+    });
   }
 }

@@ -25,4 +25,9 @@ describe('DashboardController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('should delegate dashboard route to DashboardService', async () => {
+    await controller.getDashboard('user-123');
+    expect(service.getDashboard).toHaveBeenCalledWith('user-123');
+  });
 });

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatPrismaError, getDateDifference } from '../../common/utilities';
+import { getDateDifference } from '../../common/utilities';
 import {
   PackageStatusEnum,
   PaymentStatusEnum,
@@ -21,8 +21,8 @@ export class DashboardService {
   ) {}
 
   async getDashboard(userId: string) {
-    const { transporter, wallet, role, ...user } = await this.prisma.user
-      .findFirstOrThrow({
+    const { transporter, wallet, role, ...user } =
+      await this.prisma.user.findFirstOrThrow({
         where: { id: userId },
         select: {
           firstName: true,
@@ -53,10 +53,6 @@ export class DashboardService {
             },
           },
         },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
       });
 
     const totalWalletBalance =

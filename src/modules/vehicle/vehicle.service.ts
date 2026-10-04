@@ -1,7 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TransactionRunner } from '../prisma/transaction-runner';
 import { CreateBrandDto } from './dto/create-brand.dto';
-import { formatPrismaError } from '../../common/utilities';
 import { CreateModelDto } from './dto/create-model.dto';
 import {
   CreateVehicleDto,
@@ -15,25 +15,31 @@ import { UserService } from '../user/user.service';
 import { PORTS } from '../../infra/ports/ports.tokens';
 import { StoragePort } from '../../infra/ports/ports';
 
+/**
+ * Vehicle management (Phase 5 Task 3).
+ *
+ * Writes run through `TransactionRunner`; no manual `.catch` — the global
+ * filter maps Prisma errors. Presigned-URL failures stay non-fatal per
+ * document (empty string) and log via Nest `Logger` instead of
+ * `console.error`.
+ */
 @Injectable()
 export class VehicleService {
+  private readonly logger = new Logger(VehicleService.name);
+
   constructor(
     private prisma: PrismaService,
     private userService: UserService,
     @Inject(PORTS.STORAGE) private storage: StoragePort,
+    private runner: TransactionRunner,
   ) {}
 
   async createBrand({ name }: CreateBrandDto) {
-    return this.prisma.vehicleBrand
-      .create({
-        data: {
-          name,
-        },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    return this.prisma.vehicleBrand.create({
+      data: {
+        name,
+      },
+    });
   }
 
   async getAllBrands(search?: string) {
@@ -48,14 +54,9 @@ export class VehicleService {
   }
 
   async createModel(brandDto: CreateModelDto) {
-    return this.prisma.vehicleModel
-      .create({
-        data: brandDto,
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    return this.prisma.vehicleModel.create({
+      data: brandDto,
+    });
   }
 
   async getAllBrandModels(brandId: string, search?: string) {
@@ -74,7 +75,7 @@ export class VehicleService {
     userId: string,
     { verificationDocuments, ...vehicleDto }: CreateVehicleDto,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.runner.run(async (tx) => {
       const { id: ownerId } = await this.userService.getTransporter(
         { userId },
         tx,
@@ -85,22 +86,17 @@ export class VehicleService {
         data: {},
       }); // Nested create got an error :(
 
-      return tx.vehicle
-        .create({
-          data: {
-            ...vehicleDto,
-            ownerId,
-            verificationDocuments: plainDocs,
-            verificationStatusId: verificationStatus.id,
-            // verificationStatus: {
-            //   create: {}
-            // }
-          },
-        })
-        .catch((error: Error) => {
-          formatPrismaError(error);
-          throw error;
-        });
+      return tx.vehicle.create({
+        data: {
+          ...vehicleDto,
+          ownerId,
+          verificationDocuments: plainDocs,
+          verificationStatusId: verificationStatus.id,
+          // verificationStatus: {
+          //   create: {}
+          // }
+        },
+      });
     });
   }
 
@@ -108,25 +104,20 @@ export class VehicleService {
     id: string,
     tx: PrismaService | PrismaTransaction = this.prisma,
   ) {
-    const vehicle = await tx.vehicle
-      .findUniqueOrThrow({
-        where: {
-          id,
-          deletedAt: null,
-        },
-        include: {
-          model: {
-            include: {
-              brand: true,
-            },
+    const vehicle = await tx.vehicle.findUniqueOrThrow({
+      where: {
+        id,
+        deletedAt: null,
+      },
+      include: {
+        model: {
+          include: {
+            brand: true,
           },
-          verificationStatus: true,
         },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+        verificationStatus: true,
+      },
+    });
 
     if (vehicle.verificationDocuments) {
       const documents = plainToInstance(
@@ -144,7 +135,7 @@ export class VehicleService {
               presignedUrls[newKey] =
                 await this.storage.generateGetPresignedUrl(documents[key]);
             } catch (urlError) {
-              console.error(
+              this.logger.error(
                 `Failed to generate presigned URL for ${key}:`,
                 urlError,
               );
@@ -160,7 +151,7 @@ export class VehicleService {
             try {
               return this.storage.generateGetPresignedUrl(s3Key);
             } catch (urlError) {
-              console.error(
+              this.logger.error(
                 `Failed to generate presigned URL for vehiclePicsKey[${index}]:`,
                 urlError,
               );
@@ -180,30 +171,25 @@ export class VehicleService {
   }
 
   async getAllVehicles(userId: string) {
-    const vehicles = await this.prisma.vehicle
-      .findMany({
-        where: {
-          owner: {
-            userId,
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: {
+        owner: {
+          userId,
+        },
+      },
+      select: {
+        id: true,
+        vehicleType: true,
+        model: {
+          include: {
+            brand: true,
           },
         },
-        select: {
-          id: true,
-          vehicleType: true,
-          model: {
-            include: {
-              brand: true,
-            },
-          },
-          manufactureYear: true,
-          color: true,
-          verificationDocuments: true,
-        },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+        manufactureYear: true,
+        color: true,
+        verificationDocuments: true,
+      },
+    });
 
     const vehiclesWithUrls = await Promise.all(
       vehicles.map(async (vehicle) => {
@@ -224,11 +210,9 @@ export class VehicleService {
               if (documents[key]) {
                 try {
                   presignedUrls[newKey] =
-                    await this.storage.generateGetPresignedUrl(
-                      documents[key],
-                    );
+                    await this.storage.generateGetPresignedUrl(documents[key]);
                 } catch (urlError) {
-                  console.error(
+                  this.logger.error(
                     `Failed to generate presigned URL for ${key}:`,
                     urlError,
                   );
@@ -247,7 +231,7 @@ export class VehicleService {
                 try {
                   return await this.storage.generateGetPresignedUrl(s3Key);
                 } catch (urlError) {
-                  console.error(
+                  this.logger.error(
                     `Failed to generate presigned URL for vehiclePicsKey[${index}]:`,
                     urlError,
                   );
@@ -285,17 +269,12 @@ export class VehicleService {
       Object.assign(oldDocs, verificationDocuments),
     );
 
-    return tx.vehicle
-      .update({
-        where: { id },
-        data: {
-          verificationDocuments: newDocs,
-          ...vehicleDto,
-        },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    return tx.vehicle.update({
+      where: { id },
+      data: {
+        verificationDocuments: newDocs,
+        ...vehicleDto,
+      },
+    });
   }
 }

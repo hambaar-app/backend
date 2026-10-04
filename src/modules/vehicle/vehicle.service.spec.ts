@@ -10,17 +10,14 @@ import {
   VehicleTypeEnum,
   VerificationStatusEnum,
 } from '../../../generated/prisma';
-import * as utilities from '../../common/utilities';
-
-jest.mock('../../common/utilities', () => ({
-  formatPrismaError: jest.fn(),
-}));
+import { TransactionRunner } from '../prisma/transaction-runner';
 
 describe('VehicleService', () => {
   let service: VehicleService;
   let prismaService: DeepMockProxy<PrismaClient>;
   let userService: DeepMockProxy<UserService>;
   let s3Service: DeepMockProxy<StoragePort>;
+  let runner: DeepMockProxy<TransactionRunner>;
 
   const mockBrand = {
     id: 'brand-123',
@@ -90,6 +87,9 @@ describe('VehicleService', () => {
     prismaService = mockDeep<PrismaClient>();
     userService = mockDeep<UserService>();
     s3Service = mockDeep<StoragePort>();
+    runner = mockDeep<TransactionRunner>();
+
+    runner.run.mockImplementation((fn: any) => fn(prismaService));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -97,6 +97,7 @@ describe('VehicleService', () => {
         { provide: PrismaService, useValue: prismaService },
         { provide: UserService, useValue: userService },
         { provide: PORTS.STORAGE, useValue: s3Service },
+        { provide: TransactionRunner, useValue: runner },
       ],
     }).compile();
 
@@ -115,17 +116,12 @@ describe('VehicleService', () => {
       });
     });
 
-    it('should handle Prisma errors', async () => {
+    it('should let Prisma errors propagate unwrapped (filter owns mapping)', async () => {
       const error = new Error('Unique constraint failed');
       prismaService.vehicleBrand.create.mockRejectedValue(error);
-      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
-        () => {
-          throw new Error('Formatted error');
-        },
-      );
 
       await expect(service.createBrand({ name: 'Toyota' })).rejects.toThrow(
-        'Formatted error',
+        'Unique constraint failed',
       );
     });
   });
@@ -242,9 +238,6 @@ describe('VehicleService', () => {
       };
 
       userService.getTransporter.mockResolvedValue(mockTransporter as any);
-      prismaService.$transaction.mockImplementation(async (callback) =>
-        callback(prismaService),
-      );
       prismaService.verificationStatus.create.mockResolvedValue({
         id: 'status-123',
         createdAt: new Date(),
@@ -258,6 +251,7 @@ describe('VehicleService', () => {
       const result = await service.create('user-123', vehicleDto);
 
       expect(result).toEqual(mockVehicle);
+      expect(runner.run).toHaveBeenCalledTimes(1);
       expect(userService.getTransporter).toHaveBeenCalledWith(
         { userId: 'user-123' },
         prismaService,
@@ -354,6 +348,23 @@ describe('VehicleService', () => {
           vehiclePics: ['', ''],
         },
       });
+    });
+
+    it('should log and blank presigned urls on synchronous S3 failure', async () => {
+      prismaService.vehicle.findUniqueOrThrow.mockResolvedValue(mockVehicle);
+      s3Service.generateGetPresignedUrl.mockImplementation(() => {
+        throw new Error('S3 down');
+      });
+      const loggerSpy = jest
+        .spyOn((service as any).logger, 'error')
+        .mockImplementation(() => undefined);
+
+      const result = await service.getById('vehicle-123');
+
+      expect(
+        (result.verificationDocuments as any).presignedUrls.greenSheet,
+      ).toBe('');
+      expect(loggerSpy).toHaveBeenCalled();
     });
   });
 

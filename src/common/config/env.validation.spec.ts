@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { validateEnv, EnvSchema } from './env.validation';
+import { validateEnv } from './env.validation';
 
 const makeFullEnv = () => ({
   DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/hambaar-db',
@@ -49,7 +49,9 @@ describe('validateEnv', () => {
     it.each(requiredKeys)('fails when %s is missing', (key) => {
       const env = makeFullEnv();
       delete (env as any)[key];
-      expect(() => validateEnv(env)).toThrow(/Invalid environment configuration/);
+      expect(() => validateEnv(env)).toThrow(
+        /Invalid environment configuration/,
+      );
     });
   });
 
@@ -90,4 +92,18 @@ describe('validateEnv', () => {
     const result = validateEnv(env);
     expect(result.MAX_SEND_ATTEMPTS).toBe(5);
   });
+
+  it('accepts a valid MAX_UPLOAD_SIZE_MB', () => {
+    const result = validateEnv({ ...makeFullEnv(), MAX_UPLOAD_SIZE_MB: 10 });
+    expect(result.MAX_UPLOAD_SIZE_MB).toBe(10);
+  });
+
+  it.each([0, -5, 2.5, 'abc'])(
+    'fails on invalid MAX_UPLOAD_SIZE_MB (%p)',
+    (value) => {
+      expect(() =>
+        validateEnv({ ...makeFullEnv(), MAX_UPLOAD_SIZE_MB: value }),
+      ).toThrow(/MAX_UPLOAD_SIZE_MB/);
+    },
+  );
 });

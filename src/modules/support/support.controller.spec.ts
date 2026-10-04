@@ -25,4 +25,19 @@ describe('SupportController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('should delegate verification routes to SupportService', async () => {
+    await controller.updateVerification('vs-1', { status: 'verified' } as any);
+    expect(service.updateVerification).toHaveBeenCalledWith('vs-1', {
+      status: 'verified',
+    });
+
+    await controller.updateTransporterVerification('user-123', {
+      status: 'verified',
+    } as any);
+    expect(service.updateTransporterVerification).toHaveBeenCalledWith(
+      'user-123',
+      { status: 'verified' },
+    );
+  });
 });

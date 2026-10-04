@@ -71,6 +71,9 @@ export const ConfigKey = {
   Sms: {
     ApiKey: 'SMS_API_KEY',
   },
+  Upload: {
+    MaxSizeMb: 'MAX_UPLOAD_SIZE_MB',
+  },
   Throttle: {
     Ttl: 'THROTTLE_TTL',
     Limit: 'THROTTLE_LIMIT',
