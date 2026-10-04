@@ -94,6 +94,16 @@ describe('NeshanMapsAdapter', () => {
         new InternalServerErrorException('Failed to get directions.'),
       );
     });
+
+    it('should treat non-object failures as network failures', async () => {
+      httpService.get.mockReturnValue(throwError(() => 'reset'));
+
+      await expect(
+        adapter.getDirections({ origin, destination }),
+      ).rejects.toThrow(
+        new InternalServerErrorException('Failed to get directions.'),
+      );
+    });
   });
 
   describe('reverseGeocode', () => {
@@ -120,6 +130,33 @@ describe('NeshanMapsAdapter', () => {
   });
 
   describe('calculateDistance', () => {
+    it('should forward explicit vehicle, trip and waypoint options', async () => {
+      httpService.get.mockReturnValue(
+        of({
+          data: {
+            routes: [
+              {
+                legs: [{ distance: { value: 1000 }, duration: { value: 60 } }],
+              },
+            ],
+          },
+        }),
+      );
+
+      const result = await adapter.calculateDistance({
+        vehicleType: 'motorcycle',
+        tripType: TripTypeEnum.intracity,
+        origin,
+        destination,
+        waypoints: [{ latitude: '35.7', longitude: '51.4' }],
+      });
+
+      expect(result).toEqual({ distance: 1, duration: 1 });
+      const [url] = httpService.get.mock.calls[0];
+      expect(url).not.toContain('no-traffic');
+      expect(url).toContain('waypoints=');
+    });
+
     it('should aggregate legs into km and minutes', async () => {
       httpService.get.mockReturnValue(
         of({

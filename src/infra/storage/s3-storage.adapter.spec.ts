@@ -83,6 +83,16 @@ describe('S3StorageAdapter', () => {
       });
     });
 
+    it('should honor a custom expiry', async () => {
+      await adapter.generateGetPresignedUrl('k', 60);
+
+      expect(getSignedUrl).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        { expiresIn: 60 },
+      );
+    });
+
     it('should return empty string for falsy keys without signing', async () => {
       await expect(adapter.generateGetPresignedUrl(undefined)).resolves.toBe(
         '',
@@ -132,6 +142,12 @@ describe('S3StorageAdapter', () => {
       mockSend.mockRejectedValue(new Error('boom'));
 
       await expect(adapter.fileExists('k')).rejects.toThrow('boom');
+    });
+
+    it('should rethrow non-object failures', async () => {
+      mockSend.mockRejectedValue('reset');
+
+      await expect(adapter.fileExists('k')).rejects.toBe('reset');
     });
   });
 });

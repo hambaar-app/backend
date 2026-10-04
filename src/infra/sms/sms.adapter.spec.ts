@@ -76,6 +76,17 @@ describe('SmsAdapter', () => {
       );
       expect(httpService.post).toHaveBeenCalledTimes(1);
     });
+
+    it('should retry non-object failures as retryable', async () => {
+      httpService.post
+        .mockReturnValueOnce(throwError(() => 'socket reset'))
+        .mockReturnValueOnce(of(successEnvelope));
+
+      const result = await adapter.sendSms(['+98912'], 'hello');
+
+      expect(result).toBe(true);
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('sendOtp', () => {
@@ -95,6 +106,17 @@ describe('SmsAdapter', () => {
           },
         },
       );
+    });
+
+    it('should not retry on 4xx', async () => {
+      httpService.post.mockReturnValueOnce(
+        throwError(() => ({ response: { status: 400 } })),
+      );
+
+      await expect(adapter.sendOtp('+98912', '123456')).rejects.toThrow(
+        new InternalServerErrorException('Failed to send otp code.'),
+      );
+      expect(httpService.post).toHaveBeenCalledTimes(1);
     });
 
     it('should throw the legacy message when the retry is exhausted', async () => {
