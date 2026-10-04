@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Inject,
+  Logger,
 } from '@nestjs/common';
 import {
   CalculateDistanceInput,
@@ -20,6 +21,8 @@ import { extractSignificantPoints } from './route-filters';
 
 @Injectable()
 export class MapService {
+  private readonly logger = new Logger(MapService.name);
+
   constructor(
     @Inject(PORTS.MAPS) private maps: MapsPort,
     private cities: CityRepository,
@@ -142,7 +145,7 @@ export class MapService {
           } catch (error: unknown) {
             const detail =
               error instanceof Error ? error.message : String(error);
-            console.warn(
+            this.logger.warn(
               `Failed to reverse geocode point ${point.lat}, ${point.lng}: ${detail}.`,
             );
             return null;
@@ -163,7 +166,7 @@ export class MapService {
         };
       });
     } catch (error: unknown) {
-      console.error(
+      this.logger.error(
         'Error getting intermediate cities:',
         axiosFailureDetail(error),
       );

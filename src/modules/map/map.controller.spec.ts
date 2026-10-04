@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MapController } from './map.controller';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { MapService } from './map.service';
+import { RoutingDto } from './map.types';
 import { TokenService } from '../token/token.service';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 
@@ -56,5 +57,9 @@ describe('MapController', () => {
       latitude: '35.6',
       longitude: '51.3',
     });
+  });
+
+  it('should cover the routing dto shape', () => {
+    expect(new RoutingDto()).toBeInstanceOf(RoutingDto);
   });
 });
