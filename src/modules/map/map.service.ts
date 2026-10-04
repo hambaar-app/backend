@@ -17,8 +17,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { CityDto } from './dto/city.dto';
-import { formatPrismaError } from '../../common/utilities';
-import { PrismaService } from '../prisma/prisma.service';
+import { CityRepository } from '../prisma/repositories/city.repository';
 import { CoordinatesQueryDto } from './coordinates-query.dto';
 
 @Injectable()
@@ -29,7 +28,7 @@ export class MapService {
   constructor(
     private httpService: HttpService,
     config: ConfigService,
-    private prisma: PrismaService,
+    private cities: CityRepository,
   ) {
     this.mapApiKey = config.getOrThrow<string>('MAP_API_KEY');
     this.mapApiUrl = config.getOrThrow<string>('MAP_API_URL');
@@ -112,23 +111,9 @@ export class MapService {
   }
 
   async getIntermediateCitiesWithIds(originId: string, destinationId: string) {
-    const originCity = await this.prisma.city
-      .findUniqueOrThrow({
-        where: { id: originId },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    const originCity = await this.cities.findCityOrThrow(originId);
 
-    const destinationCity = await this.prisma.city
-      .findUniqueOrThrow({
-        where: { id: destinationId },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    const destinationCity = await this.cities.findCityOrThrow(destinationId);
 
     return this.getIntermediateCities(
       {

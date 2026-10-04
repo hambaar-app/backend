@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TripController } from './trip.controller';
-import { TripService } from './trip.service';
+import { TripService } from './application/trip.service';
+import { TripRequestService } from './domain/trip-request.service';
+import { TripTrackingService } from './domain/trip-tracking.service';
 import { MapModule } from '../map/map.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TokenModule } from '../token/token.module';
@@ -22,7 +24,7 @@ import { NotificationModule } from '../notification/notification.module';
     NotificationModule,
   ],
   controllers: [TripController],
-  providers: [TripService],
-  exports: [TripService],
+  providers: [TripService, TripRequestService, TripTrackingService],
+  exports: [TripService, TripRequestService, TripTrackingService],
 })
 export class TripModule {}

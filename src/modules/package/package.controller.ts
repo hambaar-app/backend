@@ -14,7 +14,10 @@ import {
   Session,
   UseGuards,
 } from '@nestjs/common';
-import { PackageService } from './package.service';
+import { PackageService } from './application/package.service';
+import { RecipientService } from './domain/recipient.service';
+import { PackageRequestService } from './domain/package-request.service';
+import { TrackingService } from './domain/tracking.service';
 import { CreateRecipientDto } from './dto/create-recipient.dto';
 import { AccessTokenGuard } from '../auth/guard/token.guard';
 import {
@@ -55,7 +58,12 @@ import { TrackingResponseDto } from './dto/tracking-response.dto';
 
 @Controller('packages')
 export class PackageController {
-  constructor(private packageService: PackageService) {}
+  constructor(
+    private packageService: PackageService,
+    private recipientService: RecipientService,
+    private requestService: PackageRequestService,
+    private trackingService: TrackingService,
+  ) {}
 
   @ApiOperation({
     summary: 'Create a new recipient',
@@ -77,7 +85,7 @@ export class PackageController {
     @Body() body: CreateRecipientDto,
     @CurrentUser('id') id: string,
   ) {
-    return this.packageService.createRecipient(id, body);
+    return this.recipientService.createRecipient(id, body);
   }
 
   @ApiOperation({
@@ -95,7 +103,7 @@ export class PackageController {
     @CurrentUser('id') id: string,
     @Query('search') search?: string,
   ) {
-    return this.packageService.getAllRecipients(id, search);
+    return this.recipientService.getAllRecipients(id, search);
   }
 
   @ApiOperation({
@@ -258,7 +266,7 @@ export class PackageController {
     @CurrentUser('id') userId: string,
     @Session() session: SessionData,
   ) {
-    return this.packageService.createRequest(userId, body, session);
+    return this.requestService.createRequest(userId, body, session);
   }
 
   @ApiOperation({
@@ -282,7 +290,7 @@ export class PackageController {
     @Query('status', new ParseEnumPipe(RequestStatusEnum, { optional: true }))
     status?: RequestStatusEnum,
   ) {
-    return this.packageService.getAllPackageRequests(
+    return this.requestService.getAllPackageRequests(
       id,
       status ? [status] : undefined,
     );
@@ -306,7 +314,7 @@ export class PackageController {
     @Param('id', ParseUUIDPipe) id: string,
     @Session() session: SessionData,
   ) {
-    return this.packageService.updateRequest(id, session);
+    return this.requestService.updateRequest(id, session);
   }
 
   @ApiOperation({
@@ -319,6 +327,6 @@ export class PackageController {
   @Serialize(TrackingResponseDto)
   @Get('tracking/:code')
   async getTripTrackingByCode(@Param('code') code: string) {
-    return this.packageService.getTrackingByCode(code);
+    return this.trackingService.getTrackingByCode(code);
   }
 }
