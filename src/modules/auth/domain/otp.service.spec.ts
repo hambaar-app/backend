@@ -2,7 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { Keyv } from '@keyv/redis';
 import { OtpService, OtpConfig } from './otp.service';
-import { SmsService } from '../../sms/sms.service';
+import { SmsPort } from '../../../infra/ports/ports';
 import { TooManyRequestsException } from '../../../common/custom.exceptions';
 import { AuthMessages } from '../../../common/enums/messages.enum';
 import { CachedUserData } from '../types/auth.types';
@@ -12,7 +12,7 @@ describe('OtpService', () => {
   // `get` is widened to jest.Mock: Keyv's overloaded `get` signature collapses
   // under jest.Mocked's transform, making mockResolvedValue un-typable.
   let cache: { get: jest.Mock } & jest.Mocked<Keyv>;
-  let smsService: DeepMockProxy<SmsService>;
+  let smsService: DeepMockProxy<SmsPort>;
 
   const config: OtpConfig = {
     otpExpireTime: 2 * 60 * 1000,
@@ -28,8 +28,10 @@ describe('OtpService', () => {
     jest.useFakeTimers();
     jest.setSystemTime(NOW);
 
-    cache = mockDeep<Keyv>() as unknown as { get: jest.Mock } & jest.Mocked<Keyv>;
-    smsService = mockDeep<SmsService>();
+    cache = mockDeep<Keyv>() as unknown as {
+      get: jest.Mock;
+    } & jest.Mocked<Keyv>;
+    smsService = mockDeep<SmsPort>();
     service = new OtpService(cache, config, smsService);
 
     cache.set.mockResolvedValue(true);
@@ -218,9 +220,9 @@ describe('OtpService', () => {
       };
       cache.get.mockResolvedValue(userData);
 
-      await expect(
-        service.verify('+989123456789', '000000'),
-      ).rejects.toThrow(AuthMessages.OtpInvalid);
+      await expect(service.verify('+989123456789', '000000')).rejects.toThrow(
+        AuthMessages.OtpInvalid,
+      );
       expect(cache.set).toHaveBeenCalledTimes(1);
 
       const [, stored] = cache.set.mock.calls[0] as [string, CachedUserData];

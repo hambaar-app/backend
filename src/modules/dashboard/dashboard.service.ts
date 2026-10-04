@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { formatPrismaError, getDateDifference } from '../../common/utilities';
+import { getDateDifference } from '../../common/utilities';
 import {
   PackageStatusEnum,
   PaymentStatusEnum,
@@ -9,19 +9,20 @@ import {
   TransactionTypeEnum,
   TripStatusEnum,
 } from '../../../generated/prisma';
-import { S3Service } from '../s3/s3.service';
+import { PORTS } from '../../infra/ports/ports.tokens';
+import { StoragePort } from '../../infra/ports/ports';
 import { SenderStatistics, TransporterStatistics } from './dashboard.types';
 
 @Injectable()
 export class DashboardService {
   constructor(
     private prisma: PrismaService,
-    private s3Service: S3Service,
+    @Inject(PORTS.STORAGE) private storage: StoragePort,
   ) {}
 
   async getDashboard(userId: string) {
-    const { transporter, wallet, role, ...user } = await this.prisma.user
-      .findFirstOrThrow({
+    const { transporter, wallet, role, ...user } =
+      await this.prisma.user.findFirstOrThrow({
         where: { id: userId },
         select: {
           firstName: true,
@@ -52,10 +53,6 @@ export class DashboardService {
             },
           },
         },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
       });
 
     const totalWalletBalance =
@@ -86,7 +83,7 @@ export class DashboardService {
       fullName: `${user.firstName} ${user.lastName}`,
       totalBalance: totalWalletBalance,
       role,
-      profilePictureUrl: await this.s3Service.generateGetPresignedUrl(
+      profilePictureUrl: await this.storage.generateGetPresignedUrl(
         transporter?.profilePictureKey,
       ),
       rate: transporter?.rate,

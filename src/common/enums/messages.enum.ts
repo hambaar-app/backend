@@ -21,6 +21,7 @@ export enum NotFoundMessages {
   VehicleModel = 'Vehicle model not found.',
   User = 'User not found.',
   MatchedTrip = 'No matched trip found for this package.',
+  VerificationStatus = 'Verification status not found.',
 }
 
 export enum BadRequestMessages {

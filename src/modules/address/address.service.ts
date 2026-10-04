@@ -1,12 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TransactionRunner } from '../prisma/transaction-runner';
+import { CityRepository } from '../prisma/repositories/city.repository';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
-import { formatPrismaError } from '../../common/utilities';
 
+/**
+ * Address management (Phase 5 Task 3).
+ *
+ * Writes run through `TransactionRunner`; no manual `.catch` — the global
+ * filter maps Prisma errors. City/province denormalization reads through
+ * `CityRepository`. Fix vs the original: `create` writes the address
+ * through `tx` (it used the root client inside the transaction).
+ */
 @Injectable()
 export class AddressService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private runner: TransactionRunner,
+    private cities: CityRepository,
+  ) {}
 
   async getAllProvinces() {
     return this.prisma.province.findMany();
@@ -40,59 +53,39 @@ export class AddressService {
   }
 
   async create(userId: string, { cityId, ...addressDto }: CreateAddressDto) {
-    return this.prisma
-      .$transaction(async (tx) => {
-        const city = await tx.city.findUniqueOrThrow({
-          where: { id: cityId },
-          include: {
-            province: true,
-          },
-        });
+    return this.runner.run(async (tx) => {
+      const city = await this.cities.findCityWithProvince(cityId, tx);
 
-        return this.prisma.address.create({
-          data: {
-            userId,
-            ...addressDto,
-            province: city.province.name,
-            city: city.name,
-          },
-        });
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
+      return tx.address.create({
+        data: {
+          userId,
+          ...addressDto,
+          province: city.province.name,
+          city: city.name,
+        },
       });
+    });
   }
 
   async getAll(userId: string, search?: string, isHighlighted = true) {
-    return this.prisma.address
-      .findMany({
-        where: {
-          userId,
-          isHighlighted,
-          title: {
-            contains: search,
-            mode: 'insensitive',
-          },
+    return this.prisma.address.findMany({
+      where: {
+        userId,
+        isHighlighted,
+        title: {
+          contains: search,
+          mode: 'insensitive',
         },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+      },
+    });
   }
 
   async update(addressId: string, addressDto: UpdateAddressDto) {
-    return this.prisma.address
-      .update({
-        where: {
-          id: addressId,
-        },
-        data: addressDto,
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    return this.prisma.address.update({
+      where: {
+        id: addressId,
+      },
+      data: addressDto,
+    });
   }
 }

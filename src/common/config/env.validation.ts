@@ -3,6 +3,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Min,
   MinLength,
   Validate,
   validateSync,
@@ -108,6 +109,9 @@ export class EnvSchema {
 
   @IsOptional() @IsString() PRICING_MAJOR_CITIES?: string;
 
+  // --- Uploads ---
+  @IsOptional() @IsInt() @Min(1) MAX_UPLOAD_SIZE_MB?: number;
+
   // --- CORS ---
   @IsOptional()
   @IsString()
@@ -147,9 +151,7 @@ export function validateEnv(config: Record<string, unknown>) {
 
   if (errors.length > 0) {
     const messages = errors.flatMap((e) =>
-      Object.values(e.constraints ?? {}).map(
-        (msg) => `${e.property}: ${msg}`,
-      ),
+      Object.values(e.constraints ?? {}).map((msg) => `${e.property}: ${msg}`),
     );
     throw new Error(
       `Invalid environment configuration:\n${messages.join('\n')}`,
@@ -158,7 +160,3 @@ export function validateEnv(config: Record<string, unknown>) {
 
   return validated;
 }
-
-
-
-

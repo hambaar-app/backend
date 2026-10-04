@@ -33,4 +33,14 @@ export class NotificationController {
   ) {
     return this.notificationService.getAll(userId, page, limit);
   }
+
+  @ApiOperation({
+    summary: "Get user's unread notification count",
+  })
+  @AuthResponses()
+  @UseGuards(AccessTokenGuard)
+  @Get('unread-count')
+  async getUnreadCount(@CurrentUser('id') userId: string) {
+    return this.notificationService.unreadCount(userId);
+  }
 }

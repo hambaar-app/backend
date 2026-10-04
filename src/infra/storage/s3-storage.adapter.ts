@@ -8,9 +8,17 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { StoragePort } from '../ports/ports';
 
+/**
+ * AWS S3 storage adapter (Phase 5 Task 1).
+ *
+ * Moved verbatim from `S3Service` (which is deleted — all importers use the
+ * `PORTS.STORAGE` token now). The only code outside tests that may construct
+ * SDK commands or presign URLs.
+ */
 @Injectable()
-export class S3Service {
+export class S3StorageAdapter implements StoragePort {
   private client: S3Client;
   private bucketName: string;
 
@@ -70,10 +78,18 @@ export class S3Service {
       );
       return true;
     } catch (error) {
-      if (error.name === 'NotFound') {
+      if (errorName(error) === 'NotFound') {
         return false;
       }
       throw error;
     }
   }
+}
+
+/** Typed name access over unknown SDK failures. */
+function errorName(error: unknown): unknown {
+  if (typeof error === 'object' && error !== null) {
+    return (error as { name?: unknown }).name;
+  }
+  return undefined;
 }

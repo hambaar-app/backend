@@ -28,4 +28,37 @@ describe('VehicleController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('should delegate vehicle routes to VehicleService', async () => {
+    await controller.createBrand({ name: 'Toyota' } as any);
+    expect(service.createBrand).toHaveBeenCalledWith({ name: 'Toyota' });
+
+    await controller.getAllBrands('toy');
+    expect(service.getAllBrands).toHaveBeenCalledWith('toy');
+
+    await controller.registerTransporterVehicle(
+      { color: 'Red' } as any,
+      'user-123',
+    );
+    expect(service.create).toHaveBeenCalledWith('user-123', { color: 'Red' });
+
+    await controller.getVehicleById('vehicle-123');
+    expect(service.getById).toHaveBeenCalledWith('vehicle-123');
+
+    await controller.getAllTransporterVehicles('user-123');
+    expect(service.getAllVehicles).toHaveBeenCalledWith('user-123');
+  });
+
+  it('should delegate model and update routes to VehicleService', async () => {
+    await controller.createModel({ name: 'Camry' } as any);
+    expect(service.createModel).toHaveBeenCalledWith({ name: 'Camry' });
+
+    await controller.getAllBrandModels('brand-123', 'cam');
+    expect(service.getAllBrandModels).toHaveBeenCalledWith('brand-123', 'cam');
+
+    await controller.updateTransporter('vehicle-123', { color: 'Red' } as any);
+    expect(service.update).toHaveBeenCalledWith('vehicle-123', {
+      color: 'Red',
+    });
+  });
 });

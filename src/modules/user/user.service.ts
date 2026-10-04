@@ -4,23 +4,14 @@ import { Prisma, User } from '../../../generated/prisma';
 import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { formatPrismaError } from '../../common/utilities';
-
-export const S3_STORAGE_PORT = Symbol('S3_STORAGE_PORT');
-
-/**
- * Minimal interim storage port so UserService stays testable without a
- * real S3 client. Phase 5 replaces this with the full StoragePort.
- */
-export interface S3StoragePort {
-  generateGetPresignedUrl(key: string | undefined | null): Promise<string>;
-}
+import { PORTS } from '../../infra/ports/ports.tokens';
+import { StoragePort } from '../../infra/ports/ports';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(S3_STORAGE_PORT) private readonly storage: S3StoragePort,
+    @Inject(PORTS.STORAGE) private readonly storage: StoragePort,
   ) {}
 
   async get(
@@ -37,23 +28,18 @@ export class UserService {
   }
 
   async getProfile(userId: string) {
-    const profile = await this.prisma.user
-      .findUniqueOrThrow({
-        where: { id: userId },
-        include: {
-          transporter: {
-            include: {
-              licenseStatus: true,
-              nationalIdStatus: true,
-              verificationStatus: true,
-            },
+    const profile = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: {
+        transporter: {
+          include: {
+            licenseStatus: true,
+            nationalIdStatus: true,
+            verificationStatus: true,
           },
         },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+      },
+    });
 
     return {
       ...profile,
@@ -77,40 +63,30 @@ export class UserService {
     { phoneNumber: _phoneNumber, ...userDto }: UpdateUserDto,
   ) {
     // NOTE: phoneNumber is intentionally stripped from user updates (phone changes go through OTP flow — see auth module)
-    return this.prisma.user
-      .update({
-        where: { id },
-        data: userDto,
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    return this.prisma.user.update({
+      where: { id },
+      data: userDto,
+    });
   }
 
   async getTransporter(
     transporterWhereInput: Prisma.TransporterWhereInput,
     tx: PrismaService | PrismaTransaction = this.prisma,
   ) {
-    return tx.transporter
-      .findFirstOrThrow({
-        where: transporterWhereInput,
-        include: {
-          user: true,
-          nationalIdStatus: true,
-          licenseStatus: true,
-          verificationStatus: true,
-          vehicles: {
-            include: {
-              verificationStatus: true,
-            },
+    return tx.transporter.findFirstOrThrow({
+      where: transporterWhereInput,
+      include: {
+        user: true,
+        nationalIdStatus: true,
+        licenseStatus: true,
+        verificationStatus: true,
+        vehicles: {
+          include: {
+            verificationStatus: true,
           },
         },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+      },
+    });
   }
 
   async updateTransporter(
@@ -130,7 +106,7 @@ export class UserService {
     }
 
     if (transporterDto.licenseNumber) {
-      updatedData.nationalIdStatus = {
+      updatedData.licenseStatus = {
         create: {
           status: 'pending',
           description: null,
@@ -138,20 +114,15 @@ export class UserService {
       };
     }
 
-    return tx.transporter
-      .update({
-        where: {
-          userId,
-        },
-        data: updatedData,
-        include: {
-          nationalIdStatus: true,
-          licenseStatus: true,
-        },
-      })
-      .catch((error: Error) => {
-        formatPrismaError(error);
-        throw error;
-      });
+    return tx.transporter.update({
+      where: {
+        userId,
+      },
+      data: updatedData,
+      include: {
+        nationalIdStatus: true,
+        licenseStatus: true,
+      },
+    });
   }
 }

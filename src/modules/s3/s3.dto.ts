@@ -1,9 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   registerDecorator,
   ValidationArguments,
+  IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
+  Min,
 } from 'class-validator';
 
 export function IsValidFilename(allowExtensions: string[] = []) {
@@ -52,4 +56,17 @@ export class FileNameDto {
   @IsString()
   @IsValidFilename(['.jpg', '.jpeg', '.png'])
   fileName: string;
+}
+
+export class PresignUploadDto extends FileNameDto {
+  @ApiProperty({
+    description:
+      'Declared file size in bytes (optional). Rejected when it exceeds MAX_UPLOAD_SIZE_MB.',
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  size?: number;
 }

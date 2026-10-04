@@ -25,4 +25,19 @@ describe('UserController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('should delegate profile routes to UserService', async () => {
+    await controller.getUserProfile('user-123');
+    expect(service.getProfile).toHaveBeenCalledWith('user-123');
+
+    await controller.updateUser({ firstName: 'A' } as any, 'user-123');
+    expect(service.update).toHaveBeenCalledWith('user-123', {
+      firstName: 'A',
+    });
+
+    await controller.updateTransporter({ bio: 'b' } as any, 'user-123');
+    expect(service.updateTransporter).toHaveBeenCalledWith('user-123', {
+      bio: 'b',
+    });
+  });
 });

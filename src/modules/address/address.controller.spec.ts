@@ -28,4 +28,28 @@ describe('AddressController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('should delegate address routes to AddressService', async () => {
+    await controller.getProvinces();
+    expect(service.getAllProvinces).toHaveBeenCalledWith();
+
+    await controller.getCitiesByProvince('province-123');
+    expect(service.getAllProvinceCities).toHaveBeenCalledWith('province-123');
+
+    await controller.searchCitiesByName('تهران');
+    expect(service.searchCitiesByName).toHaveBeenCalledWith('تهران');
+
+    await controller.createAddress({ title: 'خانه' } as any, 'user-123');
+    expect(service.create).toHaveBeenCalledWith('user-123', { title: 'خانه' });
+
+    await controller.getAllAddresses('user-123', 'search');
+    expect(service.getAll).toHaveBeenCalledWith('user-123', 'search');
+  });
+
+  it('should delegate update route to AddressService', async () => {
+    await controller.updateAddress('address-123', { title: 'new' } as any);
+    expect(service.update).toHaveBeenCalledWith('address-123', {
+      title: 'new',
+    });
+  });
 });

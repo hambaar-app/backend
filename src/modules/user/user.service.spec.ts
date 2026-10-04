@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { UserService, S3StoragePort, S3_STORAGE_PORT } from './user.service';
+import { UserService } from './user.service';
+import { StoragePort } from '../../infra/ports/ports';
+import { PORTS } from '../../infra/ports/ports.tokens';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   PrismaClient,
@@ -9,16 +11,11 @@ import {
   GendersEnum,
   LicenseTypeEnum,
 } from '../../../generated/prisma';
-import * as utilities from '../../common/utilities';
-
-jest.mock('../../common/utilities', () => ({
-  formatPrismaError: jest.fn(),
-}));
 
 describe('UserService', () => {
   let service: UserService;
   let prismaService: DeepMockProxy<PrismaClient>;
-  let storage: DeepMockProxy<S3StoragePort>;
+  let storage: DeepMockProxy<StoragePort>;
 
   const mockUser = {
     id: 'user-123',
@@ -90,13 +87,13 @@ describe('UserService', () => {
     jest.resetAllMocks();
 
     prismaService = mockDeep<PrismaClient>();
-    storage = mockDeep<S3StoragePort>();
+    storage = mockDeep<StoragePort>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: PrismaService, useValue: prismaService },
-        { provide: S3_STORAGE_PORT, useValue: storage },
+        { provide: PORTS.STORAGE, useValue: storage },
       ],
     }).compile();
 
@@ -214,17 +211,12 @@ describe('UserService', () => {
       );
     });
 
-    it('should handle Prisma errors', async () => {
+    it('should let Prisma errors propagate unwrapped (filter owns mapping)', async () => {
       const error = new Error('User not found');
       prismaService.user.findUniqueOrThrow.mockRejectedValue(error);
-      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
-        () => {
-          throw new Error('Formatted error');
-        },
-      );
 
       await expect(service.getProfile('user-123')).rejects.toThrow(
-        'Formatted error',
+        'User not found',
       );
     });
   });
@@ -268,18 +260,13 @@ describe('UserService', () => {
       });
     });
 
-    it('should handle Prisma errors', async () => {
+    it('should let Prisma errors propagate unwrapped (filter owns mapping)', async () => {
       const error = new Error('Update failed');
       prismaService.user.update.mockRejectedValue(error);
-      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
-        () => {
-          throw new Error('Formatted error');
-        },
-      );
 
       await expect(
         service.update('user-123', { firstName: 'علی' }),
-      ).rejects.toThrow('Formatted error');
+      ).rejects.toThrow('Update failed');
     });
   });
 
@@ -308,18 +295,13 @@ describe('UserService', () => {
       });
     });
 
-    it('should handle Prisma errors', async () => {
+    it('should let Prisma errors propagate unwrapped (filter owns mapping)', async () => {
       const error = new Error('Transporter not found');
       prismaService.transporter.findFirstOrThrow.mockRejectedValue(error);
-      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
-        () => {
-          throw new Error('Formatted error');
-        },
-      );
 
       await expect(
         service.getTransporter({ userId: 'user-123' }),
-      ).rejects.toThrow('Formatted error');
+      ).rejects.toThrow('Transporter not found');
     });
   });
 
@@ -386,7 +368,7 @@ describe('UserService', () => {
         where: { userId: 'user-123' },
         data: {
           ...updateDto,
-          nationalIdStatus: {
+          licenseStatus: {
             create: {
               status: 'pending',
               description: null,
@@ -421,6 +403,12 @@ describe('UserService', () => {
               description: null,
             },
           },
+          licenseStatus: {
+            create: {
+              status: 'pending',
+              description: null,
+            },
+          },
         },
         include: {
           nationalIdStatus: true,
@@ -429,18 +417,13 @@ describe('UserService', () => {
       });
     });
 
-    it('should handle Prisma errors', async () => {
+    it('should let Prisma errors propagate unwrapped (filter owns mapping)', async () => {
       const error = new Error('Update failed');
       prismaService.transporter.update.mockRejectedValue(error);
-      (utilities.formatPrismaError as unknown as jest.Mock).mockImplementation(
-        () => {
-          throw new Error('Formatted error');
-        },
-      );
 
       await expect(
         service.updateTransporter('user-123', { profilePictureKey: 'new-key' }),
-      ).rejects.toThrow('Formatted error');
+      ).rejects.toThrow('Update failed');
     });
   });
 
