@@ -48,4 +48,17 @@ describe('VehicleController', () => {
     await controller.getAllTransporterVehicles('user-123');
     expect(service.getAllVehicles).toHaveBeenCalledWith('user-123');
   });
+
+  it('should delegate model and update routes to VehicleService', async () => {
+    await controller.createModel({ name: 'Camry' } as any);
+    expect(service.createModel).toHaveBeenCalledWith({ name: 'Camry' });
+
+    await controller.getAllBrandModels('brand-123', 'cam');
+    expect(service.getAllBrandModels).toHaveBeenCalledWith('brand-123', 'cam');
+
+    await controller.updateTransporter('vehicle-123', { color: 'Red' } as any);
+    expect(service.update).toHaveBeenCalledWith('vehicle-123', {
+      color: 'Red',
+    });
+  });
 });

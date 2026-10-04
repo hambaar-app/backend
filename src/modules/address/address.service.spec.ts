@@ -121,6 +121,20 @@ describe('AddressService', () => {
         },
       });
     });
+
+    it('should search non-highlighted addresses', async () => {
+      prisma.address.findMany.mockResolvedValue([] as any);
+
+      await service.getAll('user-123', 'خانه', false);
+
+      expect(prisma.address.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-123',
+          isHighlighted: false,
+          title: { contains: 'خانه', mode: 'insensitive' },
+        },
+      });
+    });
   });
 
   describe('update', () => {

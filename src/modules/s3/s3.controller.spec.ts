@@ -71,6 +71,22 @@ describe('S3Controller', () => {
     expect(result.key).toBe('sender/user-2/package/pic-p.png');
   });
 
+  it.each([
+    ['getPresignedTransporterNationalId', 'transporter/u1/national-id-a.jpg'],
+    ['getPresignedTransporterLicense', 'transporter/u1/license-a.jpg'],
+    ['getPresignedVehiclePicture', 'transporter/u1/vehicle/pic-a.jpg'],
+    ['getPresignedVehicleGreenSheet', 'transporter/u1/vehicle/green-sheet-a.jpg'],
+    ['getPresignedVehicleCard', 'transporter/u1/vehicle/card-a.jpg'],
+  ])('should build keys for %s', async (method, key) => {
+    const result = await (controller as any)[method](
+      { fileName: 'a.jpg' },
+      'u1',
+    );
+
+    expect(result).toEqual({ key, url: `url:${key}` });
+    expect(storage.generatePutPresignedUrl).toHaveBeenCalledWith(key);
+  });
+
   it('should allow uploads within the limit', async () => {
     const result = await controller.getPresignedPackagePicture(
       { fileName: 'p.png', size: 10 * MB },

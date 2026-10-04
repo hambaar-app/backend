@@ -34,6 +34,9 @@ describe('FinancialService', () => {
   it('should delegate getWallet with and without tx', async () => {
     wallets.getWallet.mockResolvedValue({ id: 'w' } as any);
 
+    await service.getWallet('user-123');
+    expect(wallets.getWallet).toHaveBeenCalledWith('user-123', 1, 10);
+
     await service.getWallet('user-123', 2, 5);
     expect(wallets.getWallet).toHaveBeenCalledWith('user-123', 2, 5);
 

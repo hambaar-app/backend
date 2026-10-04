@@ -45,4 +45,11 @@ describe('AddressController', () => {
     await controller.getAllAddresses('user-123', 'search');
     expect(service.getAll).toHaveBeenCalledWith('user-123', 'search');
   });
+
+  it('should delegate update route to AddressService', async () => {
+    await controller.updateAddress('address-123', { title: 'new' } as any);
+    expect(service.update).toHaveBeenCalledWith('address-123', {
+      title: 'new',
+    });
+  });
 });

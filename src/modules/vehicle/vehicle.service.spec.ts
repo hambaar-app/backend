@@ -350,22 +350,37 @@ describe('VehicleService', () => {
       });
     });
 
-    it('should log and blank presigned urls on synchronous S3 failure', async () => {
-      prismaService.vehicle.findUniqueOrThrow.mockResolvedValue(mockVehicle);
-      s3Service.generateGetPresignedUrl.mockImplementation(() => {
-        throw new Error('S3 down');
+    it('should skip missing document keys without signing', async () => {
+      prismaService.vehicle.findUniqueOrThrow.mockResolvedValue({
+        ...mockVehicle,
+        verificationDocuments: { cardKey: 'card-key' },
       });
-      const loggerSpy = jest
-        .spyOn((service as any).logger, 'error')
-        .mockImplementation(() => undefined);
+      s3Service.generateGetPresignedUrl.mockResolvedValue('url');
 
       const result = await service.getById('vehicle-123');
 
-      expect(
-        (result.verificationDocuments as any).presignedUrls.greenSheet,
-      ).toBe('');
-      expect(loggerSpy).toHaveBeenCalled();
+      expect(s3Service.generateGetPresignedUrl).toHaveBeenCalledTimes(1);
+      expect(result.verificationDocuments).toMatchObject({
+        presignedUrls: { card: 'url' },
+      });
     });
+  });
+
+  it('should log and blank presigned urls on synchronous S3 failure', async () => {
+    prismaService.vehicle.findUniqueOrThrow.mockResolvedValue(mockVehicle);
+    s3Service.generateGetPresignedUrl.mockImplementation(() => {
+      throw new Error('S3 down');
+    });
+    const loggerSpy = jest
+      .spyOn((service as any).logger, 'error')
+      .mockImplementation(() => undefined);
+
+    const result = await service.getById('vehicle-123');
+
+    expect((result.verificationDocuments as any).presignedUrls.greenSheet).toBe(
+      '',
+    );
+    expect(loggerSpy).toHaveBeenCalled();
   });
 
   describe('getAllVehicles', () => {
@@ -410,6 +425,40 @@ describe('VehicleService', () => {
       const result = await service.getAllVehicles('user-123');
 
       expect(result).toEqual(vehiclesWithoutDocs);
+    });
+
+    it('should log and blank urls on synchronous S3 failure in getAllVehicles', async () => {
+      prismaService.vehicle.findMany.mockResolvedValue([mockVehicle]);
+      s3Service.generateGetPresignedUrl.mockImplementation(() => {
+        throw new Error('S3 down');
+      });
+      const loggerSpy = jest
+        .spyOn((service as any).logger, 'error')
+        .mockImplementation(() => undefined);
+
+      const result = await service.getAllVehicles('user-123');
+
+      expect(
+        (result[0].verificationDocuments as any).presignedUrls.greenSheet,
+      ).toBe('');
+      expect(loggerSpy).toHaveBeenCalled();
+    });
+
+    it('should skip missing keys and non-array pics in getAllVehicles', async () => {
+      prismaService.vehicle.findMany.mockResolvedValue([
+        {
+          ...mockVehicle,
+          verificationDocuments: { cardKey: 'card-key' },
+        },
+      ]);
+      s3Service.generateGetPresignedUrl.mockResolvedValue('url');
+
+      const result = await service.getAllVehicles('user-123');
+
+      expect(s3Service.generateGetPresignedUrl).toHaveBeenCalledTimes(1);
+      expect(result[0].verificationDocuments).toMatchObject({
+        presignedUrls: { card: 'url' },
+      });
     });
   });
 

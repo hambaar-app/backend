@@ -49,6 +49,19 @@ describe('WalletService', () => {
   });
 
   describe('getWallet', () => {
+    it('should use default pagination and client', async () => {
+      prisma.wallet.findUniqueOrThrow.mockResolvedValue({
+        ...mockWallet,
+        transactions: [],
+      });
+
+      await service.getWallet('user-123');
+
+      expect(prisma.wallet.findUniqueOrThrow).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'user-123' } }),
+      );
+    });
+
     it('should serialize BigInt amounts via formatMoney', async () => {
       prisma.wallet.findUniqueOrThrow.mockResolvedValue(mockWallet);
 

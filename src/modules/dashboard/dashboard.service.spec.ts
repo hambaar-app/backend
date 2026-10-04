@@ -71,8 +71,7 @@ describe('DashboardService', () => {
       expect(result.notificationCount).toBe(3);
     });
 
-    it('should report zero escrowed amount when the sum is null', async () => {
-      prisma.user.findFirstOrThrow.mockResolvedValue({
+    it('should report zero escrowed amount when the sum is null', async () => {      prisma.user.findFirstOrThrow.mockResolvedValue({
         firstName: 'A',
         lastName: 'B',
         wallet: { balance: 0n, escrowedAmount: 0 },
@@ -97,6 +96,35 @@ describe('DashboardService', () => {
       const result = await service.getDashboard('user-123');
 
       expect(result.statistics).toMatchObject({ totalEscrowedAmount: '0' });
+    });
+
+    it('should leave experience undefined without a last trip date', async () => {
+      prisma.user.findFirstOrThrow.mockResolvedValue({
+        firstName: 'A',
+        lastName: 'B',
+        wallet: { balance: 5n },
+        transporter: {
+          profilePictureKey: null,
+          rate: 5,
+          bio: null,
+          firstTripDate: new Date('2023-01-01'),
+          lastTripDate: null,
+        },
+        role: RolesEnum.transporter,
+        _count: { notifications: 0 },
+      } as any);
+      prisma.trip.count.mockResolvedValue(0);
+      prisma.tripRequest.count.mockResolvedValue(0);
+      prisma.package.count.mockResolvedValue(0);
+      prisma.transaction.findMany.mockResolvedValue([]);
+      prisma.transaction.aggregate.mockResolvedValue({
+        _sum: { amount: null },
+      } as any);
+
+      const result = await service.getDashboard('user-123');
+
+      expect(result.experience).toBeUndefined();
+      expect(result.totalBalance).toBe(5n);
     });
   });
 

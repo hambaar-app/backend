@@ -228,7 +228,7 @@ describe('EscrowService', () => {
       );
     });
 
-    it('should throw when the platform wallet is missing', async () => {
+    it('should throw when the platform user has no wallet', async () => {
       prisma.matchedRequest.findUniqueOrThrow.mockResolvedValue(
         escrowedRequest,
       );
@@ -236,7 +236,10 @@ describe('EscrowService', () => {
         id: 'w-transporter',
         balance: '10000',
       } as any);
-      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue({
+        id: 'admin-1',
+        wallet: null,
+      } as any);
 
       await expect(
         service.releaseEscrow('package-123', 'trip-123', prisma),
