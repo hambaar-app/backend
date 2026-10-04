@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionRunner } from '../prisma/transaction-runner';
 import { PrismaTransaction } from '../prisma/prisma.types';
@@ -13,6 +13,8 @@ import { PrismaTransaction } from '../prisma/prisma.types';
  */
 @Injectable()
 export class NotificationService {
+  private readonly logger = new Logger(NotificationService.name);
+
   constructor(
     private prisma: PrismaService,
     private runner: TransactionRunner,

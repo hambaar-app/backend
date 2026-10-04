@@ -71,6 +71,21 @@ describe('NotificationService', () => {
   });
 
   describe('getAll', () => {
+    it('should use default pagination', async () => {
+      prisma.notification.updateMany.mockResolvedValue({ count: 0 });
+      prisma.notification.findMany.mockResolvedValue([] as any);
+
+      const result = await service.getAll('user-123');
+
+      expect(result).toEqual([]);
+      expect(prisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 10,
+      });
+    });
+
     it('should mark all read then list paginated', async () => {
       prisma.notification.updateMany.mockResolvedValue({ count: 2 });
       prisma.notification.findMany.mockResolvedValue([{ id: 'n-1' }] as any);
