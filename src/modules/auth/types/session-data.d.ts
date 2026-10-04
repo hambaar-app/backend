@@ -1,6 +1,6 @@
 import 'express-session';
 import { UserStatesEnum } from './auth.enums';
-import { MatchResult } from 'src/modules/package/matching.types';
+import { MatchResult } from '../../package/matching.types';
 
 declare module 'express-session' {
   interface SessionData {

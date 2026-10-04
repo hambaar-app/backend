@@ -8,7 +8,7 @@ import { TokenModule } from '../token/token.module';
 import { UserModule } from '../user/user.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { VehicleModule } from '../vehicle/vehicle.module';
-import { CurrentUserMiddleware } from 'src/modules/user/current-user.middleware';
+import { CurrentUserMiddleware } from '../user/current-user.middleware';
 import { SmsModule } from '../sms/sms.module';
 import { NotificationModule } from '../notification/notification.module';
 import {

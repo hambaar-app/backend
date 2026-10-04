@@ -1,7 +1,7 @@
-import { AuthTokens } from 'src/common/enums/auth.enum';
+import { AuthTokens } from '../../../common/enums/auth.enum';
 import { UserStatesEnum } from './auth.enums';
 import { RolesEnum } from 'generated/prisma';
-import { TransporterCompactDto } from 'src/modules/user/dto/transporter-response.dto';
+import { TransporterCompactDto } from '../../user/dto/transporter-response.dto';
 
 export interface OtpData {
   code: string;
