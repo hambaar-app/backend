@@ -5,22 +5,14 @@ import { UpdateTransporterDto } from './dto/update-transporter.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { formatPrismaError } from '../../common/utilities';
-
-export const S3_STORAGE_PORT = Symbol('S3_STORAGE_PORT');
-
-/**
- * Minimal interim storage port so UserService stays testable without a
- * real S3 client. Phase 5 replaces this with the full StoragePort.
- */
-export interface S3StoragePort {
-  generateGetPresignedUrl(key: string | undefined | null): Promise<string>;
-}
+import { PORTS } from '../../infra/ports/ports.tokens';
+import { StoragePort } from '../../infra/ports/ports';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(S3_STORAGE_PORT) private readonly storage: S3StoragePort,
+    @Inject(PORTS.STORAGE) private readonly storage: StoragePort,
   ) {}
 
   async get(

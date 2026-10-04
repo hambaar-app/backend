@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionRunner } from '../../prisma/transaction-runner';
 import { generateCode, generateUniqueCode } from '../../../common/utilities';
@@ -10,7 +10,8 @@ import {
   RequestStatusEnum,
 } from '../../../../generated/prisma';
 import { FinancialService } from '../../financial/financial.service';
-import { S3Service } from '../../s3/s3.service';
+import { PORTS } from '../../../infra/ports/ports.tokens';
+import { StoragePort } from '../../../infra/ports/ports';
 import { TurfService } from '../../turf/turf.service';
 import { NotificationService } from '../../notification/notification.service';
 import {
@@ -39,7 +40,7 @@ export class TripRequestService {
   constructor(
     private prisma: PrismaService,
     private financialService: FinancialService,
-    private s3Service: S3Service,
+    @Inject(PORTS.STORAGE) private storage: StoragePort,
     private notificationService: NotificationService,
     private runner: TransactionRunner,
     turfService: TurfService,
@@ -300,7 +301,7 @@ export class TripRequestService {
       sortedMatchedRequests.map(async (m) => {
         const picturesKey = instanceToPlain(m.package.picturesKey) as string[];
         const picturePromises = picturesKey?.map((k) =>
-          this.s3Service.generateGetPresignedUrl(k),
+          this.storage.generateGetPresignedUrl(k),
         );
         const picturesUrl = await Promise.all(picturePromises);
         return {

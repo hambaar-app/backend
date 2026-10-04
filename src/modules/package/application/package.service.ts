@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
 } from '@nestjs/common';
@@ -14,7 +15,8 @@ import {
 import { PackageStatusEnum } from '../../../../generated/prisma';
 import { MapService } from '../../map/map.service';
 import { PricingService } from '../../pricing/pricing.service';
-import { S3Service } from '../../s3/s3.service';
+import { PORTS } from '../../../infra/ports/ports.tokens';
+import { StoragePort } from '../../../infra/ports/ports';
 import { SessionData } from 'express-session';
 import { MatchingService } from '../matching.service';
 import { TripService } from '../../trip/application/trip.service';
@@ -54,7 +56,7 @@ export class PackageService {
     private pricingService: PricingService,
     private matchingService: MatchingService,
     private tripService: TripService,
-    private s3Service: S3Service,
+    @Inject(PORTS.STORAGE) private storage: StoragePort,
     private turfService: TurfService,
     private notificationService: NotificationService,
     private runner: TransactionRunner,
@@ -319,7 +321,7 @@ export class PackageService {
         const keyString = JSON.stringify(key).split('"')[1];
         try {
           if (keyString) {
-            return this.s3Service.generateGetPresignedUrl(keyString);
+            return this.storage.generateGetPresignedUrl(keyString);
           }
           return '';
         } catch (urlError) {

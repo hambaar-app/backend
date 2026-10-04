@@ -1,34 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MapService } from './map.service';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
 import { CityRepository } from '../prisma/repositories/city.repository';
+import { MapsPort } from '../../infra/ports/ports';
+import { PORTS } from '../../infra/ports/ports.tokens';
 
 describe('MapService', () => {
   let service: MapService;
-  let httpService: DeepMockProxy<HttpService>;
-  let configService: DeepMockProxy<ConfigService>;
+  let maps: DeepMockProxy<MapsPort>;
   let cities: DeepMockProxy<CityRepository>;
 
   beforeEach(async () => {
-    httpService = mockDeep<HttpService>();
-    configService = mockDeep<ConfigService>();
+    maps = mockDeep<MapsPort>();
     cities = mockDeep<CityRepository>();
-
-    configService.get.mockImplementation((key: string, defaultValue?: any) => {
-      const config = {
-        MAP_API_KEY: 'key',
-        MAP_API_URL: 'url',
-      };
-      return config[key] || defaultValue;
-    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MapService,
-        { provide: HttpService, useValue: httpService },
-        { provide: ConfigService, useValue: configService },
+        { provide: PORTS.MAPS, useValue: maps },
         { provide: CityRepository, useValue: cities },
       ],
     }).compile();
@@ -38,6 +27,61 @@ describe('MapService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('delegation', () => {
+    it('should delegate calculateDistance to the port', async () => {
+      maps.calculateDistance.mockResolvedValue({ distance: 15, duration: 30 });
+      const input = {
+        origin: { latitude: '0', longitude: '0' },
+        destination: { latitude: '1', longitude: '1' },
+      };
+
+      const result = await service.calculateDistance(input);
+
+      expect(result).toEqual({ distance: 15, duration: 30 });
+      expect(maps.calculateDistance).toHaveBeenCalledWith({
+        vehicleType: 'car',
+        tripType: 'intercity',
+        origin: input.origin,
+        destination: input.destination,
+        waypoints: undefined,
+      });
+    });
+
+    it('should delegate reverseGeocode to the port', async () => {
+      maps.reverseGeocode.mockResolvedValue({ status: 'OK' } as any);
+
+      const result = await service.reverseGeocode({
+        latitude: '0',
+        longitude: '0',
+      });
+
+      expect(result).toEqual({ status: 'OK' });
+      expect(maps.reverseGeocode).toHaveBeenCalledWith({
+        latitude: '0',
+        longitude: '0',
+      });
+    });
+
+    it('should delegate getDirections to the port', async () => {
+      maps.getDirections.mockResolvedValue({ routes: [] } as any);
+      const input = {
+        origin: { latitude: '0', longitude: '0' },
+        destination: { latitude: '1', longitude: '1' },
+      };
+
+      const result = await service.getDirections(input);
+
+      expect(result).toEqual({ routes: [] });
+      expect(maps.getDirections).toHaveBeenCalledWith({
+        vehicleType: 'car',
+        tripType: 'intercity',
+        origin: input.origin,
+        destination: input.destination,
+        waypoints: undefined,
+      });
+    });
   });
 
   describe('getIntermediateCitiesWithIds', () => {

@@ -3,7 +3,8 @@ import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { VehicleService } from './vehicle.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
-import { S3Service } from '../s3/s3.service';
+import { StoragePort } from '../../infra/ports/ports';
+import { PORTS } from '../../infra/ports/ports.tokens';
 import { PrismaClient } from '../../../generated/prisma';
 import {
   VehicleTypeEnum,
@@ -19,7 +20,7 @@ describe('VehicleService', () => {
   let service: VehicleService;
   let prismaService: DeepMockProxy<PrismaClient>;
   let userService: DeepMockProxy<UserService>;
-  let s3Service: DeepMockProxy<S3Service>;
+  let s3Service: DeepMockProxy<StoragePort>;
 
   const mockBrand = {
     id: 'brand-123',
@@ -88,14 +89,14 @@ describe('VehicleService', () => {
   beforeEach(async () => {
     prismaService = mockDeep<PrismaClient>();
     userService = mockDeep<UserService>();
-    s3Service = mockDeep<S3Service>();
+    s3Service = mockDeep<StoragePort>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VehicleService,
         { provide: PrismaService, useValue: prismaService },
         { provide: UserService, useValue: userService },
-        { provide: S3Service, useValue: s3Service },
+        { provide: PORTS.STORAGE, useValue: s3Service },
       ],
     }).compile();
 

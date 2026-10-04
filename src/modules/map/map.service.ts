@@ -1,7 +1,7 @@
 import {
-  BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Inject,
 } from '@nestjs/common';
 import {
   CalculateDistanceInput,
@@ -12,27 +12,18 @@ import {
   NeshanRoute,
   VehicleTypes,
 } from './map.types';
-import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { AxiosResponse } from 'axios';
 import { CityDto } from './dto/city.dto';
 import { CityRepository } from '../prisma/repositories/city.repository';
 import { CoordinatesQueryDto } from './coordinates-query.dto';
+import { PORTS } from '../../infra/ports/ports.tokens';
+import { MapsPort } from '../../infra/ports/ports';
 
 @Injectable()
 export class MapService {
-  private mapApiUrl: string;
-  private mapApiKey: string;
-
   constructor(
-    private httpService: HttpService,
-    config: ConfigService,
+    @Inject(PORTS.MAPS) private maps: MapsPort,
     private cities: CityRepository,
-  ) {
-    this.mapApiKey = config.getOrThrow<string>('MAP_API_KEY');
-    this.mapApiUrl = config.getOrThrow<string>('MAP_API_URL');
-  }
+  ) {}
 
   async calculateDistance({
     vehicleType = 'car',
@@ -41,55 +32,20 @@ export class MapService {
     destination,
     waypoints,
   }: CalculateDistanceInput) {
-    const directions = await this.getDirections({
+    return this.maps.calculateDistance({
       vehicleType,
       tripType,
       origin,
       destination,
       waypoints,
     });
-
-    const { distance, duration } = directions.routes[0].legs.reduce(
-      (l, p) => ({
-        distance: l.distance + p.distance.value,
-        duration: l.duration + p.duration.value,
-      }),
-      {
-        distance: 0,
-        duration: 0,
-      },
-    );
-
-    return {
-      distance: Number((distance / 1000).toFixed(2)),
-      duration: Number((duration / 60).toFixed(0)),
-    };
   }
 
   async reverseGeocode({
     latitude,
     longitude,
   }: Location): Promise<ReverseGeocodingResponse> {
-    try {
-      const url = `${this.mapApiUrl}/v5/reverse?lat=${latitude}&lng=${longitude}`;
-
-      const response: AxiosResponse<ReverseGeocodingResponse> =
-        await firstValueFrom(
-          this.httpService.get<ReverseGeocodingResponse>(url, {
-            headers: {
-              'Api-Key': this.mapApiKey,
-            },
-          }),
-        );
-
-      return response.data;
-    } catch (error) {
-      console.error(
-        'Error calling Neshan reverse geocoding API:',
-        error.response?.data || error.message,
-      );
-      throw new InternalServerErrorException('Failed to reverse geocode.');
-    }
+    return this.maps.reverseGeocode({ latitude, longitude });
   }
 
   async getIntermediateCitiesWithCoords({
@@ -134,58 +90,13 @@ export class MapService {
     destination,
     waypoints,
   }: RoutingDto): Promise<RoutingResponse> {
-    try {
-      const params = new URLSearchParams();
-      params.append('type', vehicleType);
-      params.append('origin', `${origin.latitude},${origin.longitude}`);
-      params.append(
-        'destination',
-        `${destination.latitude},${destination.longitude}`,
-      );
-
-      let waypointsString = '';
-      if (waypoints && waypoints.length > 0) {
-        waypointsString = waypoints
-          .map(({ latitude, longitude }) => `${latitude},${longitude}`)
-          .join('|');
-        params.append('waypoints', waypointsString);
-      }
-
-      const url =
-        `${this.mapApiUrl}/v4/direction` +
-        `${tripType === 'intercity' ? '/no-traffic' : ''}` +
-        `?${params.toString()}`;
-
-      const response: AxiosResponse<RoutingResponse> = await firstValueFrom(
-        this.httpService.get<RoutingResponse>(url, {
-          headers: {
-            'Api-Key': this.mapApiKey,
-          },
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        const errorCode = error.response.status;
-        const errorBody = error.response.data;
-
-        if (errorCode === 407) {
-          throw new BadRequestException(
-            'Invalid geographic coordinates provided.',
-          );
-        }
-
-        console.error('API Error:', errorBody);
-        throw new InternalServerErrorException('Something wrong.');
-      }
-
-      console.error(
-        'Error calling Neshan directions API:',
-        error.response?.data || error.message,
-      );
-      throw new InternalServerErrorException('Failed to get directions.');
-    }
+    return this.maps.getDirections({
+      vehicleType,
+      tripType,
+      origin,
+      destination,
+      waypoints,
+    });
   }
 
   private async getIntermediateCities(

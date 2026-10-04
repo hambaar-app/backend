@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TripRequestService } from './trip-request.service';
-import { S3Service } from '../../s3/s3.service';
+import { StoragePort } from '../../../infra/ports/ports';
+import { PORTS } from '../../../infra/ports/ports.tokens';
 import { FinancialService } from '../../financial/financial.service';
 import {
   PrismaClient,
@@ -24,7 +25,7 @@ describe('TripRequestService', () => {
   let service: TripRequestService;
   let prisma: DeepMockProxy<PrismaClient>;
   let financialService: DeepMockProxy<FinancialService>;
-  let s3Service: DeepMockProxy<S3Service>;
+  let s3Service: DeepMockProxy<StoragePort>;
   let notificationService: DeepMockProxy<NotificationService>;
   let runner: DeepMockProxy<TransactionRunner>;
   let turfService: DeepMockProxy<TurfService>;
@@ -60,7 +61,7 @@ describe('TripRequestService', () => {
 
     prisma = mockDeep<PrismaClient>();
     financialService = mockDeep<FinancialService>();
-    s3Service = mockDeep<S3Service>();
+    s3Service = mockDeep<StoragePort>();
     notificationService = mockDeep<NotificationService>();
     runner = mockDeep<TransactionRunner>();
     turfService = mockDeep<TurfService>();
@@ -78,7 +79,7 @@ describe('TripRequestService', () => {
         TripRequestService,
         { provide: PrismaService, useValue: prisma },
         { provide: FinancialService, useValue: financialService },
-        { provide: S3Service, useValue: s3Service },
+        { provide: PORTS.STORAGE, useValue: s3Service },
         { provide: NotificationService, useValue: notificationService },
         { provide: TransactionRunner, useValue: runner },
         { provide: TurfService, useValue: turfService },

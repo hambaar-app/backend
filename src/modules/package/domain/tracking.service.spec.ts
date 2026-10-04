@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TrackingService } from './tracking.service';
-import { S3Service } from '../../s3/s3.service';
+import { StoragePort } from '../../../infra/ports/ports';
+import { PORTS } from '../../../infra/ports/ports.tokens';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaClient } from '../../../../generated/prisma';
@@ -8,7 +9,7 @@ import { PrismaClient } from '../../../../generated/prisma';
 describe('TrackingService', () => {
   let service: TrackingService;
   let prisma: DeepMockProxy<PrismaClient>;
-  let s3Service: DeepMockProxy<S3Service>;
+  let s3Service: DeepMockProxy<StoragePort>;
 
   const mockMatchedRequest = {
     id: 'matched-123',
@@ -57,13 +58,13 @@ describe('TrackingService', () => {
     jest.resetAllMocks();
 
     prisma = mockDeep<PrismaClient>();
-    s3Service = mockDeep<S3Service>();
+    s3Service = mockDeep<StoragePort>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TrackingService,
         { provide: PrismaService, useValue: prisma },
-        { provide: S3Service, useValue: s3Service },
+        { provide: PORTS.STORAGE, useValue: s3Service },
       ],
     }).compile();
 

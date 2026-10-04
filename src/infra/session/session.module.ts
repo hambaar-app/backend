@@ -39,4 +39,3 @@ export class SessionModule implements NestModule {
     await this.bundle.client.quit();
   }
 }
-

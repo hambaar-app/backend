@@ -3,7 +3,8 @@ import { TooManyRequestsException } from '../../../common/custom.exceptions';
 import { AuthMessages } from '../../../common/enums/messages.enum';
 import { generateSecureOtp } from '../../../common/utils/codes';
 import { Keyv } from '@keyv/redis';
-import { SmsService } from '../../sms/sms.service';
+import { PORTS } from '../../../infra/ports/ports.tokens';
+import { SmsPort } from '../../../infra/ports/ports';
 import { CachedUserData, UserAttempts } from '../types/auth.types';
 
 export const OTP_CACHE = Symbol('OTP_CACHE');
@@ -33,7 +34,7 @@ export class OtpService {
   constructor(
     @Inject(OTP_CACHE) private readonly cache: Keyv,
     @Inject(OTP_CONFIG) private readonly config: OtpConfig,
-    private readonly smsService: SmsService,
+    @Inject(PORTS.SMS) private readonly smsService: SmsPort,
   ) {}
 
   async sendOtp(phoneNumber: string): Promise<boolean> {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { formatPrismaError } from '../../common/utilities';
@@ -12,14 +12,15 @@ import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { PrismaTransaction } from '../prisma/prisma.types';
 import { UserService } from '../user/user.service';
-import { S3Service } from '../s3/s3.service';
+import { PORTS } from '../../infra/ports/ports.tokens';
+import { StoragePort } from '../../infra/ports/ports';
 
 @Injectable()
 export class VehicleService {
   constructor(
     private prisma: PrismaService,
     private userService: UserService,
-    private s3Service: S3Service,
+    @Inject(PORTS.STORAGE) private storage: StoragePort,
   ) {}
 
   async createBrand({ name }: CreateBrandDto) {
@@ -141,7 +142,7 @@ export class VehicleService {
           if (documents[key]) {
             try {
               presignedUrls[newKey] =
-                await this.s3Service.generateGetPresignedUrl(documents[key]);
+                await this.storage.generateGetPresignedUrl(documents[key]);
             } catch (urlError) {
               console.error(
                 `Failed to generate presigned URL for ${key}:`,
@@ -157,7 +158,7 @@ export class VehicleService {
         presignedUrls.vehiclePics = await Promise.all(
           documents.vehiclePicsKey.map(async (s3Key, index) => {
             try {
-              return this.s3Service.generateGetPresignedUrl(s3Key);
+              return this.storage.generateGetPresignedUrl(s3Key);
             } catch (urlError) {
               console.error(
                 `Failed to generate presigned URL for vehiclePicsKey[${index}]:`,
@@ -223,7 +224,7 @@ export class VehicleService {
               if (documents[key]) {
                 try {
                   presignedUrls[newKey] =
-                    await this.s3Service.generateGetPresignedUrl(
+                    await this.storage.generateGetPresignedUrl(
                       documents[key],
                     );
                 } catch (urlError) {
@@ -244,7 +245,7 @@ export class VehicleService {
             presignedUrls.vehiclePics = await Promise.all(
               documents.vehiclePicsKey.map(async (s3Key, index) => {
                 try {
-                  return await this.s3Service.generateGetPresignedUrl(s3Key);
+                  return await this.storage.generateGetPresignedUrl(s3Key);
                 } catch (urlError) {
                   console.error(
                     `Failed to generate presigned URL for vehiclePicsKey[${index}]:`,

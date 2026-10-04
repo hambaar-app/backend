@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { S3Service } from '../../s3/s3.service';
+import { PORTS } from '../../../infra/ports/ports.tokens';
+import { StoragePort } from '../../../infra/ports/ports';
 import { maskPhoneNumber } from '../../../common/utils/phone';
 
 /**
@@ -15,7 +16,7 @@ import { maskPhoneNumber } from '../../../common/utils/phone';
 export class TrackingService {
   constructor(
     private prisma: PrismaService,
-    private s3Service: S3Service,
+    @Inject(PORTS.STORAGE) private storage: StoragePort,
   ) {}
 
   async getTrackingByCode(trackingCode: string) {
@@ -99,7 +100,7 @@ export class TrackingService {
         },
       },
       transporter: {
-        profilePictureUrl: await this.s3Service.generateGetPresignedUrl(
+        profilePictureUrl: await this.storage.generateGetPresignedUrl(
           matchedRequest.trip.transporter.profilePictureKey,
         ),
         ...matchedRequest.trip.transporter,

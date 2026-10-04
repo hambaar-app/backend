@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { UserService, S3StoragePort, S3_STORAGE_PORT } from './user.service';
+import { UserService } from './user.service';
+import { StoragePort } from '../../infra/ports/ports';
+import { PORTS } from '../../infra/ports/ports.tokens';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   PrismaClient,
@@ -18,7 +20,7 @@ jest.mock('../../common/utilities', () => ({
 describe('UserService', () => {
   let service: UserService;
   let prismaService: DeepMockProxy<PrismaClient>;
-  let storage: DeepMockProxy<S3StoragePort>;
+  let storage: DeepMockProxy<StoragePort>;
 
   const mockUser = {
     id: 'user-123',
@@ -90,13 +92,13 @@ describe('UserService', () => {
     jest.resetAllMocks();
 
     prismaService = mockDeep<PrismaClient>();
-    storage = mockDeep<S3StoragePort>();
+    storage = mockDeep<StoragePort>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: PrismaService, useValue: prismaService },
-        { provide: S3_STORAGE_PORT, useValue: storage },
+        { provide: PORTS.STORAGE, useValue: storage },
       ],
     }).compile();
 

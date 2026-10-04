@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PackageService } from './package.service';
 import { MatchingService } from '../matching.service';
 import { TripService } from '../../trip/application/trip.service';
-import { S3Service } from '../../s3/s3.service';
+import { StoragePort } from '../../../infra/ports/ports';
+import { PORTS } from '../../../infra/ports/ports.tokens';
 import { TurfService } from '../../turf/turf.service';
 import { PricingService } from '../../pricing/pricing.service';
 import { MapService } from '../../map/map.service';
@@ -26,7 +27,7 @@ describe('PackageService', () => {
   let pricingService: DeepMockProxy<PricingService>;
   let matchingService: DeepMockProxy<MatchingService>;
   let tripService: DeepMockProxy<TripService>;
-  let s3Service: DeepMockProxy<S3Service>;
+  let s3Service: DeepMockProxy<StoragePort>;
   let turfService: DeepMockProxy<TurfService>;
   let notificationService: DeepMockProxy<NotificationService>;
   let runner: DeepMockProxy<TransactionRunner>;
@@ -105,7 +106,7 @@ describe('PackageService', () => {
     pricingService = mockDeep<PricingService>();
     matchingService = mockDeep<MatchingService>();
     tripService = mockDeep<TripService>();
-    s3Service = mockDeep<S3Service>();
+    s3Service = mockDeep<StoragePort>();
     turfService = mockDeep<TurfService>();
     notificationService = mockDeep<NotificationService>();
     runner = mockDeep<TransactionRunner>();
@@ -120,7 +121,7 @@ describe('PackageService', () => {
         { provide: PricingService, useValue: pricingService },
         { provide: MatchingService, useValue: matchingService },
         { provide: TripService, useValue: tripService },
-        { provide: S3Service, useValue: s3Service },
+        { provide: PORTS.STORAGE, useValue: s3Service },
         { provide: TurfService, useValue: turfService },
         { provide: NotificationService, useValue: notificationService },
         { provide: TransactionRunner, useValue: runner },
