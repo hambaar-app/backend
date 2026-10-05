@@ -200,7 +200,7 @@ sequenceDiagram
 | **Token Type** | **Validity** | **Purpose** | **Scope** |
 |:---:|:---:|:---|:---|
 | **🔑 Temporary** | 20 minutes | Initial registration | Basic profile creation |
-| **⏳ Progress** | 2 days | Multi-step registration | Transporter verification |
+| **⏳ Progress** | 1 day | Multi-step registration | Transporter verification |
 | **✅ Access** | 20 days | Full system access | All authenticated operations |
 
 ### 🔒 Authorization Guards
@@ -292,8 +292,8 @@ Our dynamic pricing system considers multiple factors for fair and competitive r
 | **Component** | **Default Rate** | **Description** |
 |:---|:---:|:---|
 | 🏁 **Base Price** | 50,000 IRR | Starting price for all deliveries |
-| 📏 **Distance Pricing** | 1,200-600 IRR/km | Tiered rates based on total distance |
-| ⚖️ **Weight Pricing** | 8,000 IRR/100g | Applied to packages over 500g |
+| 📏 **Distance Pricing** | 1,000-600 IRR/km | Tiered rates based on total distance (5 tiers) |
+| ⚖️ **Weight Pricing** | 10,000 IRR/100g | Applied to packages over 500g |
 | ⛽ **Fuel Rate** | 200 IRR/km | Fuel compensation for transporters |
 
 #### Special Handling Multipliers
@@ -312,12 +312,12 @@ Major city advantages and rural area adjustments ensure fair pricing across all 
 | **City Type** | **Multiplier** | **Description** |
 |:---|:---:|:---|
 | **Major City Origin** | 0.9x | 10% discount |
-| **Major City Destination** | 1.2x | 20% premium |
-| **Small Cities** | 1.15x | 15% premium |
+| **Major City Destination** | 1.3x | 30% premium |
+| **Small Cities** | 1.2x | 20% premium |
 
 #### Route Deviation Costs
-- **Distance Deviation**: 2,000 IRR per extra kilometer
-- **Time Deviation**: 1,500 IRR per 10 minutes
+- **Distance Deviation**: 15,000 IRR per extra kilometer
+- **Time Deviation**: 5,000 IRR per 10 minutes
 
 ### 5. 🗺️ Trip Lifecycle Management
 Complete workflow from trip start to completion:
@@ -335,7 +335,7 @@ Complete workflow from trip start to completion:
 - **GPS Integration**: Location-based city and route detection
 
 ### 7. ⬆️ File Upload System
-Secure file management using AWS S3:
+Secure file management using AWS S3 pre-signed URLs. Send the optional `size` (bytes) query param — files declaring over `MAX_UPLOAD_SIZE_MB` (default 10) are rejected with 400:
 
 #### Upload Categories
 - **Transporter Documents**:
@@ -490,6 +490,20 @@ MAP_API_KEY=your-neshan-api-key
 MAP_API_URL=https://api.neshan.org/v1
 SMS_API_KEY=your-sms-api-key
 
+# 📤 Uploads
+MAX_UPLOAD_SIZE_MB=10          # per-file upload cap
+
+# 🌍 API Surface & Security
+API_PREFIX=api
+CORS_ORIGINS=http://localhost:8080
+THROTTLE_TTL=60
+THROTTLE_LIMIT=100
+JWT_ACCESS_EXPIRES_IN=20d
+JWT_TEMP_EXPIRES_IN=20m
+JWT_PROGRESS_EXPIRES_IN=1d
+TIMEOUT_MS=30000
+LOG_LEVEL=log
+
 # ⚙️ Optional Configuration (With default values)
 PORT=3000
 COOKIE_MAX_AGE=1296000000      # 15 days
@@ -505,7 +519,7 @@ BASE_BLOCK_TIME=20 * 60 * 1000 # in milliseconds
 ## Pricing envs
 PRICING_BASE_PRICE=50000
 PRICING_FUEL_RATE=200
-PRICING_WEIGHT_BASE_RATE=8000
+PRICING_WEIGHT_BASE_RATE=10000
 PRICING_PLATFORM_COMMISSION=0.3
 PRICING_DRIVER_SHARE=0.7
 
@@ -516,23 +530,23 @@ PRICING_BOTH_FRAGILE_PERISHABLE=1.5
 
 ### City Premium Factors
 PRICING_MAJOR_CITY_ORIGIN=0.9
-PRICING_MAJOR_CITY_DESTINATION=1.2
+PRICING_MAJOR_CITY_DESTINATION=1.3
 PRICING_BOTH_MAJOR_CITIES=1.0
-PRICING_SMALL_CITY_FACTOR=1.15
+PRICING_SMALL_CITY_FACTOR=1.2
 
 ### Route Deviation Costs
-PRICING_DEVIATION_RATE=2000
-PRICING_TIME_DEVIATION_RATE=1500
+PRICING_DEVIATION_RATE=15000
+PRICING_TIME_DEVIATION_RATE=5000
 
 ### Distance Tier Rates (IRR per km)
-PRICING_TIER_1_RATE=1200
-PRICING_TIER_2_RATE=1000
+PRICING_TIER_1_RATE=1000
+PRICING_TIER_2_RATE=950
 PRICING_TIER_3_RATE=850
 PRICING_TIER_4_RATE=750
-PRICING_TIER_5_RATE=650
+PRICING_TIER_5_RATE=600
 
 ### Major Cities (comma-separated)
-PRICING_MAJOR_CITIES=تهران,اصفهان,مشهد,شیراز,تبریز,اهواز
+PRICING_MAJOR_CITIES=تهران,اصفهان,مشهد
 ```
 
 </details>
@@ -565,7 +579,7 @@ npm run seed
 ### 🌐 Access the Application
 
 - **Frontend**: http://localhost:8080
-- **Backend API**: http://localhost:3000
+- **Backend API**: http://localhost:3000/api (all routes live under the `API_PREFIX`, default `api`)
 - **API Documentation**: http://localhost:3000/docs
 
 ---
@@ -579,15 +593,16 @@ Our comprehensive API documentation is available through Swagger UI at `/docs` w
 ## 🧪 Testing & CI/CD
 
 ### Testing Framework
-- Automated test suites for core functionality
-- Integration tests for external API interactions
-- Unit tests for business logic components
+- **Unit** (`npm test`, co-located `*.spec.ts`, fully mocked — no DB/Redis/network): 74 suites / 611 tests, ~91.9% statements/lines with a pragmatic global coverage gate (90/70/85/90) enforced via `coverageThreshold`
+- **Integration** (`npm run test:integration`, `test/integration/`, real Postgres 17 + Redis 8 via `docker-compose.test.yml`, S3/SMS/Neshan faked at the port boundary): health, validation envelope, pricing golden parity
+- **e2e smoke** (`npm run test:e2e`, `test/e2e/`, full `AppModule` boot): health, 400/404 envelopes
+- Coverage reports upload as CI artifacts (`coverage/`)
 
 ### GitHub Workflow
 The project includes a complete CI/CD pipeline:
 
 1. **Code Push**: Triggers automated workflow
-2. **Test Execution**: Runs comprehensive test suite
+2. **Test Execution**: Runs unit tests (coverage gate), integration tests (Postgres/Redis services), and e2e smoke tests
 3. **Build Process**: Creates Docker images on test success
 4. **Registry Push**: Pushes images to Docker Hub
 5. **Deployment**: Automatic deployment to Liara Cloud
