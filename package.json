@@ -20,6 +20,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:integration:db": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5433/hambaar_test prisma db push --skip-generate",
+    "test:integration": "npm run test:integration:db && jest --config ./test/jest-integration.json",
     "seed:admin": "tsx ./prisma/seeders/admin-test.seed.ts",
     "seed:cities": "tsx ./prisma/seeders/provinces-cities.seed.ts",
     "seed:models": "tsx ./prisma/seeders/vehicle-brands.seed.ts",
@@ -97,6 +99,10 @@
     ],
     "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/test/integration"
+    ],
     "transform": {
       "^.+\\.(t|j)s$": [
         "ts-jest",
@@ -113,6 +119,14 @@
       "!src/**/*.dto.ts",
       "!src/**/*.d.ts"
     ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 90,
+        "branches": 70,
+        "functions": 85,
+        "lines": 90
+      }
+    },
     "coverageDirectory": "./coverage",
     "coverageReporters": [
       "text",
