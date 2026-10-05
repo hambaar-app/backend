@@ -38,6 +38,7 @@ coverage-*.txt
 
 # dotenv environment variable files
 .env*
+!.env.example
 
 # temp directory
 .temp

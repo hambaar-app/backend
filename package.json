@@ -99,7 +99,10 @@
     ],
     "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
-    "testPathIgnorePatterns": ["/node_modules/", "<rootDir>/test/integration"],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/test/integration"
+    ],
     "transform": {
       "^.+\\.(t|j)s$": [
         "ts-jest",
@@ -116,6 +119,14 @@
       "!src/**/*.dto.ts",
       "!src/**/*.d.ts"
     ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 90,
+        "branches": 70,
+        "functions": 85,
+        "lines": 90
+      }
+    },
     "coverageDirectory": "./coverage",
     "coverageReporters": [
       "text",
